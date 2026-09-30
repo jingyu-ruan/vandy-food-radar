@@ -18,7 +18,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 
-from flask import Flask, Response, redirect, render_template, url_for
+from flask import Flask, Response, flash, redirect, render_template, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from ..config import Config
@@ -39,6 +39,7 @@ from ..pipeline import (
     seed_demo,
 )
 from ..pipeline import run as run_pipeline
+from ..providers.calendar import CalendarProvider, build_calendar_provider
 from ..providers.location import (
     LocationProvider,
     WalkingStatus,
@@ -102,6 +103,7 @@ def create_app(
     location_provider: LocationProvider | None = None,
     today_provider: Callable[[], date] | None = None,
     snapshot_store: SnapshotStore | None = None,
+    calendar_provider: CalendarProvider | None = None,
 ) -> Flask:
     """Create the Flask app reading through ``repository`` (design.md §1.1).
 
@@ -112,10 +114,18 @@ def create_app(
     """
 
     app = Flask(__name__)
+    # Secret key backs Flask flash() for the calendar-status message; a fixed
+    # dev value keeps offline/demo mode working with no configuration.
+    app.secret_key = "vandy-food-radar-dev"
     provider = location_provider or build_location_provider(config)
     today_fn = today_provider or (lambda: datetime.now(tz=UTC).date())
     store = (
         snapshot_store if snapshot_store is not None else build_snapshot_store(config)
+    )
+    calendar = (
+        calendar_provider
+        if calendar_provider is not None
+        else build_calendar_provider(config)
     )
 
     def _refresh_sources() -> Sequence[SourceAdapter]:
@@ -180,6 +190,38 @@ def create_app(
     @app.post("/seed")
     def seed() -> WerkzeugResponse:
         seed_demo(repository=repository, config=config, today=today_fn())
+        return redirect(url_for("index"))
+
+    @app.post("/calendar/add/<identity_key>")
+    def calendar_add(identity_key: str) -> WerkzeugResponse:
+        """Add the one explicitly selected event to the calendar (FR-39/FR-40).
+
+        Finds the single event for the target window matching ``identity_key``,
+        skips cancelled events, and calls the injected calendar provider. Never
+        auto-adds: this fires only for an explicit POST. With the Null provider
+        the flashed message surfaces the graceful 'Calendar not configured'
+        state from :class:`CalendarWriteResult.detail`.
+        """
+
+        window = Window.from_config(config, today=today_fn())
+        match = next(
+            (
+                event
+                for event in repository.get_events_for_day(window.target_date)
+                if event.identity_key == identity_key
+            ),
+            None,
+        )
+        if match is None:
+            flash("Event not found")
+        elif match.verification_state is VerificationState.CANCELLED:
+            flash("Cancelled events are not added to the calendar")
+        else:
+            result = calendar.add_event(match)
+            if result.ok:
+                flash(f"Added \u201c{match.title}\u201d to your calendar")
+            else:
+                flash(result.detail or "Could not add to calendar")
         return redirect(url_for("index"))
 
     return app

@@ -10,9 +10,12 @@ loading the offline corpus.
 from __future__ import annotations
 
 from datetime import date
+from urllib.parse import quote
 
 from vandy_food_radar.config import Config
+from vandy_food_radar.models import Event
 from vandy_food_radar.pipeline import seed_demo
+from vandy_food_radar.providers.calendar import CalendarWriteResult
 from vandy_food_radar.store import InMemorySnapshotStore, SqliteRepository
 from vandy_food_radar.web import create_app
 
@@ -98,6 +101,78 @@ def test_conflicts_are_shown_in_expandable_section() -> None:
         body = client.get("/").get_data(as_text=True)
         assert "conflict(s) detected" in body
         assert "<details" in body
+    finally:
+        repository.close()
+
+
+def test_calendar_add_with_null_provider_shows_not_configured() -> None:
+    # Default (Null) provider: POST redirects and index surfaces the graceful
+    # 'Calendar not configured' state; the event is never auto-added.
+    app, repository = _seeded_app()
+    try:
+        client = app.test_client()  # type: ignore[attr-defined]
+        identity_key = "2025-03-11|night pizza"
+        response = client.post(f"/calendar/add/{quote(identity_key, safe='')}")
+        assert response.status_code == 302
+
+        body = client.get("/").get_data(as_text=True)
+        assert "Calendar not configured" in body
+    finally:
+        repository.close()
+
+
+class _RecordingCalendarProvider:
+    """Fake calendar provider recording each add_event call."""
+
+    def __init__(self) -> None:
+        self.added: list[Event] = []
+
+    def add_event(self, event: Event) -> CalendarWriteResult:
+        self.added.append(event)
+        return CalendarWriteResult(ok=True, event_ref="evt-1")
+
+
+def test_calendar_add_calls_provider_once_for_matching_event() -> None:
+    config = Config()
+    repository = SqliteRepository(":memory:")
+    seed_demo(repository=repository, config=config, today=FIXED_TODAY)
+    fake = _RecordingCalendarProvider()
+    try:
+        app = create_app(
+            config,
+            repository=repository,
+            today_provider=lambda: FIXED_TODAY,
+            calendar_provider=fake,
+        )
+        client = app.test_client()
+        identity_key = "2025-03-11|night pizza"
+        response = client.post(f"/calendar/add/{quote(identity_key, safe='')}")
+        assert response.status_code == 302
+
+        assert len(fake.added) == 1
+        assert fake.added[0].identity_key == identity_key
+    finally:
+        repository.close()
+
+
+def test_calendar_add_skips_cancelled_event() -> None:
+    config = Config()
+    repository = SqliteRepository(":memory:")
+    seed_demo(repository=repository, config=config, today=FIXED_TODAY)
+    fake = _RecordingCalendarProvider()
+    try:
+        app = create_app(
+            config,
+            repository=repository,
+            today_provider=lambda: FIXED_TODAY,
+            calendar_provider=fake,
+        )
+        client = app.test_client()
+        # The cancelled Outdoor Movie Night must never be added.
+        identity_key = "2025-03-11|movie night outdoor"
+        response = client.post(f"/calendar/add/{quote(identity_key, safe='')}")
+        assert response.status_code == 302
+        assert fake.added == []
     finally:
         repository.close()
 

@@ -21,6 +21,15 @@
   </header>
 
   <main>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
     {% if cards %}
       <ol class="event-list">
         {% for card in cards %}

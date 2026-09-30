@@ -13,6 +13,7 @@ from __future__ import annotations
 from .calendar import (
     CalendarProvider,
     CalendarWriteResult,
+    GoogleCalendarWriter,
     NullCalendarProvider,
     build_calendar_provider,
 )
@@ -28,6 +29,7 @@ from .location import (
 __all__ = [
     "CalendarProvider",
     "CalendarWriteResult",
+    "GoogleCalendarWriter",
     "HaversineLocationProvider",
     "LocationProvider",
     "NullCalendarProvider",

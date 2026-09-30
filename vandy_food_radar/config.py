@@ -163,6 +163,22 @@ class ProvidersConfig:
 
 
 @dataclass
+class CalendarWriteConfig:
+    """Google Calendar write credentials/target (M8, FR-39/FR-40).
+
+    Disabled by default so the no-op :class:`NullCalendarProvider` is used;
+    a real writer is built only when ``enabled`` is set, credentials are
+    present, and the calendar provider is selected. ``credentials_json`` is the
+    raw service-account JSON (from ``GOOGLE_CALENDAR_CREDENTIALS_JSON``); it is
+    never committed.
+    """
+
+    enabled: bool = False
+    calendar_id: str = ""
+    credentials_json: str = ""
+
+
+@dataclass
 class SnapshotConfig:
     """Upstash Redis REST credentials for cross-run snapshots (M7-M9).
 
@@ -205,6 +221,8 @@ class Config:
     providers: ProvidersConfig = field(default_factory=ProvidersConfig)
     # Cross-run snapshot store credentials (M7-M9); empty => offline default.
     snapshot: SnapshotConfig = field(default_factory=SnapshotConfig)
+    # Google Calendar write credentials (M8); disabled by default.
+    calendar_write: CalendarWriteConfig = field(default_factory=CalendarWriteConfig)
 
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> Config:
@@ -258,6 +276,20 @@ class Config:
             cfg.providers.calendar = _parse_enum(
                 CalendarProviderKind, calendar_provider, cfg.providers.calendar
             )
+
+        calendar_write_enabled = env.get(f"{ENV_PREFIX}CALENDAR_WRITE_ENABLED")
+        if calendar_write_enabled is not None:
+            cfg.calendar_write.enabled = _parse_bool(
+                calendar_write_enabled, default=cfg.calendar_write.enabled
+            )
+        calendar_write_id = env.get(f"{ENV_PREFIX}CALENDAR_ID")
+        if calendar_write_id is not None:
+            cfg.calendar_write.calendar_id = calendar_write_id
+        # Google sets this plain (non-VFR_-prefixed) env var name; the raw
+        # service-account JSON is a secret and is never committed.
+        credentials_json = env.get("GOOGLE_CALENDAR_CREDENTIALS_JSON")
+        if credentials_json is not None:
+            cfg.calendar_write.credentials_json = credentials_json
 
         # Upstash/Vercel set these plain (non-VFR_-prefixed) env var names.
         upstash_url = env.get("UPSTASH_REDIS_REST_URL")

@@ -31,6 +31,16 @@
 
   <p class="explanation">{{ card.explanation }}</p>
 
+  {% if card.event.verification_state.value != "cancelled" %}
+    <form
+      class="add-calendar"
+      method="post"
+      action="{{ url_for('calendar_add', identity_key=card.event.identity_key) }}"
+    >
+      <button type="submit" class="add-calendar-btn">Add to Calendar</button>
+    </form>
+  {% endif %}
+
   {% if card.source_links %}
     <p class="sources">
       Sources:
