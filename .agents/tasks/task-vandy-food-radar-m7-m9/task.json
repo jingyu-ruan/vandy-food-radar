@@ -1,0 +1,7 @@
+{
+  "task_id": "task-vandy-food-radar-m7-m9",
+  "task_description": "Implement Milestones M7 (scheduled daily automation), M8 (Google Calendar write integration), and M9 (live maps location provider) for the existing Vandy Food Radar Python project, plus production deployment configuration (Render.com Blueprint + Dockerfile + prod requirements + README). Reuse and extend the existing adapter/interface seams (LocationProvider, CalendarProvider, RunReport, identity_key upsert, provider-selection config); do NOT rewrite existing code. All new config flags default OFF/offline; the app must boot and serve with no Google credentials set.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}

@@ -1,0 +1,7 @@
+{
+  "task_id": "task-m7-m9-serverless",
+  "task_description": "Implement Vandy Food Radar M7 (scheduled daily automation via Vercel Cron), M8 (Google Calendar write behind CalendarProvider), M9 (live Google Maps walking provider behind LocationProvider), AND convert the app to a serverless-deployable Vercel app backed by a free Upstash Redis SNAPSHOT store (NOT a persistent SQL DB). The only durable state is a per-target-date 'last snapshot' of canonical events used for cross-run change detection (new/time-changed/venue-changed/cancelled). SqliteRepository stays for local/dev with its tests green. Every external integration (Upstash, Google Calendar, Google Maps) is behind an interface, disabled/faked offline by default, and tested with mocks. The app must boot and render on Vercel with NO env vars set (offline demo mode). The SQLite-persistence + Render/APScheduler/gunicorn assumption from the earlier plan is SUPERSEDED by this stateless-serverless + Upstash-snapshot architecture.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}

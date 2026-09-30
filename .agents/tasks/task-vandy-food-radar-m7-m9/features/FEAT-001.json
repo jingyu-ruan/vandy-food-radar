@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "M7 — Scheduled daily automation (tasks.md T7.1-T7.3). Reuse the CLI `run` subcommand (cli.py:main, unchanged) as the platform-agnostic Render-Cron / system-cron entrypoint that does ONE idempotent daily run for 'tomorrow' and exits. Add an OPTIONAL in-process APScheduler wrapper gated behind a new config flag defaulting OFF (no scheduler thread ever started in tests). Add a structured JSON run log that emits the orchestrator's existing RunReport counts. Add offline idempotency + change-detection tests over the fixture corpus. REUSES verbatim: pipeline.run, RunReport (target_date/fetched/merged/conflicts/cancelled/scored/history_entries), identity_key upsert (SqliteRepository.save_event + find_by_identity_key), Window.from_config, build_sources/default_fetcher, build_location_provider. This FEAT is independent of FEAT-002 and FEAT-003; it is ordered first because it adds the apscheduler dependency that FEAT-004 exports.",
+  "status": "pending",
+  "steps": [
+    "In vandy_food_radar/config.py add a `SchedulerConfig` @dataclass (enabled: bool = False, hour: int = 6, minute: int = 0) and add `scheduler: SchedulerConfig = field(default_factory=SchedulerConfig)` to `Config`. In `Config.from_env` add VFR_SCHEDULER_ENABLED (via existing _parse_bool), VFR_SCHEDULER_HOUR and VFR_SCHEDULER_MINUTE overrides (add a small `_parse_int(value, default)` helper next to _parse_float, falling back to default on bad input, matching the module's robust-defaults pattern). Default stays OFF.",
+    "Run `uv add apscheduler` to add the dependency to pyproject.toml + uv.lock.",
+    "Add vandy_food_radar/pipeline/scheduler.py with `run_daily_once(*, db_path: str, config: Config) -> RunReport` that reproduces cli.py:main's wiring exactly — SqliteRepository(db_path), default_fetcher(config), build_sources(config, fetcher), Window.from_config(config, today=datetime.now(tz=UTC).date()), build_location_provider(config) — calls pipeline.run(...), logs the RunReport via runlog (step from FEAT-001 runlog), closes the repository in a finally, and returns the RunReport. Add `start_scheduler(*, db_path: str, config: Config) -> BackgroundScheduler | None` that returns None (starting nothing) when `config.scheduler.enabled` is False, else constructs an apscheduler BackgroundScheduler with a cron trigger at config.scheduler.hour/minute calling run_daily_once and returns it. Import apscheduler lazily inside start_scheduler so a disabled path needs no import side effects.",
+    "Add vandy_food_radar/pipeline/runlog.py with `run_report_to_json(report: RunReport) -> str` returning json.dumps of {target_date (isoformat), fetched, merged, conflicts, cancelled, scored, history_entries} with sort_keys=True, and `log_run_report(report: RunReport, *, stream: TextIO = sys.stdout) -> None` that prints run_report_to_json to the stream. Type stream as typing.TextIO.",
+    "Update vandy_food_radar/pipeline/__init__.py to export run_daily_once, start_scheduler, run_report_to_json, log_run_report (keep existing run, seed_demo, RunReport exports).",
+    "In vandy_food_radar/cli.py, after the existing run/seed print, additionally emit the structured JSON line via pipeline.log_run_report(report) so the CLI `run` used by Render Cron produces the observable run log (T7.3). Keep the human-readable print too. Do not change the subcommand surface.",
+    "Add tests/test_runlog.py: assert run_report_to_json(RunReport(...)) is valid JSON containing all 7 keys (target_date, fetched, merged, conflicts, cancelled, scored, history_entries) with the exact counts set on the report.",
+    "Add tests/test_scheduler.py using SqliteRepository(':memory:') is not possible across two connections, so use a tmp_path db file: (a) run_daily_once twice over an offline single-source adapter and assert no duplicate events (E-9 late-add idempotency via identity_key upsert); (b) reuse the _SingleRecordAdapter change-detection pattern from tests/test_pipeline_e2e.py to assert a time change (E-2) and venue change (E-3) update in place with exactly one history row each; (c) assert a cancelled fixture event yields verification_state CANCELLED with a single cancellation history row across repeated runs (E-4); (d) assert start_scheduler returns None and starts no thread when config.scheduler.enabled is False (the default)."
+  ],
+  "acceptance_criteria": [
+    "`uv run pytest tests/test_scheduler.py tests/test_runlog.py -q` passes.",
+    "Config().scheduler.enabled is False by default; Config.from_env honors VFR_SCHEDULER_ENABLED/_HOUR/_MINUTE.",
+    "start_scheduler returns None (no BackgroundScheduler thread) when scheduler disabled; tests leave no running scheduler thread.",
+    "run_report_to_json emits exactly the 7 RunReport count keys as valid JSON.",
+    "Running the pipeline twice for the same target day creates no duplicate events and appends history only for changed fields (idempotency preserved via existing identity_key upsert).",
+    "`make check` is green (ruff, black --check, mypy strict, pytest all pass)."
+  ],
+  "verification": [
+    "uv run pytest tests/test_scheduler.py tests/test_runlog.py -q",
+    "uv run mypy",
+    "make check"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
