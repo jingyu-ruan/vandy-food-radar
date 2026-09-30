@@ -355,11 +355,20 @@ class Config:
         if maps_api_key is not None:
             cfg.maps.api_key = maps_api_key
 
-        # Upstash/Vercel set these plain (non-VFR_-prefixed) env var names.
-        upstash_url = env.get("UPSTASH_REDIS_REST_URL")
+        # Prefer the app's established names, then Vercel integration names
+        # generated with and without the custom UPSTASH_REDIS_REST prefix.
+        upstash_url = (
+            env.get("UPSTASH_REDIS_REST_URL")
+            or env.get("UPSTASH_REDIS_REST_KV_REST_API_URL")
+            or env.get("KV_REST_API_URL")
+        )
         if upstash_url is not None:
             cfg.snapshot.upstash_rest_url = upstash_url
-        upstash_token = env.get("UPSTASH_REDIS_REST_TOKEN")
+        upstash_token = (
+            env.get("UPSTASH_REDIS_REST_TOKEN")
+            or env.get("UPSTASH_REDIS_REST_KV_REST_API_TOKEN")
+            or env.get("KV_REST_API_TOKEN")
+        )
         if upstash_token is not None:
             cfg.snapshot.upstash_rest_token = upstash_token
 

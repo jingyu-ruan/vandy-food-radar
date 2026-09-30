@@ -113,13 +113,15 @@ configured, and it never fixture-seeds `/tmp`.
 
 ### Required Vercel environment variables
 
-Set all four in the Vercel project, for the Production environment:
+Configure each row in the Vercel project for the Production environment. For
+Upstash, `Config.from_env` uses the first non-empty variable in each listed
+URL/token sequence:
 
 | Variable | Required value/purpose |
 | --- | --- |
 | `VFR_OFFLINE` | `false` |
-| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL. |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token. |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_KV_REST_API_URL` / `KV_REST_API_URL` | Upstash Redis REST URL, in precedence order. |
+| `UPSTASH_REDIS_REST_TOKEN` / `UPSTASH_REDIS_REST_KV_REST_API_TOKEN` / `KV_REST_API_TOKEN` | Upstash Redis REST token, in precedence order. |
 | `CRON_SECRET` | Strong random bearer token protecting refresh routes. |
 
 `VFR_REFRESH_TOKEN` may replace/override `CRON_SECRET`, but using
