@@ -15,7 +15,7 @@ WEB_HOST := 127.0.0.1
 WEB_PORT := 5000
 
 .PHONY: help install lint format format-check typecheck test check clean \
-	seed run web demo
+	seed run web demo serve-vercel
 
 help: ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -55,6 +55,9 @@ web: ## Serve the ranked-events web UI on localhost (reads $(DB_PATH)).
 demo: seed ## Seed the corpus then serve the web UI at http://127.0.0.1:5000/.
 	VFR_DB=$(DB_PATH) uv run flask --app vandy_food_radar.web.wsgi run \
 		--host $(WEB_HOST) --port $(WEB_PORT)
+
+serve-vercel: ## Serve the Vercel entrypoint (api/index.py) locally in demo mode.
+	uv run flask --app api.index run --host $(WEB_HOST) --port $(WEB_PORT)
 
 clean: ## Remove caches and build artifacts.
 	rm -rf .pytest_cache .mypy_cache .ruff_cache build dist *.egg-info

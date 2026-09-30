@@ -63,6 +63,7 @@ make install
 | `make seed`      | Load the fixture corpus into SQLite, retargeted to tomorrow. |
 | `make run`       | Run the pipeline over the configured sources for the target day. |
 | `make demo`      | Seed the corpus **and** serve the ranked-events web UI. |
+| `make serve-vercel` | Serve the Vercel entrypoint (`api/index.py`) locally in demo mode. |
 
 ## Running the app
 
@@ -105,6 +106,74 @@ uv run python -m vandy_food_radar --db store.db run
 Both write to the SQLite database at `--db` (default `store.db`, a local
 runtime artifact that is not committed). Re-running is idempotent: events upsert
 by their dedup key and no duplicates are created.
+
+## Deployment
+
+The app ships as a stateless serverless function on
+[Vercel](https://vercel.com/). The Vercel Python runtime serves the Flask WSGI
+`app` re-exported from `api/index.py`; `vercel.json` routes every request path
+to it, pins Python 3.11, and declares a daily cron. `requirements.txt` (a
+committed, pip-installable manifest) tells Vercel what to install.
+
+### Deploy to Vercel (click-by-click)
+
+1. Go to [vercel.com](https://vercel.com/) and sign in with GitHub.
+2. Click **Add New… → Project** and **Import** the GitHub repository
+   `jingyu-ruan/vandy-food-radar`.
+3. Vercel auto-detects the Python function at `api/index.py` and installs from
+   `requirements.txt`. No build settings need changing.
+4. Click **Deploy**. When it finishes, open the generated `*.vercel.app` URL.
+
+The site works **immediately** with no configuration: it boots in offline demo
+mode, seeds the fixture corpus into an ephemeral `/tmp/store.db`, and uses an
+in-memory snapshot store, so the page is never empty. You (not this project)
+perform the final click-to-deploy — the tooling here never authenticates to
+Vercel.
+
+> `requirements.txt` is generated from the project dependencies. Whenever deps
+> change, regenerate it with `uv export --no-dev --no-hashes -o requirements.txt`
+> and commit the result (Vercel uses pip; `uv.lock` is gitignored).
+
+### Optional: cross-session change tracking (Upstash Redis)
+
+To persist the previous run's events across serverless invocations (so events
+are flagged **New / Time changed / Venue changed / Cancelled** between days),
+create a free [Upstash](https://upstash.com/) Redis database and set these in
+the Vercel project's **Environment Variables**:
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
+Without them the app degrades gracefully to the in-memory snapshot (every event
+reads as **New**); it never errors on a KV outage.
+
+### Optional: Google Calendar and Google Maps
+
+- **Google Calendar** (add a selected event to a calendar): set
+  `GOOGLE_CALENDAR_CREDENTIALS_JSON`, `VFR_CALENDAR_ID`,
+  `VFR_CALENDAR_WRITE_ENABLED=true`, and `VFR_CALENDAR_PROVIDER=google`.
+- **Google Maps** (real walking times): set `GOOGLE_MAPS_API_KEY`,
+  `VFR_MAPS_ENABLED=true`, and `VFR_LOCATION_PROVIDER=google_maps`.
+
+### Daily refresh (Vercel Cron)
+
+`vercel.json` declares a cron that calls `/cron/refresh` once daily at
+`0 11 * * *` (11:00 UTC ≈ early morning US Central). That route runs the
+pipeline for the target day via the snapshot workflow and repopulates the
+snapshot, so change badges stay current without any in-process scheduler.
+
+### Run the serverless entrypoint locally
+
+```sh
+make serve-vercel   # serves api/index.py at http://127.0.0.1:5000/
+```
+
+> **Note — superseded design.** The earlier design assumed persistent SQLite
+> storage deployed on Render with an in-process APScheduler and gunicorn. That
+> approach is **SUPERSEDED** by this stateless-serverless architecture: SQLite
+> remains only for local/dev, cross-session state lives in an Upstash snapshot,
+> and Vercel Cron replaces the in-process scheduler. Do not reintroduce Render,
+> a persistent disk, APScheduler, or gunicorn.
 
 ## Configuration
 

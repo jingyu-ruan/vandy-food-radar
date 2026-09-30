@@ -124,10 +124,18 @@ class SqliteRepository:
     Pass an on-disk path or ``":memory:"``. The schema is created on first
     use. Foreign keys with cascade delete keep child rows consistent when an
     event's records are replaced during an upsert.
+
+    ``check_same_thread`` defaults to :mod:`sqlite3`'s own default (``True``);
+    the serverless/WSGI boot path (:func:`vandy_food_radar.web.wsgi.build_app`)
+    passes ``False`` because the app is constructed on one thread while a real
+    WSGI server (the Flask dev server, or Vercel) dispatches requests on worker
+    threads sharing this single connection.
     """
 
-    def __init__(self, db_path: str = ":memory:") -> None:
-        self._conn = sqlite3.connect(db_path)
+    def __init__(
+        self, db_path: str = ":memory:", *, check_same_thread: bool = True
+    ) -> None:
+        self._conn = sqlite3.connect(db_path, check_same_thread=check_same_thread)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.executescript(_SCHEMA)
