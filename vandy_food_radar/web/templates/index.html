@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vandy Food Radar — {{ target_date }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}" />
+</head>
+<body>
+  <header class="masthead">
+    <div>
+      <h1>Vandy Food Radar</h1>
+      <p class="subtitle">
+        Ranked free-food events for {{ target_date }} · walking from
+        {{ reference_label }}
+      </p>
+    </div>
+    <form method="post" action="{{ url_for('refresh') }}">
+      <button type="submit" class="refresh">Refresh now</button>
+    </form>
+  </header>
+
+  <main>
+    {% if cards %}
+      <ol class="event-list">
+        {% for card in cards %}
+          {% with rank = loop.index %}
+            {% include "_event_card.html" %}
+          {% endwith %}
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="empty">
+        No events yet for {{ target_date }}. Run
+        <code>make seed</code> (or the "Refresh now" button) to load events.
+      </p>
+    {% endif %}
+  </main>
+</body>
+</html>

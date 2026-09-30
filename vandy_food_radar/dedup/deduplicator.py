@@ -101,14 +101,37 @@ def compute_dedup_key(
 def _canonical_member(members: list[NormalizedRecord]) -> NormalizedRecord:
     """Pick a stable representative for placeholder canonical/key fields.
 
-    Deterministic: the member with the most title tokens (richest title), ties
-    broken by ``source_record_id`` so the choice never depends on input order.
+    Deterministic and *content-based*: the member with the most title tokens
+    (richest title), ties broken by the longest and then lexically-smallest
+    title, location, and start time. The tie-break deliberately avoids
+    ``source_record_id`` because that id is a fresh UUID per ingest run, which
+    would otherwise make the derived ``dedup_key`` unstable across runs and
+    break idempotent upsert (FR-42, AC-10).
     """
 
-    return max(
-        members,
-        key=lambda r: (len(title_tokens(r.title)), r.source_record_id),
+    return max(members, key=_canonical_sort_key)
+
+
+def _canonical_sort_key(record: NormalizedRecord) -> tuple[int, int, str, str, str]:
+    """Stable, content-only ordering key for representative selection."""
+
+    title = record.title or ""
+    location = record.location or ""
+    start = record.start_time.isoformat() if record.start_time is not None else ""
+    # Negate the lexical strings so ``max`` prefers the smallest title/location.
+    return (
+        len(title_tokens(title)),
+        len(title),
+        _neg_lexical(title),
+        _neg_lexical(location),
+        start,
     )
+
+
+def _neg_lexical(value: str) -> str:
+    """Invert a string's code points so ``max`` yields the lexically-smallest."""
+
+    return "".join(chr(0x10FFFF - ord(ch)) for ch in value)
 
 
 def _build_event_shell(dedup_key: str, members: list[NormalizedRecord]) -> Event:

@@ -1,0 +1,54 @@
+<li class="event-card {{ card.state_class }}">
+  <div class="card-head">
+    <span class="rank">{{ rank }}</span>
+    <h2 class="title">{{ card.event.title }}</h2>
+    <span class="badge {{ card.state_class }}">{{ card.state_label }}</span>
+    {% if card.event.score_total is not none %}
+      <span class="score" title="ranking score">
+        {{ '%.2f'|format(card.event.score_total) }}
+      </span>
+    {% endif %}
+  </div>
+
+  <dl class="facts">
+    <div><dt>Time</dt><dd>{{ card.time_range }}</dd></div>
+    <div><dt>Location</dt>
+      <dd>{{ card.event.location or "Location TBD" }}</dd></div>
+    <div><dt>Food</dt>
+      <dd>
+        <span class="chip">{{ card.food_confirmed_label }}</span>
+        {{ card.event.food_description or "No description provided" }}
+      </dd>
+    </div>
+    <div><dt>RSVP</dt><dd>{{ card.rsvp_label }}</dd></div>
+    <div><dt>Walking</dt><dd>{{ card.walking_label }}</dd></div>
+  </dl>
+
+  <p class="explanation">{{ card.explanation }}</p>
+
+  {% if card.source_links %}
+    <p class="sources">
+      Sources:
+      {% for label, url in card.source_links %}
+        <a href="{{ url }}" rel="noreferrer">{{ label }}</a>{% if not loop.last %} · {% endif %}
+      {% endfor %}
+    </p>
+  {% endif %}
+
+  {% if card.conflicts %}
+    <details class="conflicts">
+      <summary>{{ card.conflicts|length }} conflict(s) detected</summary>
+      <ul>
+        {% for conflict in card.conflicts %}
+          <li>
+            <strong>{{ conflict.field_name }}</strong>:
+            {{ conflict.values|join('; ') }}
+            {% if conflict.resolution %}
+              <em>({{ conflict.resolution }})</em>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </details>
+  {% endif %}
+</li>
