@@ -14,6 +14,7 @@ from .deduplicator import (
     FINGERPRINT_TIME_ROUNDING_MINUTES,
     MergedEvent,
     compute_dedup_key,
+    compute_identity_key,
     deduplicate,
 )
 from .similarity import (
@@ -32,6 +33,7 @@ __all__ = [
     "block_by_date",
     "combined_similarity",
     "compute_dedup_key",
+    "compute_identity_key",
     "deduplicate",
     "location_sim",
     "organizer_sim",

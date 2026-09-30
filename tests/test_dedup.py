@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from vandy_food_radar.config import DedupConfig
 from vandy_food_radar.dedup import (
     compute_dedup_key,
+    compute_identity_key,
     deduplicate,
     time_proximity,
     title_sim,
@@ -213,6 +214,30 @@ def test_dedup_key_differs_by_date() -> None:
     key_tue = compute_dedup_key(date(2025, 3, 11), "Coffee Hour", "Library", at_six)
     key_next = compute_dedup_key(date(2025, 3, 18), "Coffee Hour", "Library", at_six)
     assert key_tue != key_next
+
+
+def test_identity_key_is_stable_across_time_and_venue_changes() -> None:
+    # A verified time or venue change must keep the same cross-run identity so
+    # the event updates in place rather than duplicating (FR-42, E-2, E-3).
+    day = date(2025, 3, 11)
+    base = compute_identity_key(day, "Gala Dinner")
+    assert compute_identity_key(day, "Gala Dinner (Free!)") == base
+    # dedup_key, by contrast, shifts when the time or venue moves.
+    at_six = time(18, 0, tzinfo=ZoneInfo(TZ))
+    at_seven = time(19, 0, tzinfo=ZoneInfo(TZ))
+    assert compute_dedup_key(day, "Gala Dinner", "Hall A", at_six) != compute_dedup_key(
+        day, "Gala Dinner", "Hall A", at_seven
+    )
+
+
+def test_identity_key_differs_by_date_and_title() -> None:
+    day = date(2025, 3, 11)
+    assert compute_identity_key(day, "Coffee Hour") != compute_identity_key(
+        date(2025, 3, 18), "Coffee Hour"
+    )
+    assert compute_identity_key(day, "Coffee Hour") != compute_identity_key(
+        day, "Tea Social"
+    )
 
 
 def test_borderline_match_flags_possible_duplicate() -> None:

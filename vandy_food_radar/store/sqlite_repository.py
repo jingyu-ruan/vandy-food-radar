@@ -6,10 +6,14 @@ Uses only the standard-library :mod:`sqlite3`. Every entity from
 explain how each normalized record was produced (FR-31, FR-32).
 
 Writes are idempotent: :meth:`SqliteRepository.save_event` upserts the event by
-``dedup_key`` inside one transaction and replaces the event's child rows, so a
-repeated scheduled run never duplicates events or their attached records
-(FR-42, AC-10). Values are serialized deterministically to text (ISO strings
-for date/time/datetime, ``.value`` for enums, JSON for structured fields).
+its stable ``identity_key`` inside one transaction and replaces the event's
+child rows, so a repeated scheduled run never duplicates events or their
+attached records (FR-42, AC-10). Keying on ``identity_key`` (date + title
+tokens) rather than the full ``dedup_key`` means a verified time or venue change
+updates the same event in place — with the stored ``dedup_key`` refreshed —
+instead of inserting a duplicate (AC-11, E-2, E-3). Values are serialized
+deterministically to text (ISO strings for date/time/datetime, ``.value`` for
+enums, JSON for structured fields).
 """
 
 from __future__ import annotations
@@ -39,7 +43,8 @@ from ..models import (
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
     id TEXT PRIMARY KEY,
-    dedup_key TEXT NOT NULL UNIQUE,
+    identity_key TEXT NOT NULL UNIQUE,
+    dedup_key TEXT NOT NULL,
     title TEXT NOT NULL,
     event_date TEXT NOT NULL,
     start_time TEXT,
@@ -144,26 +149,28 @@ class SqliteRepository:
         conflicts: list[Conflict],
         score_components: list[ScoreComponent],
     ) -> None:
-        """Upsert the event (by ``dedup_key``) and replace its child rows."""
+        """Upsert the event (by ``identity_key``) and replace its child rows."""
         with self._conn:  # one transaction; commits on success, rolls back on error
             self._conn.execute(
                 """
                 INSERT INTO events (
-                    id, dedup_key, title, event_date, start_time, end_time,
-                    location, location_lat, location_lng, organizer,
+                    id, identity_key, dedup_key, title, event_date, start_time,
+                    end_time, location, location_lat, location_lng, organizer,
                     rsvp_required, rsvp_url, rsvp_link_ok, event_url,
                     food_confirmed, food_category, food_description,
                     verification_state, confidence, score_total,
                     created_at, updated_at
                 ) VALUES (
-                    :id, :dedup_key, :title, :event_date, :start_time, :end_time,
+                    :id, :identity_key, :dedup_key, :title, :event_date,
+                    :start_time, :end_time,
                     :location, :location_lat, :location_lng, :organizer,
                     :rsvp_required, :rsvp_url, :rsvp_link_ok, :event_url,
                     :food_confirmed, :food_category, :food_description,
                     :verification_state, :confidence, :score_total,
                     :created_at, :updated_at
                 )
-                ON CONFLICT(dedup_key) DO UPDATE SET
+                ON CONFLICT(identity_key) DO UPDATE SET
+                    dedup_key = excluded.dedup_key,
                     title = excluded.title,
                     event_date = excluded.event_date,
                     start_time = excluded.start_time,
@@ -186,10 +193,10 @@ class SqliteRepository:
                 """,
                 self._event_params(event),
             )
-            # Canonical event id keyed on dedup_key (may differ from event.id
-            # on a repeat run); child rows reference the persisted id.
+            # Canonical event id keyed on identity_key (may differ from
+            # event.id on a repeat run); child rows reference the persisted id.
             row = self._conn.execute(
-                "SELECT id FROM events WHERE dedup_key = ?", (event.dedup_key,)
+                "SELECT id FROM events WHERE identity_key = ?", (event.identity_key,)
             ).fetchone()
             event_id = str(row["id"])
 
@@ -296,6 +303,13 @@ class SqliteRepository:
         ).fetchone()
         return self._row_to_event(row) if row is not None else None
 
+    def find_by_identity_key(self, key: str) -> Event | None:
+        """Return the event with ``identity_key == key``, or ``None``."""
+        row = self._conn.execute(
+            "SELECT * FROM events WHERE identity_key = ?", (key,)
+        ).fetchone()
+        return self._row_to_event(row) if row is not None else None
+
     def get_conflicts(self, event_id: str) -> list[Conflict]:
         """Return recorded conflicts for an event."""
         rows = self._conn.execute(
@@ -339,6 +353,7 @@ class SqliteRepository:
         geo = event.location_geo
         return {
             "id": event.id,
+            "identity_key": event.identity_key,
             "dedup_key": event.dedup_key,
             "title": event.title,
             "event_date": event.event_date.isoformat(),
@@ -432,6 +447,7 @@ class SqliteRepository:
         )
         return Event(
             id=row["id"],
+            identity_key=row["identity_key"],
             dedup_key=row["dedup_key"],
             title=row["title"],
             event_date=date.fromisoformat(row["event_date"]),

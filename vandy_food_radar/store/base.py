@@ -52,6 +52,15 @@ class Repository(Protocol):
         """Return the event with ``dedup_key == key``, or ``None``."""
         ...
 
+    def find_by_identity_key(self, key: str) -> Event | None:
+        """Return the event with the stable ``identity_key == key``, or ``None``.
+
+        The pipeline reconciles updates and change history against this key so a
+        verified time/venue change updates in place instead of duplicating the
+        event (FR-42/FR-43, AC-11).
+        """
+        ...
+
     def append_history(self, entry: EventHistory) -> None:
         """Append one history row recording a changed detail (FR-43)."""
         ...

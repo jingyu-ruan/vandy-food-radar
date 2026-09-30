@@ -131,11 +131,18 @@ def run(
             if m.source_record_id in source_map
         ]
 
-        history = _diff_history(repository.find_by_dedup_key(event.dedup_key), event)
+        previous = repository.find_by_identity_key(event.identity_key)
+        # Adopt the persisted event id when the event already exists so the row
+        # (and its history) update in place under a stable id, even when a time
+        # or venue change would otherwise give the fresh shell a different id
+        # (FR-42/FR-43, AC-11, E-2, E-3).
+        if previous is not None:
+            event.id = previous.id
+        history = _diff_history(previous, event)
 
         now = _now_utc()
         event.updated_at = now
-        if repository.find_by_dedup_key(event.dedup_key) is None:
+        if previous is None:
             event.created_at = now
 
         repository.save_event(
@@ -145,7 +152,17 @@ def run(
             [_serialize_conflict(c) for c in verified.conflicts],
             scored.components,
         )
-        for entry in [*verified.history, *history]:
+        # Cancellation history is a transition marker: only append it the first
+        # time an event is seen as cancelled, not on every re-run of an already-
+        # cancelled event (FR-42, AC-10). The verifier always produces it (its
+        # unit contract); the orchestrator decides whether it is new.
+        already_cancelled = (
+            previous is not None
+            and previous.verification_state is VerificationState.CANCELLED
+        )
+        transition_history = [] if already_cancelled else verified.history
+        for entry in [*transition_history, *history]:
+            entry.event_id = event.id
             repository.append_history(entry)
             report.history_entries += 1
         report.saved_event_ids.append(event.id)
@@ -220,13 +237,21 @@ class _RetargetingSourceAdapter:
 
 
 def _diff_history(previous: Event | None, current: Event) -> list[EventHistory]:
-    """Build history rows for tracked fields that changed (FR-43, AC-11)."""
+    """Build history rows for tracked fields that changed (FR-43, AC-11).
+
+    When ``current`` is cancelled, ``verification_state`` is skipped here because
+    the verifier emits a dedicated cancellation-transition entry for it; letting
+    the generic diff also fire would double-record the same transition.
+    """
 
     if previous is None:
         return []
     entries: list[EventHistory] = []
     now = _now_utc()
+    cancelled_now = current.verification_state is VerificationState.CANCELLED
     for field_name in _TRACKED_FIELDS:
+        if field_name == "verification_state" and cancelled_now:
+            continue
         old = _tracked_value(getattr(previous, field_name))
         new = _tracked_value(getattr(current, field_name))
         if old != new:

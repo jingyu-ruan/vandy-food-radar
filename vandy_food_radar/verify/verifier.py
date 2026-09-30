@@ -388,6 +388,7 @@ def _clone_event(source: Event) -> Event:
     return Event(
         id=source.id,
         dedup_key=source.dedup_key,
+        identity_key=source.identity_key,
         title=source.title,
         event_date=source.event_date,
         start_time=source.start_time,

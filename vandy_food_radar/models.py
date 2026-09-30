@@ -114,6 +114,11 @@ class Event:
     dedup_key: str
     title: str
     event_date: date
+    # Stable cross-run identity (event_date + title tokens). Unlike
+    # ``dedup_key`` it does not fold in venue/start time, so a verified time or
+    # venue change updates the same event in place instead of inserting a
+    # duplicate (FR-42/FR-43, AC-11, E-2, E-3).
+    identity_key: str = ""
     start_time: time | None = None
     end_time: time | None = None
     location: str | None = None

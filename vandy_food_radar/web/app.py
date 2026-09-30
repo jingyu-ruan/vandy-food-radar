@@ -39,7 +39,7 @@ from ..providers.location import (
     build_location_provider,
 )
 from ..ranking import build_explanation
-from ..ranking.engine import order_events, score_event
+from ..ranking.engine import ScoredEvent, order_events
 from ..sources import SourceAdapter, Window, build_sources, default_fetcher
 from ..store import Repository
 
@@ -147,14 +147,17 @@ def _build_cards(
 ) -> list[EventCard]:
     """Assemble ranked :class:`EventCard` view-models for ``day``.
 
-    Reordered with the deterministic ranking order (cancelled last, score desc,
-    earlier start, title) so the display honors §6.2 even though the SQL read
-    orders only by score/title.
+    Reads the events and their persisted :class:`ScoreComponent` rows through
+    the Repository — the scores were computed and stored at pipeline time, so
+    the view never recomputes them (avoiding redundant work and any
+    display/persistence drift). Reordered with the deterministic ranking order
+    (cancelled last, score desc, earlier start, title) so the display honors
+    §6.2 even though the SQL read orders only by score/title.
     """
 
     events = repository.get_events_for_day(day)
     scored = [
-        score_event(event, config=config, location_provider=provider)
+        ScoredEvent(event=event, components=repository.get_score_components(event.id))
         for event in events
     ]
     ordered = order_events(scored)
@@ -171,7 +174,7 @@ def _build_card(
     event: Event,
     components: list[ScoreComponent],
 ) -> EventCard:
-    """Build one card from an event and its (recomputed) score components."""
+    """Build one card from an event and its persisted score components."""
 
     conflicts = repository.get_conflicts(event.id)
     sources = repository.get_source_records(event.id)

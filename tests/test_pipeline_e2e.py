@@ -16,6 +16,7 @@ from datetime import date, time
 from vandy_food_radar.config import Config
 from vandy_food_radar.models import (
     SourceId,
+    SourceRecord,
     VerificationState,
 )
 from vandy_food_radar.pipeline import run as run_pipeline
@@ -41,6 +42,46 @@ def _run(repository: SqliteRepository, config: Config) -> None:
 
 def _events_by_title(repository: SqliteRepository) -> dict[str, object]:
     return {e.title: e for e in repository.get_events_for_day(TARGET_DAY)}
+
+
+class _SingleRecordAdapter:
+    """Minimal offline adapter emitting one anchor-link record (no network)."""
+
+    source_id = "anchor_link"
+
+    def __init__(self, *, start_time: str, location: str) -> None:
+        self._start_time = start_time
+        self._location = location
+        self._counter = 0
+
+    def fetch(self, window: object) -> list[SourceRecord]:  # noqa: ARG002
+        self._counter += 1
+        return [
+            SourceRecord(
+                id=f"rec-{self._counter}",
+                event_id="",
+                source_id=SourceId.ANCHOR_LINK,
+                source_url="https://anchorlink.vanderbilt.edu/e/gala",
+                parsed_fields={
+                    "title": "Spring Gala Dinner",
+                    "event_date": "2025-03-11",
+                    "start_time": self._start_time,
+                    "location": self._location,
+                    "food_confirmed": "confirmed",
+                    "food_description": "Catered dinner.",
+                },
+            )
+        ]
+
+
+def _run_single(repository: SqliteRepository, adapter: _SingleRecordAdapter) -> None:
+    run_pipeline(
+        Window(target_date=TARGET_DAY),
+        repository=repository,
+        sources=[adapter],
+        location_provider=HaversineLocationProvider(),
+        config=Config(),
+    )
 
 
 def test_full_pipeline_over_corpus() -> None:
@@ -105,5 +146,61 @@ def test_repeat_run_is_idempotent_and_records_history() -> None:
         for event in second:
             records = repository.get_source_records(event.id)
             assert len(records) == len({r.source_url for r in records})
+
+        # History is not re-appended on an unchanged re-run: the cancelled
+        # Outdoor Movie Night keeps exactly one cancellation entry, not one per
+        # pass (FR-42, AC-10). A third run must not grow it either.
+        _run(repository, config)
+        movie = next(e for e in second if e.title == "Outdoor Movie Night")
+        cancellation_rows = [
+            h
+            for h in repository.get_history(movie.id)
+            if h.new_value == VerificationState.CANCELLED.value
+        ]
+        assert len(cancellation_rows) == 1
+    finally:
+        repository.close()
+
+
+def test_time_and_venue_change_update_in_place_with_history() -> None:
+    """A verified time/venue change updates the event, not duplicates it (E-2/E-3)."""
+
+    repository = SqliteRepository(":memory:")
+    try:
+        _run_single(
+            repository, _SingleRecordAdapter(start_time="18:00", location="Hall A")
+        )
+        first = repository.get_events_for_day(TARGET_DAY)
+        assert len(first) == 1
+        event_id = first[0].id
+
+        # Time change 18:00 -> 19:00 (AC-11, E-2): still one event, in place.
+        _run_single(
+            repository, _SingleRecordAdapter(start_time="19:00", location="Hall A")
+        )
+        after_time = repository.get_events_for_day(TARGET_DAY)
+        assert len(after_time) == 1
+        assert after_time[0].id == event_id
+        assert after_time[0].start_time == time(19, 0)
+        start_history = [
+            h for h in repository.get_history(event_id) if h.field_name == "start_time"
+        ]
+        assert len(start_history) == 1
+        assert start_history[0].old_value == "18:00:00"
+        assert start_history[0].new_value == "19:00:00"
+
+        # Venue change Hall A -> Hall B (E-3): still one event, in place.
+        _run_single(
+            repository, _SingleRecordAdapter(start_time="19:00", location="Hall B")
+        )
+        after_venue = repository.get_events_for_day(TARGET_DAY)
+        assert len(after_venue) == 1
+        assert after_venue[0].location == "Hall B"
+        location_history = [
+            h for h in repository.get_history(event_id) if h.field_name == "location"
+        ]
+        assert len(location_history) == 1
+        assert location_history[0].old_value == "Hall A"
+        assert location_history[0].new_value == "Hall B"
     finally:
         repository.close()

@@ -86,9 +86,11 @@ def compute_dedup_key(
     """Build the deterministic ``dedup_key`` (design.md §4, step 5).
 
     The key is ``event_date`` + a stable fingerprint of sorted normalized title
-    tokens, the normalized venue, and the rounded start time. Two records that
-    describe the same event on the same day therefore share a key across runs,
-    enabling idempotent upsert (FR-42).
+    tokens, the normalized venue, and the rounded start time. It fingerprints
+    the *current* shape of the merged cluster so within-run clustering and
+    change detection are precise. For cross-run identity that must survive a
+    verified time or venue change, use :func:`compute_identity_key` instead
+    (FR-42).
     """
 
     day = event_date.isoformat() if event_date is not None else "no-date"
@@ -96,6 +98,21 @@ def compute_dedup_key(
     venue_fp = _venue_fingerprint(location)
     time_fp = _round_minutes(start_time, granularity=FINGERPRINT_TIME_ROUNDING_MINUTES)
     return f"{day}|{title_fp}|{venue_fp}|{time_fp}"
+
+
+def compute_identity_key(event_date: date | None, title: str | None) -> str:
+    """Build the stable cross-run ``identity_key`` (FR-42/FR-43, E-2, E-3).
+
+    Composed only from ``event_date`` and the sorted normalized title tokens —
+    deliberately *excluding* venue and start time so that a verified time change
+    (18:00 -> 19:00) or venue change (Hall A -> Hall B) keeps the same identity
+    and updates the existing event in place, with the change recorded as history
+    (AC-11), rather than inserting a duplicate record.
+    """
+
+    day = event_date.isoformat() if event_date is not None else "no-date"
+    title_fp = " ".join(sorted(title_tokens(title)))
+    return f"{day}|{title_fp}"
 
 
 def _canonical_member(members: list[NormalizedRecord]) -> NormalizedRecord:
@@ -148,11 +165,13 @@ def _build_event_shell(dedup_key: str, members: list[NormalizedRecord]) -> Event
         (m.event_date for m in members if m.event_date is not None),
         representative.event_date,
     )
+    resolved_date = event_date if event_date is not None else date(1970, 1, 1)
     return Event(
         id=dedup_key,
         dedup_key=dedup_key,
+        identity_key=compute_identity_key(resolved_date, representative.title),
         title=representative.title or "",
-        event_date=event_date if event_date is not None else date(1970, 1, 1),
+        event_date=resolved_date,
         start_time=representative.start_time,
         end_time=representative.end_time,
         location=representative.location,
@@ -258,5 +277,6 @@ __all__ = [
     "FINGERPRINT_TIME_ROUNDING_MINUTES",
     "MergedEvent",
     "compute_dedup_key",
+    "compute_identity_key",
     "deduplicate",
 ]
