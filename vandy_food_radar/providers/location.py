@@ -9,17 +9,28 @@ walking convenience factor, plus two concrete implementations:
 * :class:`NullLocationProvider` — always reports ``unknown`` so environments
   without any geocoding still run.
 
-Walking is a *seam*: a ``GoogleMapsLocationProvider`` can be added later without
-touching the ranking engine. When the walking status is ``unknown`` the ranker
+* :class:`GoogleMapsLocationProvider` — a live estimator backed by the Google
+  Distance Matrix API (walking mode). It talks HTTP through the injected
+  :class:`MapsHttp` seam (stdlib ``urllib.request`` by default), memoizes
+  results in-process by ``(origin, dest)``, and falls back gracefully to
+  Haversine (then ``unknown``) on any failure so it never raises.
+
+Walking is a *seam*: the provider is chosen by ``build_location_provider`` and
+the default stays Haversine. When the walking status is ``unknown`` the ranker
 must substitute ``config.ranking.walking_unknown_value`` so an unknown walk
 never zeroes the score (FR-30, AC-8).
 
-Nothing here performs network I/O.
+Only :class:`GoogleMapsLocationProvider` (via its injected HTTP client) performs
+network I/O; the Haversine and Null providers stay offline.
 """
 
 from __future__ import annotations
 
+import json
 import math
+import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Protocol
@@ -37,6 +48,12 @@ _EARTH_RADIUS_M = 6_371_000.0
 # distances at/above ``_FAR_METRES`` score 0.0, with a linear ramp between.
 _NEAR_METRES = 100.0
 _FAR_METRES = 1600.0
+
+# Google Distance Matrix endpoint and request timeout for the live provider.
+_MAPS_DISTANCE_MATRIX_URL = "https://maps.googleapis.com/maps/api/distancematrix/json"
+_MAPS_HTTP_TIMEOUT_SECONDS = 5.0
+# Decimals used when rounding coordinates for the in-process memo key.
+_MAPS_CACHE_PRECISION = 5
 
 
 class WalkingStatus(StrEnum):
@@ -111,6 +128,142 @@ class NullLocationProvider:
         return WalkingResult(status=WalkingStatus.UNKNOWN)
 
 
+class MapsHttp(Protocol):
+    """Minimal HTTP seam for the live maps provider (injectable/testable).
+
+    Implementations fetch ``url`` and return the parsed JSON object, or ``None``
+    on any transport/parse failure. They never raise, so the provider can fall
+    back gracefully.
+    """
+
+    def get_json(self, url: str) -> dict[str, object] | None:
+        """GET ``url`` and return the parsed JSON dict, or ``None`` on failure."""
+        ...
+
+
+class _UrllibMapsHttp:
+    """Default :class:`MapsHttp` backed by stdlib ``urllib.request``.
+
+    Uses a short timeout and returns ``None`` (never raises) on any
+    URL/HTTP/timeout/JSON error so the provider degrades gracefully.
+    """
+
+    def get_json(self, url: str) -> dict[str, object] | None:
+        """Fetch ``url`` and parse the JSON body, or return ``None`` on error."""
+
+        try:
+            with urllib.request.urlopen(
+                url, timeout=_MAPS_HTTP_TIMEOUT_SECONDS
+            ) as response:
+                payload = response.read()
+            parsed = json.loads(payload)
+        except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+            return None
+        if isinstance(parsed, dict):
+            return parsed
+        return None
+
+
+class GoogleMapsLocationProvider:
+    """Live walking estimator backed by the Google Distance Matrix API.
+
+    Talks HTTP through the injected :class:`MapsHttp` seam (stdlib
+    ``urllib.request`` by default), memoizes results in-process keyed on the
+    rounded ``(origin, dest)`` coordinates so a repeated identical query does
+    not re-invoke the HTTP client, and falls back to ``fallback`` (Haversine by
+    default) on any missing key / HTTP ``None`` / non-``OK`` status / parse
+    failure. A missing ``dest`` yields ``unknown`` (FR-30, AC-8). Never raises.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        http: MapsHttp | None = None,
+        fallback: LocationProvider | None = None,
+    ) -> None:
+        self._api_key = api_key
+        self._http = http if http is not None else _UrllibMapsHttp()
+        self._fallback = (
+            fallback if fallback is not None else HaversineLocationProvider()
+        )
+        self._cache: dict[tuple[float, float, float, float], WalkingResult] = {}
+
+    def walking(self, origin: GeoPoint, dest: GeoPoint | None) -> WalkingResult:
+        """Return a live walking estimate, or a graceful fallback/unknown."""
+
+        if dest is None:
+            return WalkingResult(status=WalkingStatus.UNKNOWN)
+
+        key = (
+            round(origin.lat, _MAPS_CACHE_PRECISION),
+            round(origin.lng, _MAPS_CACHE_PRECISION),
+            round(dest.lat, _MAPS_CACHE_PRECISION),
+            round(dest.lng, _MAPS_CACHE_PRECISION),
+        )
+        cached = self._cache.get(key)
+        if cached is not None:
+            return cached
+
+        result = self._resolve(origin, dest)
+        self._cache[key] = result
+        return result
+
+    def _resolve(self, origin: GeoPoint, dest: GeoPoint) -> WalkingResult:
+        """Query the API for ``origin``->``dest``, falling back on any failure."""
+
+        if not self._api_key:
+            return self._fallback.walking(origin, dest)
+        url = self._build_url(origin, dest)
+        payload = self._http.get_json(url)
+        parsed = _parse_distance_matrix(payload)
+        if parsed is None:
+            return self._fallback.walking(origin, dest)
+        distance_m, duration_seconds = parsed
+        minutes = max(1, math.ceil(duration_seconds / 60))
+        return WalkingResult(
+            status=WalkingStatus.OK,
+            distance_m=round(distance_m, 1),
+            minutes=minutes,
+        )
+
+    def _build_url(self, origin: GeoPoint, dest: GeoPoint) -> str:
+        """Build the Distance Matrix walking-mode request URL."""
+
+        params = urllib.parse.urlencode(
+            {
+                "origins": f"{origin.lat},{origin.lng}",
+                "destinations": f"{dest.lat},{dest.lng}",
+                "mode": "walking",
+                "key": self._api_key,
+            }
+        )
+        return f"{_MAPS_DISTANCE_MATRIX_URL}?{params}"
+
+
+def _parse_distance_matrix(
+    payload: dict[str, object] | None,
+) -> tuple[float, float] | None:
+    """Return ``(distance_m, duration_seconds)`` from an OK response, else None.
+
+    Any missing key / non-``OK`` status / malformed element yields ``None`` so
+    the caller falls back gracefully.
+    """
+
+    if not isinstance(payload, dict) or payload.get("status") != "OK":
+        return None
+    try:
+        rows = payload["rows"]
+        element = rows[0]["elements"][0]  # type: ignore[index]
+        if element.get("status") != "OK":
+            return None
+        distance_m = float(element["distance"]["value"])
+        duration_seconds = float(element["duration"]["value"])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+    return distance_m, duration_seconds
+
+
 def walking_factor_value(result: WalkingResult, *, unknown_value: float) -> float:
     """Map a :class:`WalkingResult` to the ranking factor value in ``[0, 1]``.
 
@@ -136,6 +289,15 @@ def build_location_provider(config: Config) -> LocationProvider:
 
     if config.providers.location is LocationProviderKind.NULL:
         return NullLocationProvider()
+    if (
+        config.providers.location is LocationProviderKind.GOOGLE_MAPS
+        and config.maps.enabled
+        and config.maps.api_key
+    ):
+        return GoogleMapsLocationProvider(
+            api_key=config.maps.api_key,
+            fallback=HaversineLocationProvider(),
+        )
     return HaversineLocationProvider()
 
 
@@ -155,8 +317,10 @@ def _haversine_metres(origin: GeoPoint, dest: GeoPoint) -> float:
 
 
 __all__ = [
+    "GoogleMapsLocationProvider",
     "HaversineLocationProvider",
     "LocationProvider",
+    "MapsHttp",
     "NullLocationProvider",
     "WalkingResult",
     "WalkingStatus",

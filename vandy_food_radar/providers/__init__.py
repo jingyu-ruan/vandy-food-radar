@@ -18,6 +18,7 @@ from .calendar import (
     build_calendar_provider,
 )
 from .location import (
+    GoogleMapsLocationProvider,
     HaversineLocationProvider,
     LocationProvider,
     NullLocationProvider,
@@ -30,6 +31,7 @@ __all__ = [
     "CalendarProvider",
     "CalendarWriteResult",
     "GoogleCalendarWriter",
+    "GoogleMapsLocationProvider",
     "HaversineLocationProvider",
     "LocationProvider",
     "NullCalendarProvider",

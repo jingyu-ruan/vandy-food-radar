@@ -31,6 +31,7 @@ class LocationProviderKind(StrEnum):
     """Which walking-distance provider to use (FR-29, FR-30)."""
 
     HAVERSINE = "haversine"
+    GOOGLE_MAPS = "google_maps"
     NULL = "null"
 
 
@@ -179,6 +180,21 @@ class CalendarWriteConfig:
 
 
 @dataclass
+class MapsConfig:
+    """Google Maps Distance Matrix credentials for live walking (M9, FR-29/30).
+
+    Disabled by default so the offline :class:`HaversineLocationProvider` stays
+    the default; the live :class:`GoogleMapsLocationProvider` is used only when
+    ``enabled`` is set, ``api_key`` is present, and the location provider is
+    ``GOOGLE_MAPS``. ``api_key`` (from ``GOOGLE_MAPS_API_KEY``) is a secret and
+    is never committed.
+    """
+
+    enabled: bool = False
+    api_key: str = ""
+
+
+@dataclass
 class SnapshotConfig:
     """Upstash Redis REST credentials for cross-run snapshots (M7-M9).
 
@@ -219,6 +235,8 @@ class Config:
     dedup: DedupConfig = field(default_factory=DedupConfig)
     # CFG-8
     providers: ProvidersConfig = field(default_factory=ProvidersConfig)
+    # Live Google Maps walking credentials (M9); disabled by default.
+    maps: MapsConfig = field(default_factory=MapsConfig)
     # Cross-run snapshot store credentials (M7-M9); empty => offline default.
     snapshot: SnapshotConfig = field(default_factory=SnapshotConfig)
     # Google Calendar write credentials (M8); disabled by default.
@@ -290,6 +308,15 @@ class Config:
         credentials_json = env.get("GOOGLE_CALENDAR_CREDENTIALS_JSON")
         if credentials_json is not None:
             cfg.calendar_write.credentials_json = credentials_json
+
+        maps_enabled = env.get(f"{ENV_PREFIX}MAPS_ENABLED")
+        if maps_enabled is not None:
+            cfg.maps.enabled = _parse_bool(maps_enabled, default=cfg.maps.enabled)
+        # Google sets this plain (non-VFR_-prefixed) env var name; it is a
+        # secret and is never committed.
+        maps_api_key = env.get("GOOGLE_MAPS_API_KEY")
+        if maps_api_key is not None:
+            cfg.maps.api_key = maps_api_key
 
         # Upstash/Vercel set these plain (non-VFR_-prefixed) env var names.
         upstash_url = env.get("UPSTASH_REDIS_REST_URL")
