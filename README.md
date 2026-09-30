@@ -110,10 +110,13 @@ by their dedup key and no duplicates are created.
 ## Deployment
 
 The app ships as a stateless serverless function on
-[Vercel](https://vercel.com/). The Vercel Python runtime serves the Flask WSGI
-`app` re-exported from `api/index.py`; `vercel.json` routes every request path
-to it, pins Python 3.11, and declares a daily cron. `requirements.txt` (a
-committed, pip-installable manifest) tells Vercel what to install.
+[Vercel](https://vercel.com/). Vercel auto-detects the Python entrypoint at
+`api/index.py` (which re-exports the Flask WSGI `app`) and installs from
+`requirements.txt`; `vercel.json` routes every request path to that function
+and declares a daily cron. The Python version is Vercel's current default
+(no `functions.runtime` override — that legacy field is rejected by current
+Vercel deployments and is intentionally omitted here); `pyproject.toml`
+declares `requires-python = ">=3.11"` for local development.
 
 ### Deploy to Vercel (click-by-click)
 
