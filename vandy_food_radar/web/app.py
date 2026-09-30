@@ -18,8 +18,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 
-from flask import Flask, redirect, render_template, url_for
-from werkzeug.wrappers import Response
+from flask import Flask, Response, redirect, render_template, url_for
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from ..config import Config
 from ..models import (
@@ -31,8 +31,14 @@ from ..models import (
     SourceRecord,
     VerificationState,
 )
+from ..pipeline import (
+    ChangeKind,
+    detect_changes,
+    run_report_to_json,
+    run_with_snapshot,
+    seed_demo,
+)
 from ..pipeline import run as run_pipeline
-from ..pipeline import seed_demo
 from ..providers.location import (
     LocationProvider,
     WalkingStatus,
@@ -41,7 +47,15 @@ from ..providers.location import (
 from ..ranking import build_explanation
 from ..ranking.engine import ScoredEvent, order_events
 from ..sources import SourceAdapter, Window, build_sources, default_fetcher
-from ..store import Repository
+from ..store import Repository, SnapshotStore, build_snapshot_store
+
+# Human-readable labels for the per-event change badges (FR-42/FR-43).
+_CHANGE_LABELS: dict[ChangeKind, str] = {
+    ChangeKind.NEW: "New",
+    ChangeKind.TIME_CHANGED: "Time changed",
+    ChangeKind.VENUE_CHANGED: "Venue changed",
+    ChangeKind.CANCELLED: "Cancelled",
+}
 
 # Human-readable labels for the verification states shown on each card.
 _STATE_LABELS: dict[VerificationState, str] = {
@@ -76,6 +90,8 @@ class EventCard:
     source_links: list[tuple[str, str]]
     explanation: str
     conflicts: list[ConflictView]
+    change_kind: ChangeKind | None = None
+    change_label: str | None = None
 
 
 def create_app(
@@ -85,6 +101,7 @@ def create_app(
     sources: Sequence[SourceAdapter] | None = None,
     location_provider: LocationProvider | None = None,
     today_provider: Callable[[], date] | None = None,
+    snapshot_store: SnapshotStore | None = None,
 ) -> Flask:
     """Create the Flask app reading through ``repository`` (design.md §1.1).
 
@@ -97,6 +114,9 @@ def create_app(
     app = Flask(__name__)
     provider = location_provider or build_location_provider(config)
     today_fn = today_provider or (lambda: datetime.now(tz=UTC).date())
+    store = (
+        snapshot_store if snapshot_store is not None else build_snapshot_store(config)
+    )
 
     def _refresh_sources() -> Sequence[SourceAdapter]:
         if sources is not None:
@@ -106,7 +126,13 @@ def create_app(
     @app.get("/")
     def index() -> str:
         window = Window.from_config(config, today=today_fn())
-        cards = _build_cards(repository, config, provider, window.target_date)
+        current = repository.get_events_for_day(window.target_date)
+        # Read-only change detection against the previous snapshot; the index
+        # view never re-saves the snapshot (that happens in /refresh and
+        # /cron/refresh). A missing snapshot means every event reads NEW.
+        previous = store.load_snapshot(window.target_date)
+        changes = detect_changes(current, previous)
+        cards = _build_cards(repository, config, provider, window.target_date, changes)
         return render_template(
             "index.html",
             cards=cards,
@@ -115,7 +141,7 @@ def create_app(
         )
 
     @app.post("/refresh")
-    def refresh() -> Response:
+    def refresh() -> WerkzeugResponse:
         window = Window.from_config(config, today=today_fn())
         run_pipeline(
             window,
@@ -126,8 +152,33 @@ def create_app(
         )
         return redirect(url_for("index"))
 
+    @app.route("/cron/refresh", methods=["GET", "POST"])
+    def cron_refresh() -> Response:
+        """Vercel-Cron entry point: refresh tomorrow via run_with_snapshot.
+
+        Runs the pipeline for the target day, reconciles changes against the
+        previous snapshot, repopulates the snapshot, and returns the RunReport
+        counts plus the change tally as JSON. No in-process scheduler exists;
+        Vercel Cron invokes this route daily.
+        """
+
+        window = Window.from_config(config, today=today_fn())
+        report, changes = run_with_snapshot(
+            window,
+            repository=repository,
+            sources=_refresh_sources(),
+            location_provider=provider,
+            config=config,
+            snapshot_store=store,
+        )
+        return Response(
+            run_report_to_json(report, changes),
+            mimetype="application/json",
+            status=200,
+        )
+
     @app.post("/seed")
-    def seed() -> Response:
+    def seed() -> WerkzeugResponse:
         seed_demo(repository=repository, config=config, today=today_fn())
         return redirect(url_for("index"))
 
@@ -144,6 +195,7 @@ def _build_cards(
     config: Config,
     provider: LocationProvider,
     day: date,
+    changes: dict[str, ChangeKind] | None = None,
 ) -> list[EventCard]:
     """Assemble ranked :class:`EventCard` view-models for ``day``.
 
@@ -161,8 +213,16 @@ def _build_cards(
         for event in events
     ]
     ordered = order_events(scored)
+    change_map = changes or {}
     return [
-        _build_card(repository, config, provider, item.event, item.components)
+        _build_card(
+            repository,
+            config,
+            provider,
+            item.event,
+            item.components,
+            change_map.get(item.event.identity_key),
+        )
         for item in ordered
     ]
 
@@ -173,6 +233,7 @@ def _build_card(
     provider: LocationProvider,
     event: Event,
     components: list[ScoreComponent],
+    change_kind: ChangeKind | None = None,
 ) -> EventCard:
     """Build one card from an event and its persisted score components."""
 
@@ -194,6 +255,12 @@ def _build_card(
         source_links=_source_links(event, sources),
         explanation=explanation,
         conflicts=[_conflict_view(c) for c in conflicts],
+        change_kind=change_kind,
+        change_label=(
+            _CHANGE_LABELS.get(change_kind)
+            if change_kind is not None and change_kind is not ChangeKind.UNCHANGED
+            else None
+        ),
     )
 
 

@@ -19,6 +19,7 @@ from .change_detect import (
     tally_changes,
 )
 from .orchestrator import RunReport, run, seed_demo
+from .runlog import log_run_report, run_report_to_json
 from .snapshot_run import run_with_snapshot
 
 __all__ = [
@@ -31,4 +32,6 @@ __all__ = [
     "detect_changes",
     "tally_changes",
     "run_with_snapshot",
+    "run_report_to_json",
+    "log_run_report",
 ]

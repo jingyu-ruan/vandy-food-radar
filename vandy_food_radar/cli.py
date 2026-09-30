@@ -18,8 +18,8 @@ import argparse
 from datetime import UTC, datetime
 
 from .config import Config
+from .pipeline import log_run_report, seed_demo
 from .pipeline import run as run_pipeline
-from .pipeline import seed_demo
 from .providers.location import build_location_provider
 from .sources import build_sources, default_fetcher
 from .sources.base import Window
@@ -83,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
         f"conflicts {report.conflicts}, history {report.history_entries} "
         f"(db: {args.db})"
     )
+    log_run_report(report)
     return 0
 
 

@@ -3,6 +3,11 @@
     <span class="rank">{{ rank }}</span>
     <h2 class="title">{{ card.event.title }}</h2>
     <span class="badge {{ card.state_class }}">{{ card.state_label }}</span>
+    {% if card.change_label %}
+      <span class="change-badge change-{{ card.change_kind.value }}">
+        {{ card.change_label }}
+      </span>
+    {% endif %}
     {% if card.event.score_total is not none %}
       <span class="score" title="ranking score">
         {{ '%.2f'|format(card.event.score_total) }}

@@ -142,3 +142,19 @@ main { padding: 1rem 1.2rem; max-width: 860px; margin: 0 auto; }
 }
 .state-cancelled .title { text-decoration: line-through; }
 .badge.state-cancelled { background: var(--cancelled); }
+
+/* Per-event cross-run change badge (FR-42/FR-43), reusing the badge look. */
+.change-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--accent);
+}
+.change-badge.change-new { background: var(--verified); }
+.change-badge.change-time_changed { background: var(--partial); }
+.change-badge.change-venue_changed { background: var(--unconfirmed); }
+.change-badge.change-cancelled { background: var(--cancelled); }

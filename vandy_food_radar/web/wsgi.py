@@ -13,19 +13,25 @@ import os
 from flask import Flask
 
 from ..config import Config
-from ..store import SqliteRepository
+from ..store import SqliteRepository, build_snapshot_store
 from .app import create_app
 
 DEFAULT_DB_PATH = "store.db"
 
 
 def build_app() -> Flask:
-    """Create the Flask app reading from the configured SQLite database."""
+    """Create the Flask app reading from the configured SQLite database.
+
+    Wires the snapshot store (Upstash when the env vars are set, else the
+    in-memory offline default) so the deployed app has cross-run change
+    tracking (M7-M9).
+    """
 
     config = Config.from_env()
     db_path = os.environ.get("VFR_DB", DEFAULT_DB_PATH)
     repository = SqliteRepository(db_path)
-    return create_app(config, repository=repository)
+    store = build_snapshot_store(config)
+    return create_app(config, repository=repository, snapshot_store=store)
 
 
 app = build_app()

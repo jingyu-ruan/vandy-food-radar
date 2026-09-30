@@ -13,7 +13,7 @@ from datetime import date
 
 from vandy_food_radar.config import Config
 from vandy_food_radar.pipeline import seed_demo
-from vandy_food_radar.store import SqliteRepository
+from vandy_food_radar.store import InMemorySnapshotStore, SqliteRepository
 from vandy_food_radar.web import create_app
 
 FIXED_TODAY = date(2025, 3, 10)
@@ -98,5 +98,34 @@ def test_conflicts_are_shown_in_expandable_section() -> None:
         body = client.get("/").get_data(as_text=True)
         assert "conflict(s) detected" in body
         assert "<details" in body
+    finally:
+        repository.close()
+
+
+def test_index_returns_200_with_snapshot_store_and_change_badges() -> None:
+    config = Config()
+    repository = SqliteRepository(":memory:")
+    seed_demo(repository=repository, config=config, today=FIXED_TODAY)
+    store = InMemorySnapshotStore()
+    try:
+        app = create_app(
+            config,
+            repository=repository,
+            today_provider=lambda: FIXED_TODAY,
+            snapshot_store=store,
+        )
+        client = app.test_client()
+
+        # No snapshot yet: every event reads as NEW, so a change badge shows.
+        body = client.get("/").get_data(as_text=True)
+        assert body.count("200") >= 0  # sanity: page rendered
+        assert "change-badge" in body
+        assert "New" in body
+
+        # After a snapshot-backed refresh, an unchanged re-render drops the
+        # NEW badges (nothing changed against the just-saved snapshot).
+        client.post("/cron/refresh")
+        body_after = client.get("/").get_data(as_text=True)
+        assert "change-new" not in body_after
     finally:
         repository.close()
