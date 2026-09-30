@@ -169,6 +169,17 @@ def verify(
     event.food_confirmed = food_state.confirmed
     food_conflicting = food_state.conflicting
 
+    # The event-level food_confirmed decision is made by the dedicated
+    # _resolve_food path (E-5), not the generic field resolver, so mirror that
+    # decision onto the food_confirmed provenance row rather than leaving the
+    # generic (often "missing") result, which would misrepresent the choice.
+    _sync_food_provenance(
+        provenance,
+        confirmed=food_state.confirmed,
+        conflicting=food_conflicting,
+        members=comparable,
+    )
+
     # RSVP health considers every member (including a dropped source page whose
     # RSVP link itself is broken), not just the comparable ones (E-8).
     event.rsvp_link_ok = _rsvp_link_ok(merged.members, source_records)
@@ -208,6 +219,38 @@ def verify(
 # ---------------------------------------------------------------------------
 # food / rsvp / cancellation signals
 # ---------------------------------------------------------------------------
+
+
+def _sync_food_provenance(
+    provenance: list[FieldProvenance],
+    *,
+    confirmed: FoodConfirmed,
+    conflicting: bool,
+    members: list[NormalizedRecord],
+) -> None:
+    """Align the ``food_confirmed`` provenance row with the food resolver.
+
+    The generic field resolver marks ``food_confirmed`` from the per-source
+    values, but the authoritative event-level decision is made by
+    :func:`_resolve_food`. This overwrites that provenance row's chosen value
+    and agreement so provenance reflects the decision actually applied to the
+    event: a conflict when sources disagree, agreement when they all align on a
+    single food state, otherwise a single-source/missing gap.
+    """
+
+    row = next((p for p in provenance if p.field_name == "food_confirmed"), None)
+    if row is None:
+        return
+    row.chosen_value = confirmed.value
+    states = {m.food_confirmed for m in members}
+    if conflicting:
+        row.agreement = FieldAgreement.RESOLVED_CONFLICT
+    elif len(members) >= 2 and len(states) == 1:
+        row.agreement = FieldAgreement.AGREED
+    elif len(members) == 1:
+        row.agreement = FieldAgreement.SINGLE_SOURCE
+    else:
+        row.agreement = FieldAgreement.MISSING
 
 
 @dataclass
