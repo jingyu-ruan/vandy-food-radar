@@ -1,0 +1,26 @@
+{
+  "verdict": "APPROVED",
+  "findings": [
+    {
+      "label": "Narrow env override surface",
+      "severity": "non-blocking",
+      "detail": "Config.from_env does not expose ranking weights, dedup thresholds, or authority precedence as env overrides; they are code-level defaults only. Within M0 scope (CFG-6/CFG-7 require a single config block with sane defaults, satisfied), but the M6 ranking-tuning tasks (T6.2/T6.4) will need an env hook or config-file loader."
+    },
+    {
+      "label": "Fail-soft env parsing hides typos",
+      "severity": "non-blocking",
+      "detail": "Invalid enum/float VFR_* overrides fall back to defaults instead of raising, so a mistyped override runs silently with the wrong config. Acceptable for a single-user tool; consider logging a warning when a provided override is discarded."
+    },
+    {
+      "label": "Typecheck scope relies on files key",
+      "severity": "non-blocking",
+      "detail": "make typecheck runs bare `uv run mypy` scoped only by pyproject.toml's files list. A future module outside vandy_food_radar/ or tests/ would silently escape strict checking; keep the list current as packages are added."
+    },
+    {
+      "label": "Fixture source-level food labels",
+      "severity": "non-blocking",
+      "detail": "Fixture parsed_fields carry food_confirmed/food_category per source (e.g. pizza tagged full_meal). These are source-parsed views, not canonical verdicts; M3 food-classifier tests must not treat them as the classifier's expected output."
+    }
+  ],
+  "reviewDoc": "/projects/sandbox/.agents/tasks/m0-review.md"
+}

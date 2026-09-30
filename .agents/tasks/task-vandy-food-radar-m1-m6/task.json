@@ -1,0 +1,14 @@
+{
+  "task_id": "task-vandy-food-radar-m1-m6",
+  "task_description": "Implement Milestones M1-M6 of Vandy Food Radar: persistence, source ingestion, normalization, deduplication, verification/conflict-resolution, and ranking + a server-rendered Flask web UI. The finished product is an offline web app that shows a ranked list of next-day free-food events driven entirely by the existing fixture corpus (no live network, no API keys, deterministic). M0 (scaffold, config, domain models, fixtures) is already done and approved and must be reused, not rewritten.",
+  "status": "completed",
+  "feature_order": [
+    "FEAT-001",
+    "FEAT-002",
+    "FEAT-003",
+    "FEAT-004",
+    "FEAT-005",
+    "FEAT-006"
+  ],
+  "blocked_reason": null
+}
