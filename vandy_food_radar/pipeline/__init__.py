@@ -11,6 +11,24 @@ onto the target day so the web view is never empty.
 
 from __future__ import annotations
 
+from .change_detect import (
+    ChangeCounts,
+    ChangeFlag,
+    ChangeKind,
+    detect_changes,
+    tally_changes,
+)
 from .orchestrator import RunReport, run, seed_demo
+from .snapshot_run import run_with_snapshot
 
-__all__ = ["RunReport", "run", "seed_demo"]
+__all__ = [
+    "RunReport",
+    "run",
+    "seed_demo",
+    "ChangeKind",
+    "ChangeFlag",
+    "ChangeCounts",
+    "detect_changes",
+    "tally_changes",
+    "run_with_snapshot",
+]

@@ -163,6 +163,19 @@ class ProvidersConfig:
 
 
 @dataclass
+class SnapshotConfig:
+    """Upstash Redis REST credentials for cross-run snapshots (M7-M9).
+
+    Both fields default empty so the offline in-memory snapshot store is the
+    default; the Upstash-backed store is used only when both are provided.
+    Upstash/Vercel set these plain env var names (not ``VFR_``-prefixed).
+    """
+
+    upstash_rest_url: str = ""
+    upstash_rest_token: str = ""
+
+
+@dataclass
 class Config:
     """Top-level application configuration (CFG-1..CFG-8).
 
@@ -190,6 +203,8 @@ class Config:
     dedup: DedupConfig = field(default_factory=DedupConfig)
     # CFG-8
     providers: ProvidersConfig = field(default_factory=ProvidersConfig)
+    # Cross-run snapshot store credentials (M7-M9); empty => offline default.
+    snapshot: SnapshotConfig = field(default_factory=SnapshotConfig)
 
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> Config:
@@ -243,6 +258,14 @@ class Config:
             cfg.providers.calendar = _parse_enum(
                 CalendarProviderKind, calendar_provider, cfg.providers.calendar
             )
+
+        # Upstash/Vercel set these plain (non-VFR_-prefixed) env var names.
+        upstash_url = env.get("UPSTASH_REDIS_REST_URL")
+        if upstash_url is not None:
+            cfg.snapshot.upstash_rest_url = upstash_url
+        upstash_token = env.get("UPSTASH_REDIS_REST_TOKEN")
+        if upstash_token is not None:
+            cfg.snapshot.upstash_rest_token = upstash_token
 
         return cfg
 
