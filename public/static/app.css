@@ -96,8 +96,9 @@ main { padding: 1rem 1.2rem; max-width: 860px; margin: 0 auto; }
   margin: 0.5rem 0 0.4rem;
 }
 .facts div { display: flex; gap: 0.35rem; }
+.facts .food-fact { grid-column: 1 / -1; }
 .facts dt { color: var(--muted); font-weight: 600; min-width: 4.2rem; }
-.facts dd { margin: 0; }
+.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 
 .chip {
   display: inline-block;

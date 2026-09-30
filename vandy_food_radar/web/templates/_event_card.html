@@ -19,7 +19,7 @@
     <div><dt>Time</dt><dd>{{ card.time_range }}</dd></div>
     <div><dt>Location</dt>
       <dd>{{ card.event.location or "Location TBD" }}</dd></div>
-    <div><dt>Food</dt>
+    <div class="food-fact"><dt>Food</dt>
       <dd>
         <span class="chip">{{ card.food_confirmed_label }}</span>
         {{ card.event.food_description or "No description provided" }}
