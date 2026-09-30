@@ -29,6 +29,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from ..config import Config
 from ..dedup import deduplicate
@@ -44,12 +45,7 @@ from ..models import (
 from ..normalize import normalize
 from ..providers.location import LocationProvider
 from ..ranking import score_event
-from ..sources import (
-    FixtureSourceAdapter,
-    SourceAdapter,
-    Window,
-    default_fetcher,
-)
+from ..sources import FixtureFetcher, FixtureSourceAdapter, SourceAdapter, Window
 from ..store import Repository
 from ..verify import verify
 
@@ -111,6 +107,7 @@ def run(
     normalized = [normalize(record, timezone=config.timezone) for record in ingested]
     merged_events = deduplicate(normalized, config=config.dedup)
     report.merged = len(merged_events)
+    published_identity_keys: set[str] = set()
 
     for merged in merged_events:
         verified = verify(merged, source_map, config=config)
@@ -166,7 +163,13 @@ def run(
             repository.append_history(entry)
             report.history_entries += 1
         report.saved_event_ids.append(event.id)
+        published_identity_keys.add(event.identity_key)
 
+    # Only replace the visible day after every source page and event completed.
+    # Durable repositories publish once here, so API/pipeline failures cannot
+    # overwrite the last known-good feed with a partial or empty snapshot.
+    repository.replace_day(window.target_date, published_identity_keys)
+    repository.flush()
     return report
 
 
@@ -185,10 +188,14 @@ def seed_demo(
     ``today`` is injectable so tests do not depend on the wall clock.
     """
 
-    base_today = today if today is not None else datetime.now(tz=UTC).date()
+    base_today = (
+        today
+        if today is not None
+        else datetime.now(tz=ZoneInfo(config.timezone)).date()
+    )
     window = Window.from_config(config, today=base_today)
 
-    fetcher = default_fetcher(config)
+    fetcher = FixtureFetcher()
     adapter = _RetargetingSourceAdapter(
         FixtureSourceAdapter(fetcher), target_date=window.target_date
     )

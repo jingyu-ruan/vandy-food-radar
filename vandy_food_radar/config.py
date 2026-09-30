@@ -69,13 +69,26 @@ class ReferenceLocation:
 
 @dataclass
 class AnchorLinkSource:
-    """Anchor Link source settings (CFG-4)."""
+    """Public Vanderbilt AnchorLink discovery settings (CFG-4)."""
 
     enabled: bool = True
-    # Query/filter that selects the "Free Food" perk. Placeholder for the
-    # adapter to consume; no live call is made in offline mode.
-    free_food_query: str = "perk=Free+Food"
     base_url: str = "https://anchorlink.vanderbilt.edu"
+    search_path: str = "/api/discovery/event/search"
+    # Verified API facet slug; the human-facing page instead uses
+    # ``perks=FreeFood``, which the JSON endpoint ignores.
+    free_food_filter: str = "FreeFood"
+    page_size: int = 100
+    max_pages: int = 200
+    timeout_seconds: float = 15.0
+    # Public discovery rows identify Vanderbilt with these stable values.
+    institution_id: int = 24
+    branch_id: int = 56623
+
+    @property
+    def free_food_query(self) -> str:
+        """Backward-compatible human-readable API query fragment."""
+
+        return f"benefitNames={self.free_food_filter}"
 
 
 @dataclass
@@ -241,6 +254,9 @@ class Config:
     snapshot: SnapshotConfig = field(default_factory=SnapshotConfig)
     # Google Calendar write credentials (M8); disabled by default.
     calendar_write: CalendarWriteConfig = field(default_factory=CalendarWriteConfig)
+    # Bearer token required by live refresh endpoints. Vercel Cron uses
+    # CRON_SECRET; VFR_REFRESH_TOKEN can explicitly override it.
+    refresh_token: str = ""
 
     @classmethod
     def from_env(cls, environ: dict[str, str] | None = None) -> Config:
@@ -258,6 +274,9 @@ class Config:
         offline = env.get(f"{ENV_PREFIX}OFFLINE")
         if offline is not None:
             cfg.offline = _parse_bool(offline, default=cfg.offline)
+        elif env.get("VERCEL_ENV") == "production":
+            # A production deployment must never silently publish fixtures.
+            cfg.offline = False
 
         timezone = env.get(f"{ENV_PREFIX}TIMEZONE")
         if timezone:
@@ -283,6 +302,24 @@ class Config:
         api_key = env.get(f"{ENV_PREFIX}GOOGLE_CALENDAR_API_KEY")
         if api_key is not None:
             cfg.sources.google_calendar.api_key = api_key
+
+        anchor_base_url = env.get(f"{ENV_PREFIX}ANCHORLINK_BASE_URL")
+        if anchor_base_url:
+            cfg.sources.anchor_link.base_url = anchor_base_url.rstrip("/")
+        anchor_page_size = env.get(f"{ENV_PREFIX}ANCHORLINK_PAGE_SIZE")
+        if anchor_page_size is not None:
+            cfg.sources.anchor_link.page_size = _parse_int(
+                anchor_page_size,
+                cfg.sources.anchor_link.page_size,
+                minimum=1,
+                maximum=100,
+            )
+        anchor_timeout = env.get(f"{ENV_PREFIX}ANCHORLINK_TIMEOUT_SECONDS")
+        if anchor_timeout is not None:
+            cfg.sources.anchor_link.timeout_seconds = max(
+                1.0,
+                _parse_float(anchor_timeout, cfg.sources.anchor_link.timeout_seconds),
+            )
 
         location_provider = env.get(f"{ENV_PREFIX}LOCATION_PROVIDER")
         if location_provider:
@@ -326,6 +363,10 @@ class Config:
         if upstash_token is not None:
             cfg.snapshot.upstash_rest_token = upstash_token
 
+        cfg.refresh_token = env.get(f"{ENV_PREFIX}REFRESH_TOKEN", "") or env.get(
+            "CRON_SECRET", ""
+        )
+
         return cfg
 
 
@@ -348,6 +389,20 @@ def _parse_float(value: str, default: float) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _parse_int(
+    value: str,
+    default: int,
+    *,
+    minimum: int,
+    maximum: int,
+) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return min(maximum, max(minimum, parsed))
 
 
 def _parse_enum(enum_cls: type[EnumT], value: str, default: EnumT) -> EnumT:

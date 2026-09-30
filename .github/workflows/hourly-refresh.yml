@@ -1,0 +1,40 @@
+name: Refresh live AnchorLink events
+
+on:
+  schedule:
+    # GitHub Actions cron is UTC. Minute 17 avoids the busiest top-of-hour slot.
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+# The job only calls an external HTTPS endpoint and needs no GITHUB_TOKEN scope.
+permissions: {}
+
+concurrency:
+  group: vandy-food-radar-live-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call protected Vandy Food Radar refresh
+        env:
+          VFR_REFRESH_URL: ${{ secrets.VFR_REFRESH_URL }}
+          VFR_REFRESH_TOKEN: ${{ secrets.VFR_REFRESH_TOKEN }}
+        run: |
+          test -n "$VFR_REFRESH_URL"
+          test -n "$VFR_REFRESH_TOKEN"
+          curl --fail-with-body \
+            --silent \
+            --show-error \
+            --location \
+            --max-redirs 3 \
+            --proto '=https' \
+            --proto-redir '=https' \
+            --retry 3 \
+            --retry-all-errors \
+            --max-time 90 \
+            --request POST \
+            --header "Authorization: Bearer $VFR_REFRESH_TOKEN" \
+            "$VFR_REFRESH_URL"

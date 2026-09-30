@@ -15,7 +15,8 @@ Both persist to the SQLite database at ``--db`` (default ``store.db``).
 from __future__ import annotations
 
 import argparse
-from datetime import UTC, datetime
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from .config import Config
 from .pipeline import log_run_report, seed_demo
@@ -65,7 +66,10 @@ def main(argv: list[str] | None = None) -> int:
         else:
             fetcher = default_fetcher(config)
             sources = build_sources(config, fetcher)
-            window = Window.from_config(config, today=datetime.now(tz=UTC).date())
+            window = Window.from_config(
+                config,
+                today=datetime.now(tz=ZoneInfo(config.timezone)).date(),
+            )
             report = run_pipeline(
                 window,
                 repository=repository,

@@ -65,6 +65,14 @@ class Repository(Protocol):
         """Append one history row recording a changed detail (FR-43)."""
         ...
 
+    def replace_day(self, day: date, identity_keys: set[str]) -> None:
+        """Keep exactly ``identity_keys`` for the newly published target day."""
+        ...
+
+    def flush(self) -> None:
+        """Durably publish all successful mutations for this run."""
+        ...
+
     def get_conflicts(self, event_id: str) -> list[Conflict]:
         """Return the recorded conflicts for an event (FR-18)."""
         ...

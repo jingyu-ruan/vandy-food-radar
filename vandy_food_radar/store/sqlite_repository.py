@@ -145,6 +145,34 @@ class SqliteRepository:
         """Close the underlying connection."""
         self._conn.close()
 
+    def replace_day(self, day: date, identity_keys: set[str]) -> None:
+        """Remove stale/non-target events after a complete successful run.
+
+        Vandy Food Radar publishes one configured day at a time. Deleting all
+        other rows keeps the durable serverless snapshot bounded, while
+        deleting missing rows on the target day removes events that lost the
+        Free Food perk or public approval.
+        """
+
+        with self._conn:
+            if identity_keys:
+                placeholders = ", ".join("?" for _ in identity_keys)
+                self._conn.execute(
+                    f"""
+                    DELETE FROM events
+                    WHERE event_date != ?
+                       OR identity_key NOT IN ({placeholders})
+                    """,
+                    (day.isoformat(), *sorted(identity_keys)),
+                )
+            else:
+                self._conn.execute("DELETE FROM events")
+
+    def flush(self) -> None:
+        """Lifecycle hook for durable repositories; SQLite commits eagerly."""
+
+        self._conn.commit()
+
     # ------------------------------------------------------------------
     # Writes
     # ------------------------------------------------------------------

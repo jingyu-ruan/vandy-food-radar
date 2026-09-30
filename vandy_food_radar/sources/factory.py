@@ -1,40 +1,45 @@
-"""Source wiring factory (design.md §1.1/§3, T2.6, FR-4).
-
-Builds the enabled source adapters for a run and wires the offline
-:class:`FixtureFetcher` by default so the corpus is ingested with no live
-network. Selection follows the per-source ``enabled`` flags in
-:class:`~vandy_food_radar.config.SourcesConfig`.
-"""
+"""Mode-aware source wiring for offline fixtures and live AnchorLink."""
 
 from __future__ import annotations
 
 from ..config import Config
 from ..models import SourceId, SourceRecord
 from ._common import build_source_record, corpus_records_for
-from .anchor_link import AnchorLinkAdapter
+from .anchor_link import AnchorLinkAdapter, LiveAnchorLinkAdapter
 from .base import HttpFetcher, SourceAdapter, Window
 from .fixture_fetcher import FixtureFetcher
 from .google_calendar import GoogleCalendarAdapter
+from .live_fetcher import UrllibHttpFetcher
 from .official_page import OfficialPageAdapter
 
 
 def default_fetcher(config: Config) -> HttpFetcher:
-    """Return the fetcher to inject for ``config``.
+    """Select a corpus fetcher offline and a real HTTP fetcher live."""
 
-    Offline runs (the MVP default) use the corpus-backed
-    :class:`FixtureFetcher`; a live fetcher is out of scope for the MVP, so an
-    online config also falls back to the fixture fetcher for now.
-    """
-
-    return FixtureFetcher()
+    if config.offline:
+        return FixtureFetcher()
+    return UrllibHttpFetcher()
 
 
 def build_sources(config: Config, fetcher: HttpFetcher) -> list[SourceAdapter]:
-    """Return the enabled source adapters, each injected with ``fetcher``.
+    """Build only sources that are genuinely implemented for the active mode.
 
-    When ``config.offline`` is set the ``fetcher`` is expected to be a
-    :class:`FixtureFetcher`, so no network is touched.
+    Offline mode preserves the complete fixture demo. Live mode deliberately
+    enables only the native AnchorLink discovery adapter: the calendar and
+    official-page adapters currently enumerate fixture manifests and therefore
+    must never run in production or manufacture fixture-backed provenance.
     """
+
+    if not config.offline:
+        if not config.sources.anchor_link.enabled:
+            return []
+        return [
+            LiveAnchorLinkAdapter(
+                fetcher,
+                config.sources.anchor_link,
+                timezone=config.timezone,
+            )
+        ]
 
     adapters: list[SourceAdapter] = []
     if config.sources.anchor_link.enabled:
@@ -47,12 +52,7 @@ def build_sources(config: Config, fetcher: HttpFetcher) -> list[SourceAdapter]:
 
 
 class FixtureSourceAdapter:
-    """A single adapter that yields every corpus record across all sources.
-
-    Convenience for offline demos/tests that want the whole corpus without
-    composing the per-source adapters. Each record keeps its own ``source_id``
-    and ``parse_status`` (soft-fails per record, FR-7).
-    """
+    """A single adapter that yields every corpus record across all sources."""
 
     source_id = "fixture"
 
@@ -60,8 +60,6 @@ class FixtureSourceAdapter:
         self._fetcher = fetcher
 
     def fetch(self, window: Window) -> list[SourceRecord]:
-        """Return one :class:`SourceRecord` per corpus fixture record."""
-
         records: list[SourceRecord] = []
         for source_id in (
             SourceId.ANCHOR_LINK,

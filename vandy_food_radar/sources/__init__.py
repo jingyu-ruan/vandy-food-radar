@@ -1,18 +1,17 @@
-"""Source ingestion layer for Vandy Food Radar (design.md §1.1/§3, T2.1-T2.6).
-
-Exposes the ingestion seams (:class:`HttpFetcher`, :class:`SourceAdapter`,
-:class:`Window`, :class:`FetchResult`), the offline :class:`FixtureFetcher`, the
-three concrete source adapters, and the :func:`build_sources` factory that wires
-fixture sources by default so the app discovers events with no live network.
-"""
+"""Source ingestion seams and offline/live adapters."""
 
 from __future__ import annotations
 
-from .anchor_link import AnchorLinkAdapter
+from .anchor_link import (
+    AnchorLinkAdapter,
+    AnchorLinkFetchError,
+    LiveAnchorLinkAdapter,
+)
 from .base import FetchResult, HttpFetcher, SourceAdapter, Window
 from .factory import FixtureSourceAdapter, build_sources, default_fetcher
 from .fixture_fetcher import FixtureFetcher
 from .google_calendar import GoogleCalendarAdapter
+from .live_fetcher import UrllibHttpFetcher
 from .official_page import (
     OfficialPageAdapter,
     fetch_official_page,
@@ -21,13 +20,16 @@ from .official_page import (
 
 __all__ = [
     "AnchorLinkAdapter",
+    "AnchorLinkFetchError",
     "FetchResult",
     "FixtureFetcher",
     "FixtureSourceAdapter",
     "GoogleCalendarAdapter",
     "HttpFetcher",
+    "LiveAnchorLinkAdapter",
     "OfficialPageAdapter",
     "SourceAdapter",
+    "UrllibHttpFetcher",
     "Window",
     "build_sources",
     "default_fetcher",

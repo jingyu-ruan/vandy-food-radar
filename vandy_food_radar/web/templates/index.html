@@ -15,9 +15,11 @@
         {{ reference_label }}
       </p>
     </div>
-    <form method="post" action="{{ url_for('refresh') }}">
-      <button type="submit" class="refresh">Refresh now</button>
-    </form>
+    {% if offline %}
+      <form method="post" action="{{ url_for('refresh') }}">
+        <button type="submit" class="refresh">Refresh demo</button>
+      </form>
+    {% endif %}
   </header>
 
   <main>
@@ -40,8 +42,13 @@
       </ol>
     {% else %}
       <p class="empty">
-        No events yet for {{ target_date }}. Run
-        <code>make seed</code> (or the "Refresh now" button) to load events.
+        {% if offline %}
+          No demo events yet for {{ target_date }}. Run <code>make seed</code>
+          or use “Refresh demo” to load fixtures.
+        {% else %}
+          No approved public AnchorLink events with the Free Food perk are
+          currently available for {{ target_date }}.
+        {% endif %}
       </p>
     {% endif %}
   </main>

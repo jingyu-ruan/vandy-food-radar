@@ -1,10 +1,4 @@
-"""Persistence layer for Vandy Food Radar (design.md §2, T1.1-T1.3).
-
-Exposes the :class:`Repository` protocol (the boundary every other layer
-persists through) and the stdlib :class:`SqliteRepository` implementation,
-plus the :class:`SnapshotStore` seam used by the stateless-serverless run path
-for cross-session change detection (M7-M9).
-"""
+"""Persistence boundaries for local and stateless-serverless operation."""
 
 from __future__ import annotations
 
@@ -18,14 +12,17 @@ from .snapshot import (
     events_to_json,
 )
 from .sqlite_repository import SqliteRepository
+from .upstash_repository import DurableRepositoryError, UpstashSqliteRepository
 
 __all__ = [
-    "Repository",
-    "SqliteRepository",
-    "SnapshotStore",
+    "DurableRepositoryError",
     "InMemorySnapshotStore",
+    "Repository",
+    "SnapshotStore",
+    "SqliteRepository",
     "UpstashSnapshotStore",
+    "UpstashSqliteRepository",
     "build_snapshot_store",
-    "events_to_json",
     "events_from_json",
+    "events_to_json",
 ]

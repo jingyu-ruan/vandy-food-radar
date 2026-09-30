@@ -14,12 +14,24 @@ in-memory repository and the fixture-backed pipeline.
 
 from __future__ import annotations
 
+import hmac
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import date, datetime, time
 from pathlib import Path
+from threading import RLock
+from zoneinfo import ZoneInfo
 
-from flask import Flask, Response, flash, redirect, render_template, url_for
+from flask import (
+    Flask,
+    Response,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from ..config import Config
@@ -48,8 +60,19 @@ from ..providers.location import (
 )
 from ..ranking import build_explanation
 from ..ranking.engine import ScoredEvent, order_events
-from ..sources import SourceAdapter, Window, build_sources, default_fetcher
-from ..store import Repository, SnapshotStore, build_snapshot_store
+from ..sources import (
+    AnchorLinkFetchError,
+    SourceAdapter,
+    Window,
+    build_sources,
+    default_fetcher,
+)
+from ..store import (
+    DurableRepositoryError,
+    Repository,
+    SnapshotStore,
+    build_snapshot_store,
+)
 
 # Static assets live in the repo's public/static so Vercel's CDN serves them at
 # /static/* (Vercel ignores Flask's static_folder); Flask serves the same folder
@@ -120,11 +143,21 @@ def create_app(
     """
 
     app = Flask(__name__, static_folder=STATIC_DIR)
-    # Secret key backs Flask flash() for the calendar-status message; a fixed
-    # dev value keeps offline/demo mode working with no configuration.
-    app.secret_key = "vandy-food-radar-dev"
+    # Keep the zero-configuration offline demo while deriving a stable,
+    # domain-separated Flask signing key from the required live secret. This
+    # avoids shipping a publicly known session-signing key in production.
+    app.secret_key = (
+        "vandy-food-radar-dev"
+        if config.offline or not config.refresh_token
+        else hmac.digest(
+            config.refresh_token.encode("utf-8"),
+            b"vfr-flask-session-v1",
+            "sha256",
+        ).hex()
+    )
     provider = location_provider or build_location_provider(config)
-    today_fn = today_provider or (lambda: datetime.now(tz=UTC).date())
+    event_timezone = ZoneInfo(config.timezone)
+    today_fn = today_provider or (lambda: datetime.now(tz=event_timezone).date())
     store = (
         snapshot_store if snapshot_store is not None else build_snapshot_store(config)
     )
@@ -133,60 +166,108 @@ def create_app(
         if calendar_provider is not None
         else build_calendar_provider(config)
     )
+    repository_lock = RLock()
 
     def _refresh_sources() -> Sequence[SourceAdapter]:
         if sources is not None:
             return sources
         return build_sources(config, default_fetcher(config))
 
+    def _reload_live_repository() -> None:
+        if config.offline:
+            return
+        reload_repository = getattr(repository, "reload", None)
+        if reload_repository is None:
+            raise DurableRepositoryError(
+                "live mode repository does not support durable reload"
+            )
+        reload_repository()
+
+    def _authorized() -> bool:
+        if config.offline:
+            return True
+        if not config.refresh_token:
+            return False
+        supplied = request.headers.get("Authorization", "")
+        expected = f"Bearer {config.refresh_token}"
+        return hmac.compare_digest(supplied, expected)
+
+    def _refresh_error(exc: Exception) -> Response:
+        app.logger.error("Live refresh failed: %s", exc)
+        return Response(
+            '{"error":"live refresh failed; previous feed retained"}',
+            mimetype="application/json",
+            status=502,
+        )
+
     @app.get("/")
-    def index() -> str:
+    def index() -> str | Response:
         window = Window.from_config(config, today=today_fn())
-        current = repository.get_events_for_day(window.target_date)
-        # Read-only change detection against the previous snapshot; the index
-        # view never re-saves the snapshot (that happens in /refresh and
-        # /cron/refresh). A missing snapshot means every event reads NEW.
-        previous = store.load_snapshot(window.target_date)
-        changes = detect_changes(current, previous)
-        cards = _build_cards(repository, config, provider, window.target_date, changes)
+        try:
+            with repository_lock:
+                _reload_live_repository()
+                current = repository.get_events_for_day(window.target_date)
+                previous = store.load_snapshot(window.target_date)
+                changes = detect_changes(current, previous)
+                cards = _build_cards(
+                    repository, config, provider, window.target_date, changes
+                )
+        except DurableRepositoryError as exc:
+            app.logger.error("Live repository read failed: %s", exc)
+            return Response(
+                "Live event data is temporarily unavailable.",
+                mimetype="text/plain",
+                status=503,
+            )
         return render_template(
             "index.html",
             cards=cards,
             target_date=window.target_date,
             reference_label=config.reference_location.label,
+            offline=config.offline,
         )
 
     @app.post("/refresh")
-    def refresh() -> WerkzeugResponse:
+    def refresh() -> WerkzeugResponse | Response:
+        if not _authorized():
+            return Response("Unauthorized", status=401)
         window = Window.from_config(config, today=today_fn())
-        run_pipeline(
-            window,
-            repository=repository,
-            sources=_refresh_sources(),
-            location_provider=provider,
-            config=config,
-        )
+        try:
+            with repository_lock:
+                _reload_live_repository()
+                run_pipeline(
+                    window,
+                    repository=repository,
+                    sources=_refresh_sources(),
+                    location_provider=provider,
+                    config=config,
+                )
+        except (AnchorLinkFetchError, DurableRepositoryError) as exc:
+            return _refresh_error(exc)
         return redirect(url_for("index"))
 
     @app.route("/cron/refresh", methods=["GET", "POST"])
     def cron_refresh() -> Response:
-        """Vercel-Cron entry point: refresh tomorrow via run_with_snapshot.
+        """Protected scheduler entry point for a complete durable refresh."""
 
-        Runs the pipeline for the target day, reconciles changes against the
-        previous snapshot, repopulates the snapshot, and returns the RunReport
-        counts plus the change tally as JSON. No in-process scheduler exists;
-        Vercel Cron invokes this route daily.
-        """
-
+        if not _authorized():
+            return Response(
+                '{"error":"unauthorized"}', mimetype="application/json", status=401
+            )
         window = Window.from_config(config, today=today_fn())
-        report, changes = run_with_snapshot(
-            window,
-            repository=repository,
-            sources=_refresh_sources(),
-            location_provider=provider,
-            config=config,
-            snapshot_store=store,
-        )
+        try:
+            with repository_lock:
+                _reload_live_repository()
+                report, changes = run_with_snapshot(
+                    window,
+                    repository=repository,
+                    sources=_refresh_sources(),
+                    location_provider=provider,
+                    config=config,
+                    snapshot_store=store,
+                )
+        except (AnchorLinkFetchError, DurableRepositoryError) as exc:
+            return _refresh_error(exc)
         return Response(
             run_report_to_json(report, changes),
             mimetype="application/json",
@@ -195,6 +276,8 @@ def create_app(
 
     @app.post("/seed")
     def seed() -> WerkzeugResponse:
+        if not config.offline:
+            abort(404)
         seed_demo(repository=repository, config=config, today=today_fn())
         return redirect(url_for("index"))
 
@@ -210,14 +293,21 @@ def create_app(
         """
 
         window = Window.from_config(config, today=today_fn())
-        match = next(
-            (
-                event
-                for event in repository.get_events_for_day(window.target_date)
-                if event.identity_key == identity_key
-            ),
-            None,
-        )
+        try:
+            with repository_lock:
+                _reload_live_repository()
+                match = next(
+                    (
+                        event
+                        for event in repository.get_events_for_day(window.target_date)
+                        if event.identity_key == identity_key
+                    ),
+                    None,
+                )
+        except DurableRepositoryError as exc:
+            app.logger.error("Live repository read failed: %s", exc)
+            flash("Live event data is temporarily unavailable")
+            return redirect(url_for("index"))
         if match is None:
             flash("Event not found")
         elif match.verification_state is VerificationState.CANCELLED:

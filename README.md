@@ -1,222 +1,207 @@
 # Vandy Food Radar
 
-A lightweight, single-user tool for Vanderbilt students that discovers upcoming
-campus events offering free food, cross-checks details across sources, and ranks
-events by how worthwhile they are to attend.
+Vandy Food Radar discovers Vanderbilt events advertising free food, normalizes
+and deduplicates them, verifies their provenance, ranks them, and renders dense
+event cards.
 
-The MVP pipeline is **Discover → Normalize → Deduplicate → Verify → Rank →
-Display**. See the full spec under [`.kiro/specs/vandy-food-radar/`](.kiro/specs/vandy-food-radar/)
-(`requirements.md`, `design.md`, `tasks.md`, `assumptions.md`).
+The application has two explicit modes:
 
-## Project status
+- **Offline demo (default locally):** reads only the fixture corpus under
+  `tests/fixtures/`. It never makes source-network calls.
+- **Live production:** queries Vanderbilt AnchorLink's public discovery API and
+  publishes a complete durable feed to Upstash Redis. It never falls back to
+  fixtures or placeholder event links.
 
-The full MVP pipeline is implemented end to end and runs entirely offline:
+The pipeline remains **Discover → Normalize → Deduplicate → Verify → Rank →
+Display**. The original spec is under [`.kiro/specs/vandy-food-radar/`](.kiro/specs/vandy-food-radar/).
 
-- typed configuration and domain models (`config.py`, `models.py`);
-- source ingestion behind an `HttpFetcher`/`SourceAdapter` seam with an offline
-  fixture fetcher (`sources/`);
-- normalization, deduplication, and verification/conflict-resolution
-  (`normalize/`, `dedup/`, `verify/`);
-- a transparent weighted-sum ranking engine with stored score components and an
-  explanation generator (`ranking/`);
-- SQLite persistence behind a `Repository` (`store/`), location/calendar
-  provider seams (`providers/`), the pipeline orchestrator + CLI (`pipeline/`,
-  `cli.py`), and a server-rendered Flask web UI (`web/`).
+## Requirements and setup
 
-Everything is deterministic and makes **no network calls**; all source data
-comes from the fixture corpus under `tests/fixtures/`.
-
-## Requirements
-
-- Python **3.11+**
-- [`uv`](https://docs.astral.sh/uv/) for environment and dependency management
-
-If you use `pyenv`, install and select 3.11 first:
-
-```sh
-pyenv install 3.11
-pyenv local 3.11
-```
-
-`uv` will locate a suitable Python 3.11 interpreter automatically.
-
-## Setup
-
-Install the package with its development dependencies (ruff, black, mypy,
-pytest) into a local virtual environment:
+- Python 3.11+
+- [`uv`](https://docs.astral.sh/uv/)
 
 ```sh
 make install
 ```
 
-## Common tasks
-
-| Command          | What it does                                  |
-| ---------------- | --------------------------------------------- |
-| `make install`   | Create the venv and install dev dependencies. |
-| `make lint`      | Run `ruff` lint checks.                        |
-| `make format`    | Auto-format with `black` and `ruff`.           |
-| `make format-check` | Verify formatting without changes.          |
-| `make typecheck` | Run `mypy` in strict mode.                     |
-| `make test`      | Run the `pytest` suite.                        |
-| `make check`     | Run lint, format-check, typecheck, and tests.  |
-| `make seed`      | Load the fixture corpus into SQLite, retargeted to tomorrow. |
-| `make run`       | Run the pipeline over the configured sources for the target day. |
-| `make demo`      | Seed the corpus **and** serve the ranked-events web UI. |
-| `make serve-vercel` | Serve the Vercel entrypoint (`api/index.py`) locally in demo mode. |
-
-## Running the app
-
-To see ranked free-food events in your browser out of the box, run a single
-command:
+## Offline demo
 
 ```sh
 make demo
 ```
 
-This seeds the offline fixture corpus into `store.db` (with each event's date
-retargeted onto **tomorrow** so the page is never empty), then serves the web
-UI. Open:
+Open `http://127.0.0.1:5000/`. The fixture dates are retargeted to tomorrow so
+the demo stays populated. The page reads local SQLite (`store.db`), and
+**Refresh demo** reruns fixture ingestion.
 
-```
-http://127.0.0.1:5000/
-```
+Useful commands:
 
-The main page lists tomorrow's events in ranked order as dense cards showing the
-title, time, location, food description, RSVP status, walking time (or
-"unavailable"), source links, a verification badge, and a short explanation of
-the ranking, with an expandable list of any detected conflicts. The **Refresh
-now** button re-runs the pipeline for the same day.
+| Command | Purpose |
+| --- | --- |
+| `make seed` | Retarget and load the fixture corpus into SQLite. |
+| `make run` | Run the configured source pipeline. |
+| `make demo` | Seed fixtures and serve the Flask UI. |
+| `make web` | Serve the UI using local SQLite. |
+| `make serve-vercel` | Serve `api/index.py` locally. |
+| `make lint` / `make typecheck` / `make test` | Project validation commands. |
 
-Prefer to run the steps separately:
-
-```sh
-make seed        # populate store.db with tomorrow's events
-make run         # (or) run the pipeline over the configured sources
-make web         # serve the UI reading from store.db
-```
-
-The pipeline is also available directly on the CLI:
+Direct CLI use:
 
 ```sh
 uv run python -m vandy_food_radar --db store.db seed
 uv run python -m vandy_food_radar --db store.db run
 ```
 
-Both write to the SQLite database at `--db` (default `store.db`, a local
-runtime artifact that is not committed). Re-running is idempotent: events upsert
-by their dedup key and no duplicates are created.
+## Live AnchorLink ingestion
 
-## Deployment
+The canonical human filter is [AnchorLink Free Food events](https://anchorlink.vanderbilt.edu/events?perks=FreeFood).
+AnchorLink's client-rendered page uses the public
+[`/api/discovery/event/search`](https://anchorlink.vanderbilt.edu/api/discovery/event/search)
+JSON interface. The verified API contract is:
 
-The app ships as a stateless serverless function on
-[Vercel](https://vercel.com/). Vercel detects Flask (zero-config
-[Flask framework preset](https://vercel.com/docs/frameworks/backend/flask)),
-installs from `pyproject.toml`, and uses `api/index.py` (which re-exports the
-Flask WSGI `app`) as the entrypoint. Every request goes straight to Flask, which
-matches the path itself — `vercel.json` only declares the daily cron and must
-**not** contain a rewrite: Vercel routes backend-framework rewrites using the
-rewritten destination path, so a catch-all rewrite to `/api/index` made Flask
-see `/api/index` for every URL and return 404. Static assets live in
-`public/` (Vercel's CDN serves `public/static/app.css` at `/static/app.css`;
-Flask serves the same folder locally). The Python version comes from
-`requires-python = ">=3.11"` in `pyproject.toml` (no `functions.runtime`
-override).
+- `benefitNames=FreeFood` applies the Free Food facet. The page parameter
+  `perks=FreeFood` is **not** an API filter.
+- `startsAfter` and `startsBefore` bound event start timestamps.
+- `skip` and `take` paginate; `@odata.count` reports the matching total.
+- Search rows contain `id`, `institutionId`, `branchId`, `name`, `description`,
+  `location`, `startsOn`, `endsOn`, `benefitNames`, `visibility`, and `status`.
+- Genuine event pages use `https://anchorlink.vanderbilt.edu/event/<numeric-id>`.
 
-### Deploy to Vercel (click-by-click)
+The live adapter fetches every page for the configured target day and also
+checks each row defensively. A record is accepted only when it:
 
-1. Go to [vercel.com](https://vercel.com/) and sign in with GitHub.
-2. Click **Add New… → Project** and **Import** the GitHub repository
-   `jingyu-ruan/vandy-food-radar`.
-3. Vercel auto-detects the Flask app at `api/index.py` and installs from
-   `pyproject.toml`. No build settings need changing (leave the framework
-   preset as detected).
-4. Click **Deploy**. When it finishes, open the generated `*.vercel.app` URL.
+- contains the exact `Free Food` benefit;
+- is `Approved` and `Public`;
+- identifies Vanderbilt institution `24` and branch `56623`;
+- has a numeric API-returned ID and valid timezone-aware start/end timestamps;
+- starts on the target date in `America/Chicago` and has not ended.
 
-The site works **immediately** with no configuration: it boots in offline demo
-mode, seeds the fixture corpus into an ephemeral `/tmp/store.db`, and uses an
-in-memory snapshot store, so the page is never empty. You (not this project)
-perform the final click-to-deploy — the tooling here never authenticates to
-Vercel.
+Event and source links are constructed only from those returned numeric IDs.
+Descriptions are treated as untrusted text: HTML is stripped and no embedded
+content is executed. Listing HTTP, JSON, pagination, and durable-publication
+failures return a non-2xx refresh response while retaining the previous feed.
+A successful API response containing zero matches legitimately publishes an
+empty target day.
 
-> **Hobby-plan gotcha:** Vercel's Hobby plan blocks a deployment whose commit
-> author isn't the connected GitHub account that owns the Vercel team — this
-> is checked against the commit author regardless of whether the repository is
-> public or private (see
-> [Troubleshoot project collaboration](https://vercel.com/docs/deployments/troubleshoot-project-collaboration)).
-> If Vercel reports *"the commit author did not have contributing access"* or
-> *"Hobby teams do not support collaboration"*, make sure new commits are
-> authored as the repository owner's GitHub identity (`user.name` /
-> `user.email` matching the connected GitHub account), then push again or hit
-> **Redeploy**.
-
-> `requirements.txt` is generated from the project dependencies. Whenever deps
-> change, regenerate it with `uv export --no-dev --no-hashes -o requirements.txt`
-> and commit the result (Vercel uses pip; `uv.lock` is gitignored).
-
-### Optional: cross-session change tracking (Upstash Redis)
-
-To persist the previous run's events across serverless invocations (so events
-are flagged **New / Time changed / Venue changed / Cancelled** between days),
-create a free [Upstash](https://upstash.com/) Redis database and set these in
-the Vercel project's **Environment Variables**:
-
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
-
-Without them the app degrades gracefully to the in-memory snapshot (every event
-reads as **New**); it never errors on a KV outage.
-
-### Optional: Google Calendar and Google Maps
-
-- **Google Calendar** (add a selected event to a calendar): set
-  `GOOGLE_CALENDAR_CREDENTIALS_JSON`, `VFR_CALENDAR_ID`,
-  `VFR_CALENDAR_WRITE_ENABLED=true`, and `VFR_CALENDAR_PROVIDER=google`.
-- **Google Maps** (real walking times): set `GOOGLE_MAPS_API_KEY`,
-  `VFR_MAPS_ENABLED=true`, and `VFR_LOCATION_PROVIDER=google_maps`.
-
-### Daily refresh (Vercel Cron)
-
-`vercel.json` declares a cron that calls `/cron/refresh` once daily at
-`0 11 * * *` (11:00 UTC ≈ early morning US Central). That route runs the
-pipeline for the target day via the snapshot workflow and repopulates the
-snapshot, so change badges stay current without any in-process scheduler.
-
-### Run the serverless entrypoint locally
+For a one-off live fetch into **local** SQLite:
 
 ```sh
-make serve-vercel   # serves api/index.py at http://127.0.0.1:5000/
+VFR_OFFLINE=false \
+uv run python -m vandy_food_radar --db live.db run
 ```
 
-> **Note — superseded design.** The earlier design assumed persistent SQLite
-> storage deployed on Render with an in-process APScheduler and gunicorn. That
-> approach is **SUPERSEDED** by this stateless-serverless architecture: SQLite
-> remains only for local/dev, cross-session state lives in an Upstash snapshot,
-> and Vercel Cron replaces the in-process scheduler. Do not reintroduce Render,
-> a persistent disk, APScheduler, or gunicorn.
+This is useful for development, but `live.db` is not suitable for Vercel.
+
+## Vercel production
+
+`api/index.py` exports the Flask WSGI application. Do not add a catch-all
+rewrite to `vercel.json`; Flask must receive the original route. Static assets
+remain under `public/static/`.
+
+Vercel detects the Flask entry point and installs the dependencies from the
+repository. For the existing `jingyu-ruan/vandy-food-radar` project, keep the
+repository root as the project root and leave the detected framework settings
+in place. Configure the required production environment variables below before
+redeploying. A Vercel Hobby deployment can also reject commits authored by an
+identity that lacks access to the connected team; see [Vercel's deployment
+collaboration guidance](https://vercel.com/docs/deployments/troubleshoot-project-collaboration).
+
+Production Vercel deployments (`VERCEL_ENV=production`) default to live mode
+when `VFR_OFFLINE` is unset. Set `VFR_OFFLINE=false` explicitly for clarity.
+Live mode refuses to boot unless durable storage and refresh authentication are
+configured, and it never fixture-seeds `/tmp`.
+
+### Required Vercel environment variables
+
+Set all four in the Vercel project, for the Production environment:
+
+| Variable | Required value/purpose |
+| --- | --- |
+| `VFR_OFFLINE` | `false` |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL. |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token. |
+| `CRON_SECRET` | Strong random bearer token protecting refresh routes. |
+
+`VFR_REFRESH_TOKEN` may replace/override `CRON_SECRET`, but using
+`CRON_SECRET` is recommended because Vercel Cron sends it as a bearer token.
+The same token value must be installed in GitHub as described below.
+
+Upstash serves two distinct persistence roles:
+
+1. `vfr:repository:v1` stores the complete SQLite repository snapshot,
+   including canonical events, real source URLs/raw payloads, provenance,
+   conflicts, ranking components, and history. Every home-page request reloads
+   it, so separate serverless invocations see the latest published feed.
+2. `vfr:snapshot:<date>` stores the smaller previous-run change snapshot used
+   for New / Time changed / Venue changed / Cancelled classification.
+
+The complete repository is mandatory in live mode. Its reads/writes are strict;
+an Upstash outage produces a clear 502/503 instead of silently serving demo
+fixtures. A refresh builds locally and publishes only after the entire source
+and pipeline run succeeds. Only the configured target day is retained, keeping
+the Redis value bounded.
+
+After setting environment variables and deploying, trigger the GitHub workflow
+manually once or call the protected endpoint once to create the initial feed.
+An empty page before that first successful refresh is expected.
+
+### True hourly scheduling on Vercel Hobby
+
+Vercel Hobby cron is limited to daily execution, so the repository includes
+[`.github/workflows/hourly-refresh.yml`](.github/workflows/hourly-refresh.yml).
+GitHub Actions invokes the protected endpoint hourly at minute 17 and retries
+transient failures. GitHub scheduled workflows run from the latest commit on
+the default branch, and GitHub may delay scheduled runs during periods of high
+load. Configure these **GitHub Actions repository secrets**:
+
+| GitHub secret | Value |
+| --- | --- |
+| `VFR_REFRESH_URL` | Full production URL, e.g. `https://your-app.vercel.app/cron/refresh` |
+| `VFR_REFRESH_TOKEN` | Exactly the same value as Vercel `CRON_SECRET` (or its `VFR_REFRESH_TOKEN`). |
+
+The endpoint accepts GET or POST for scheduler compatibility but requires
+`Authorization: Bearer <token>` in live mode. `/refresh` is protected by the
+same token; the browser refresh button and `/seed` are disabled in production.
+No writable unauthenticated refresh path is exposed.
+
+`vercel.json` retains one daily Vercel Cron invocation as a safety net. It is
+not the hourly scheduler and also requires `CRON_SECRET`. The GitHub workflow
+is the path that supplies actual hourly refreshes on Hobby.
+
+### Optional providers
+
+- Google Calendar write: `GOOGLE_CALENDAR_CREDENTIALS_JSON`,
+  `VFR_CALENDAR_ID`, `VFR_CALENDAR_WRITE_ENABLED=true`, and
+  `VFR_CALENDAR_PROVIDER=google`.
+- Google Maps walking time: `GOOGLE_MAPS_API_KEY`, `VFR_MAPS_ENABLED=true`, and
+  `VFR_LOCATION_PROVIDER=google_maps`.
+
+The live source factory intentionally enables only AnchorLink. Existing Google
+Calendar and official-page **source** adapters enumerate fixture manifests and
+therefore remain offline-only until genuine live implementations exist.
 
 ## Configuration
 
-Configuration lives in `vandy_food_radar/config.py` with defaults that run out
-of the box in offline mode. A curated subset can be overridden via environment
-variables prefixed with `VFR_`, for example:
+Configuration is in `vandy_food_radar/config.py`. Common overrides:
 
-- `VFR_OFFLINE` — `true`/`false` (default `true`)
-- `VFR_TIMEZONE` — IANA timezone (default `America/Chicago`)
-- `VFR_TARGET_WINDOW` — `next_day` (default) or `today`
-- `VFR_REF_LABEL`, `VFR_REF_LAT`, `VFR_REF_LNG` — reference location
-- `VFR_GOOGLE_CALENDAR_ID`, `VFR_GOOGLE_CALENDAR_API_KEY` — calendar source
-- `VFR_LOCATION_PROVIDER` — `haversine` (default) or `null`
-- `VFR_CALENDAR_PROVIDER` — `none` (default) or `google`
+- `VFR_OFFLINE`: `true` (offline default) or `false` (live).
+- `VFR_TIMEZONE`: IANA timezone; default `America/Chicago`.
+- `VFR_TARGET_WINDOW`: `next_day` (default) or `today`.
+- `VFR_ANCHORLINK_BASE_URL`: defaults to the Vanderbilt AnchorLink origin.
+- `VFR_ANCHORLINK_PAGE_SIZE`: 1–100; default 100.
+- `VFR_ANCHORLINK_TIMEOUT_SECONDS`: per-page timeout; default 15.
+- `VFR_REF_LABEL`, `VFR_REF_LAT`, `VFR_REF_LNG`: walking origin.
+- `VFR_LOCATION_PROVIDER`: `haversine`, `google_maps`, or `null`.
+- `VFR_CALENDAR_PROVIDER`: `none` or `google`.
 
-Secrets (API keys/OAuth) are read from the environment and must never be
-committed.
+Secrets must remain in Vercel/GitHub environment configuration and must never
+be committed.
 
-## Testing
+## Validation
 
-Tests are offline-first and use the JSON/HTML fixture corpus in
-`tests/fixtures/`; no live network access is required.
+Tests are offline-first and inject fixtures/fakes; they do not require live
+network access.
 
 ```sh
-make test
+make check
 ```

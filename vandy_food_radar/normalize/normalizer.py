@@ -63,6 +63,8 @@ class NormalizedRecord:
     rsvp_required: bool | None = None
     rsvp_url: str | None = None
     event_url: str | None = None
+    # Stable provider-native identity, when supplied by a live adapter.
+    source_identity: str | None = None
 
     food_confirmed: FoodConfirmed = FoodConfirmed.UNCONFIRMED
     food_category: FoodCategory = FoodCategory.UNSPECIFIED
@@ -176,6 +178,7 @@ def normalize(record: SourceRecord, *, timezone: str) -> NormalizedRecord:
         rsvp_required=_as_bool(fields.get("rsvp_required")),
         rsvp_url=_as_str(fields.get("rsvp_url")),
         event_url=_as_str(fields.get("event_url")),
+        source_identity=_as_str(fields.get("source_identity")),
         food_confirmed=food_confirmed,
         food_category=food_category,
         food_description=food_description,

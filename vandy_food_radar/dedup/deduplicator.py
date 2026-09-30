@@ -166,10 +166,18 @@ def _build_event_shell(dedup_key: str, members: list[NormalizedRecord]) -> Event
         representative.event_date,
     )
     resolved_date = event_date if event_date is not None else date(1970, 1, 1)
+    source_identities = sorted(
+        {member.source_identity for member in members if member.source_identity}
+    )
+    identity_key = (
+        f"source|{source_identities[0]}"
+        if len(source_identities) == 1
+        else compute_identity_key(resolved_date, representative.title)
+    )
     return Event(
         id=dedup_key,
         dedup_key=dedup_key,
-        identity_key=compute_identity_key(resolved_date, representative.title),
+        identity_key=identity_key,
         title=representative.title or "",
         event_date=resolved_date,
         start_time=representative.start_time,
@@ -205,8 +213,21 @@ def _cluster_block(
         best_index = -1
         best_score = 0.0
         for index, cluster in enumerate(clusters):
+            comparable = [
+                member
+                for member in cluster
+                if not (
+                    record.source_identity
+                    and member.source_identity
+                    and record.source_id is member.source_id
+                    and record.source_identity != member.source_identity
+                )
+            ]
+            if not comparable:
+                continue
             score = max(
-                combined_similarity(record, member, config=config) for member in cluster
+                combined_similarity(record, member, config=config)
+                for member in comparable
             )
             if score >= config.review_low and score > best_score:
                 best_score = score

@@ -1,8 +1,8 @@
-"""Vercel Python entrypoint: expose the Flask WSGI ``app`` callable.
+"""Vercel Python entrypoint exposing the Flask WSGI ``app`` callable.
 
-The Vercel Python runtime serves the module-level ``app`` object. This is a thin
-re-export of the offline-ready application built in
-:mod:`vandy_food_radar.web.wsgi`; no request-handling logic lives here.
+The imported application selects the fixture-backed offline demo or the strict
+Upstash-backed live mode from environment configuration. Request handling stays
+in :mod:`vandy_food_radar.web`.
 """
 
 from __future__ import annotations
