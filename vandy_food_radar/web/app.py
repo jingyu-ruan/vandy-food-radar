@@ -17,6 +17,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
+from pathlib import Path
 
 from flask import Flask, Response, flash, redirect, render_template, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -49,6 +50,11 @@ from ..ranking import build_explanation
 from ..ranking.engine import ScoredEvent, order_events
 from ..sources import SourceAdapter, Window, build_sources, default_fetcher
 from ..store import Repository, SnapshotStore, build_snapshot_store
+
+# Static assets live in the repo's public/static so Vercel's CDN serves them at
+# /static/* (Vercel ignores Flask's static_folder); Flask serves the same folder
+# at the same URL locally.
+STATIC_DIR = Path(__file__).resolve().parents[2] / "public" / "static"
 
 # Human-readable labels for the per-event change badges (FR-42/FR-43).
 _CHANGE_LABELS: dict[ChangeKind, str] = {
@@ -113,7 +119,7 @@ def create_app(
     tests) so window derivation never depends directly on the wall clock.
     """
 
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder=STATIC_DIR)
     # Secret key backs Flask flash() for the calendar-status message; a fixed
     # dev value keeps offline/demo mode working with no configuration.
     app.secret_key = "vandy-food-radar-dev"
