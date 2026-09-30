@@ -110,21 +110,27 @@ by their dedup key and no duplicates are created.
 ## Deployment
 
 The app ships as a stateless serverless function on
-[Vercel](https://vercel.com/). Vercel auto-detects the Python entrypoint at
-`api/index.py` (which re-exports the Flask WSGI `app`) and installs from
-`requirements.txt`; `vercel.json` routes every request path to that function
-and declares a daily cron. The Python version is Vercel's current default
-(no `functions.runtime` override — that legacy field is rejected by current
-Vercel deployments and is intentionally omitted here); `pyproject.toml`
-declares `requires-python = ">=3.11"` for local development.
+[Vercel](https://vercel.com/). Vercel detects Flask (zero-config
+[Flask framework preset](https://vercel.com/docs/frameworks/backend/flask)),
+installs from `pyproject.toml`, and uses `api/index.py` (which re-exports the
+Flask WSGI `app`) as the entrypoint. Every request goes straight to Flask, which
+matches the path itself — `vercel.json` only declares the daily cron and must
+**not** contain a rewrite: Vercel routes backend-framework rewrites using the
+rewritten destination path, so a catch-all rewrite to `/api/index` made Flask
+see `/api/index` for every URL and return 404. Static assets live in
+`public/` (Vercel's CDN serves `public/static/app.css` at `/static/app.css`;
+Flask serves the same folder locally). The Python version comes from
+`requires-python = ">=3.11"` in `pyproject.toml` (no `functions.runtime`
+override).
 
 ### Deploy to Vercel (click-by-click)
 
 1. Go to [vercel.com](https://vercel.com/) and sign in with GitHub.
 2. Click **Add New… → Project** and **Import** the GitHub repository
    `jingyu-ruan/vandy-food-radar`.
-3. Vercel auto-detects the Python function at `api/index.py` and installs from
-   `requirements.txt`. No build settings need changing.
+3. Vercel auto-detects the Flask app at `api/index.py` and installs from
+   `pyproject.toml`. No build settings need changing (leave the framework
+   preset as detected).
 4. Click **Deploy**. When it finishes, open the generated `*.vercel.app` URL.
 
 The site works **immediately** with no configuration: it boots in offline demo
