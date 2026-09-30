@@ -1,0 +1,30 @@
+{
+  "scenario": "multi_source_pizza_night",
+  "source_id": "google_calendar",
+  "source_url": "https://calendar.google.com/event?eid=pizza-night-abc",
+  "checked_at": "2025-03-10T18:00:05-05:00",
+  "source_updated_at": "2025-03-08T09:00:00-05:00",
+  "parse_status": "ok",
+  "raw_payload": {
+    "id": "gcal-abc",
+    "summary": "Pizza Night (Free!)",
+    "start": { "dateTime": "2025-03-11T18:00:00-05:00" },
+    "end": { "dateTime": "2025-03-11T20:00:00-05:00" },
+    "location": "Sarratt Student Center 216",
+    "description": "Free pizza for all students."
+  },
+  "parsed_fields": {
+    "title": "Pizza Night (Free!)",
+    "event_date": "2025-03-11",
+    "start_time": "18:00",
+    "end_time": "20:00",
+    "location": "Sarratt Student Center 216",
+    "organizer": null,
+    "rsvp_required": null,
+    "rsvp_url": null,
+    "event_url": "https://calendar.google.com/event?eid=pizza-night-abc",
+    "food_confirmed": "confirmed",
+    "food_category": "full_meal",
+    "food_description": "Free pizza for all students."
+  }
+}

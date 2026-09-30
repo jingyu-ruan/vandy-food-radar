@@ -1,0 +1,11 @@
+{
+  "scenario": "unparseable_source_page",
+  "source_id": "official_page",
+  "source_url": "https://example.vanderbilt.edu/events/mystery",
+  "checked_at": "2025-03-10T18:00:45-05:00",
+  "source_updated_at": null,
+  "parse_status": "parse_error",
+  "raw_payload_file": "unparseable_official_page.html",
+  "parse_error": "Could not locate event date/time fields in page markup.",
+  "parsed_fields": {}
+}

@@ -1,0 +1,30 @@
+{
+  "scenario": "conflicting_start_time",
+  "source_id": "google_calendar",
+  "source_url": "https://calendar.google.com/event?eid=career-mixer-def",
+  "checked_at": "2025-03-10T18:00:25-05:00",
+  "source_updated_at": "2025-03-08T13:20:00-05:00",
+  "parse_status": "ok",
+  "raw_payload": {
+    "id": "gcal-def",
+    "summary": "Engineering Career Mixer",
+    "start": { "dateTime": "2025-03-11T18:30:00-05:00" },
+    "end": { "dateTime": "2025-03-11T20:00:00-05:00" },
+    "location": "Featheringill Hall Atrium",
+    "description": "Career mixer with free appetizers."
+  },
+  "parsed_fields": {
+    "title": "Engineering Career Mixer",
+    "event_date": "2025-03-11",
+    "start_time": "18:30",
+    "end_time": "20:00",
+    "location": "Featheringill Hall Atrium",
+    "organizer": null,
+    "rsvp_required": null,
+    "rsvp_url": null,
+    "event_url": "https://calendar.google.com/event?eid=career-mixer-def",
+    "food_confirmed": "confirmed",
+    "food_category": "snacks_or_refreshments",
+    "food_description": "Free appetizers."
+  }
+}

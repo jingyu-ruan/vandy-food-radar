@@ -1,0 +1,23 @@
+{
+  "scenario": "conflicting_start_time",
+  "source_id": "official_page",
+  "source_url": "https://engineering.vanderbilt.edu/events/career-mixer",
+  "checked_at": "2025-03-10T18:00:30-05:00",
+  "source_updated_at": "2025-03-10T15:00:00-05:00",
+  "parse_status": "ok",
+  "raw_payload": "<html><body><h1>Engineering Career Mixer</h1><p>Date: March 11, 2025</p><p>Time: 6:00 PM - 7:30 PM</p><p>Location: Featheringill Hall, Atrium</p><p>RSVP required. Heavy appetizers and drinks served.</p></body></html>",
+  "parsed_fields": {
+    "title": "Engineering Career Mixer",
+    "event_date": "2025-03-11",
+    "start_time": "18:00",
+    "end_time": "19:30",
+    "location": "Featheringill Hall, Atrium",
+    "organizer": "School of Engineering",
+    "rsvp_required": true,
+    "rsvp_url": "https://engineering.vanderbilt.edu/events/career-mixer/rsvp",
+    "event_url": "https://engineering.vanderbilt.edu/events/career-mixer",
+    "food_confirmed": "confirmed",
+    "food_category": "snacks_or_refreshments",
+    "food_description": "Heavy appetizers and drinks served."
+  }
+}

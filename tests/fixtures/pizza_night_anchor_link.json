@@ -1,0 +1,33 @@
+{
+  "scenario": "multi_source_pizza_night",
+  "source_id": "anchor_link",
+  "source_url": "https://anchorlink.vanderbilt.edu/event/pizza-night-101",
+  "checked_at": "2025-03-10T18:00:00-05:00",
+  "source_updated_at": "2025-03-09T14:30:00-05:00",
+  "parse_status": "ok",
+  "raw_payload": {
+    "id": "101",
+    "name": "Free Pizza Night",
+    "startsOn": "2025-03-11T18:00:00-05:00",
+    "endsOn": "2025-03-11T20:00:00-05:00",
+    "location": "Sarratt Student Center, Room 216",
+    "organizationName": "Student Government Association",
+    "perks": ["Free Food"],
+    "rsvpRequired": false,
+    "description": "Join us for free pizza night! Pepperoni and cheese pizza provided."
+  },
+  "parsed_fields": {
+    "title": "Free Pizza Night",
+    "event_date": "2025-03-11",
+    "start_time": "18:00",
+    "end_time": "20:00",
+    "location": "Sarratt Student Center, Room 216",
+    "organizer": "Student Government Association",
+    "rsvp_required": false,
+    "rsvp_url": null,
+    "event_url": "https://anchorlink.vanderbilt.edu/event/pizza-night-101",
+    "food_confirmed": "confirmed",
+    "food_category": "full_meal",
+    "food_description": "Pepperoni and cheese pizza provided."
+  }
+}

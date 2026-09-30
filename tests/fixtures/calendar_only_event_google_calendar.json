@@ -1,0 +1,30 @@
+{
+  "scenario": "calendar_only_event",
+  "source_id": "google_calendar",
+  "source_url": "https://calendar.google.com/event?eid=bagel-study-ghi",
+  "checked_at": "2025-03-10T18:00:40-05:00",
+  "source_updated_at": "2025-03-09T20:10:00-05:00",
+  "parse_status": "ok",
+  "raw_payload": {
+    "id": "gcal-ghi",
+    "summary": "Late Night Study Break: Free Bagels",
+    "start": { "dateTime": "2025-03-11T21:00:00-05:00" },
+    "end": { "dateTime": "2025-03-11T22:30:00-05:00" },
+    "location": "Central Library, First Floor",
+    "description": "Free bagels and coffee during finals study break."
+  },
+  "parsed_fields": {
+    "title": "Late Night Study Break: Free Bagels",
+    "event_date": "2025-03-11",
+    "start_time": "21:00",
+    "end_time": "22:30",
+    "location": "Central Library, First Floor",
+    "organizer": null,
+    "rsvp_required": null,
+    "rsvp_url": null,
+    "event_url": "https://calendar.google.com/event?eid=bagel-study-ghi",
+    "food_confirmed": "confirmed",
+    "food_category": "snacks_or_refreshments",
+    "food_description": "Free bagels and coffee."
+  }
+}

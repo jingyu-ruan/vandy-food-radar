@@ -1,0 +1,33 @@
+{
+  "scenario": "refreshments_only",
+  "source_id": "anchor_link",
+  "source_url": "https://anchorlink.vanderbilt.edu/event/research-talk-303",
+  "checked_at": "2025-03-10T18:00:15-05:00",
+  "source_updated_at": "2025-03-07T16:45:00-05:00",
+  "parse_status": "ok",
+  "raw_payload": {
+    "id": "303",
+    "name": "Undergraduate Research Talk",
+    "startsOn": "2025-03-11T16:00:00-05:00",
+    "endsOn": "2025-03-11T17:00:00-05:00",
+    "location": "Stevenson Center, Room 4309",
+    "organizationName": "Office of Undergraduate Research",
+    "perks": ["Free Food"],
+    "rsvpRequired": false,
+    "description": "Refreshments provided."
+  },
+  "parsed_fields": {
+    "title": "Undergraduate Research Talk",
+    "event_date": "2025-03-11",
+    "start_time": "16:00",
+    "end_time": "17:00",
+    "location": "Stevenson Center, Room 4309",
+    "organizer": "Office of Undergraduate Research",
+    "rsvp_required": false,
+    "rsvp_url": null,
+    "event_url": "https://anchorlink.vanderbilt.edu/event/research-talk-303",
+    "food_confirmed": "confirmed",
+    "food_category": "snacks_or_refreshments",
+    "food_description": "Refreshments provided."
+  }
+}
