@@ -133,6 +133,17 @@ in-memory snapshot store, so the page is never empty. You (not this project)
 perform the final click-to-deploy — the tooling here never authenticates to
 Vercel.
 
+> **Hobby-plan gotcha:** Vercel's Hobby plan blocks a deployment whose commit
+> author isn't the connected GitHub account that owns the Vercel team — this
+> is checked against the commit author regardless of whether the repository is
+> public or private (see
+> [Troubleshoot project collaboration](https://vercel.com/docs/deployments/troubleshoot-project-collaboration)).
+> If Vercel reports *"the commit author did not have contributing access"* or
+> *"Hobby teams do not support collaboration"*, make sure new commits are
+> authored as the repository owner's GitHub identity (`user.name` /
+> `user.email` matching the connected GitHub account), then push again or hit
+> **Redeploy**.
+
 > `requirements.txt` is generated from the project dependencies. Whenever deps
 > change, regenerate it with `uv export --no-dev --no-hashes -o requirements.txt`
 > and commit the result (Vercel uses pip; `uv.lock` is gitignored).
