@@ -1,12 +1,11 @@
-name: Refresh live AnchorLink events
+name: Refresh live AnchorLink events on Sites
 
 on:
   schedule:
-    # GitHub Actions cron is UTC. Minute 17 avoids the busiest top-of-hour slot.
+    # GitHub Actions cron is UTC; hourly minute 17 preserves the existing cadence.
     - cron: "17 * * * *"
   workflow_dispatch:
 
-# The job only calls an external HTTPS endpoint and needs no GITHUB_TOKEN scope.
 permissions: {}
 
 concurrency:
@@ -18,23 +17,70 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Call protected Vandy Food Radar refresh
+      - name: Refresh Sites and verify the persisted listing
         env:
-          VFR_REFRESH_URL: ${{ secrets.VFR_REFRESH_URL }}
-          VFR_REFRESH_TOKEN: ${{ secrets.VFR_REFRESH_TOKEN }}
+          VFR_SITES_URL: https://vandy-food-radar.rjy020128.chatgpt.site
+          VFR_SITES_SERVICE_TOKEN: ${{ secrets.VFR_SITES_SERVICE_TOKEN }}
         run: |
-          test -n "$VFR_REFRESH_URL"
-          test -n "$VFR_REFRESH_TOKEN"
-          curl --fail-with-body \
-            --silent \
-            --show-error \
-            --location \
-            --max-redirs 3 \
-            --proto '=https' \
-            --proto-redir '=https' \
-            --retry 3 \
-            --retry-all-errors \
-            --max-time 90 \
-            --request POST \
-            --header "Authorization: Bearer $VFR_REFRESH_TOKEN" \
-            "$VFR_REFRESH_URL"
+          python3 - <<'PY'
+          import datetime
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          from zoneinfo import ZoneInfo
+
+          base = os.environ['VFR_SITES_URL'].rstrip('/')
+          token = os.environ['VFR_SITES_SERVICE_TOKEN']
+          if base != 'https://vandy-food-radar.rjy020128.chatgpt.site' or not token:
+              raise SystemExit('Sites URL or service credential is missing or invalid')
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          client = urllib.request.build_opener(NoRedirect())
+
+          def request(path, method):
+              req = urllib.request.Request(
+                  base + path, data=b'' if method == 'POST' else None,
+                  method=method, headers={
+                      'OAI-Sites-Authorization': 'Bearer ' + token,
+                      'Accept': 'application/json',
+                  })
+              for attempt in range(3):
+                  try:
+                      with client.open(req, timeout=60) as response:
+                          if response.status != 200:
+                              raise SystemExit('Unexpected Sites HTTP status')
+                          return json.load(response)
+                  except urllib.error.HTTPError as exc:
+                      if exc.code in (409, 429, 500, 502, 503, 504) and attempt < 2:
+                          retry_after = exc.headers.get('Retry-After', '15')
+                          delay = min(30, max(1, int(retry_after))) if retry_after.isdigit() else 15
+                          time.sleep(delay)
+                          continue
+                      raise SystemExit(f'Sites {method} {path} returned HTTP {exc.code}')
+                  except (urllib.error.URLError, TimeoutError):
+                      if attempt < 2:
+                          time.sleep(5)
+                          continue
+                      raise SystemExit('Sites request failed after bounded retries')
+
+          result = request('/api/refresh', 'POST')
+          feed = request('/api/events', 'GET')
+          tomorrow = (datetime.datetime.now(ZoneInfo('America/Chicago')).date()
+                      + datetime.timedelta(days=1)).isoformat()
+          if not (result.get('ok') is True and feed.get('state') == 'ok'
+                  and result.get('targetDate') == feed.get('targetDate') == tomorrow
+                  and result.get('timezone') == feed.get('timezone') == 'America/Chicago'
+                  and feed.get('publishedAt') and feed.get('stale') is False
+                  and result.get('published') == feed.get('eventCount') == len(feed.get('events', []))):
+              raise SystemExit('Sites publication readback failed validation')
+          print(json.dumps({
+              'targetDate': feed['targetDate'], 'events': feed['eventCount'],
+              'publishedAt': feed['publishedAt'], 'changes': result.get('changes'),
+          }))
+          PY
