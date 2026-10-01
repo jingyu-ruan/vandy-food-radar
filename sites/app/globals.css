@@ -1,0 +1,603 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../vendor/shadcn-tailwind-4.13.0.css";
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility scrollbar-gutter-stable {
+  scrollbar-gutter: stable;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #171717;
+  --primary-foreground: #fafafa;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --accent: #f5f5f5;
+  --accent-foreground: #171717;
+  --destructive: #e7000b;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #a1a1a1;
+  --chart-1: #f54900;
+  --chart-2: #009689;
+  --chart-3: #104e64;
+  --chart-4: #ffb900;
+  --chart-5: #fe9a00;
+  --radius: 0.625rem;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #171717;
+  --sidebar-primary: #171717;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #f5f5f5;
+  --sidebar-accent-foreground: #171717;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #a1a1a1;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --card: #171717;
+    --card-foreground: #ededed;
+    --popover: #171717;
+    --popover-foreground: #ededed;
+    --primary: #ededed;
+    --primary-foreground: #171717;
+    --secondary: #262626;
+    --secondary-foreground: #ededed;
+    --muted: #262626;
+    --muted-foreground: #a1a1a1;
+    --accent: #262626;
+    --accent-foreground: #ededed;
+    --destructive: #ff6467;
+    --border: #ffffff1a;
+    --input: #ffffff26;
+    --ring: #737373;
+    --chart-1: #8e51ff;
+    --chart-2: #00bc7d;
+    --chart-3: #fe9a00;
+    --chart-4: #ad46ff;
+    --chart-5: #ff2056;
+    --sidebar: #171717;
+    --sidebar-foreground: #ededed;
+    --sidebar-primary: #8e51ff;
+    --sidebar-primary-foreground: #ededed;
+    --sidebar-accent: #262626;
+    --sidebar-accent-foreground: #ededed;
+    --sidebar-border: #ffffff1a;
+    --sidebar-ring: #737373;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ---------------------------------------------------------------------------
+   Vandy Food Radar — dense, information-first styling.
+
+   Body copy is 16px and every label is 0.875rem, so labels scale with the
+   reader's font size instead of staying pinned to 14px. Grid tracks are capped
+   by the container, so enlarged text wraps instead of clipping horizontally.
+   Cards are compact so the ranked
+   list, not decoration, occupies the first viewport. There is no hero, no
+   gallery, and no imagery: the content is the interface.
+   --------------------------------------------------------------------------- */
+
+.vfr-page {
+  --vfr-bg: #f5f6f8;
+  --vfr-card: #ffffff;
+  --vfr-ink: #1c1f24;
+  --vfr-muted: #55606e;
+  --vfr-line: #d8dde4;
+  --vfr-gold: #b3a369;
+  --vfr-gold-dark: #8c7f45;
+  --vfr-verified: #176b3c;
+  --vfr-partial: #8a6400;
+  --vfr-conflicting: #a52a1f;
+  --vfr-unconfirmed: #6b5000;
+  --vfr-cancelled: #5c6471;
+
+  min-height: 100vh;
+  background: var(--vfr-bg);
+  color: var(--vfr-ink);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.vfr-page *,
+.vfr-page *::before,
+.vfr-page *::after {
+  box-sizing: border-box;
+}
+
+/* Vanderbilt dark masthead with a gold rule. */
+.vfr-masthead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.25rem;
+  background: #1c1f24;
+  color: #ffffff;
+  border-bottom: 3px solid var(--vfr-gold);
+}
+
+.vfr-masthead h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.vfr-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.875rem;
+  color: #ced3da;
+}
+
+.vfr-refresh {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  min-width: 14rem;
+}
+
+.vfr-refresh-btn {
+  background: var(--vfr-gold);
+  color: #1c1f24;
+  border: 1px solid var(--vfr-gold-dark);
+  border-radius: 4px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vfr-refresh-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.vfr-refresh-btn:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.vfr-refresh-btn:focus-visible,
+.vfr-page a:focus-visible,
+.vfr-page summary:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.vfr-refresh-status {
+  margin: 0;
+  font-size: 0.875rem;
+  min-height: 1.2em;
+  text-align: right;
+  color: #ced3da;
+}
+
+.vfr-refresh-status.vfr-refresh-error {
+  color: #ffc9c4;
+  font-weight: 600;
+}
+
+.vfr-refresh-status.vfr-refresh-success {
+  color: #c9e8d4;
+}
+
+.vfr-main {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 0.85rem 1.25rem 2rem;
+}
+
+/* Status strip: everything the user needs to trust the data below it. */
+.vfr-status {
+  background: var(--vfr-card);
+  border: 1px solid var(--vfr-line);
+  border-left: 4px solid var(--vfr-gold);
+  border-radius: 5px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.vfr-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.2rem 1.25rem;
+  margin: 0;
+}
+
+.vfr-status-grid div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.4rem;
+  min-width: 0;
+}
+
+.vfr-status-grid dt {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--vfr-muted);
+  flex-shrink: 0;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.vfr-status-grid dd {
+  margin: 0;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.vfr-notice {
+  margin: 0.55rem 0 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid var(--vfr-line);
+  background: #f8f9fb;
+  font-size: 0.875rem;
+}
+
+.vfr-notice-warn {
+  border-color: var(--vfr-partial);
+  background: #fdf6e3;
+  color: #5a4300;
+}
+
+.vfr-notice-error {
+  border-color: var(--vfr-conflicting);
+  background: #fdeeec;
+  color: #7c1f16;
+  font-weight: 600;
+}
+
+.vfr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vfr-card {
+  background: var(--vfr-card);
+  border: 1px solid var(--vfr-line);
+  border-left: 5px solid var(--vfr-muted);
+  border-radius: 5px;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 0.6rem;
+}
+
+.vfr-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.vfr-rank {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--vfr-muted);
+  min-width: 1.3rem;
+}
+
+.vfr-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  flex: 1 1 14rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vfr-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--vfr-gold-dark);
+}
+
+.vfr-badge,
+.vfr-change {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.vfr-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.1rem 1.25rem;
+  margin: 0.45rem 0 0.35rem;
+}
+
+.vfr-facts div {
+  display: flex;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.vfr-facts .vfr-food {
+  grid-column: 1 / -1;
+}
+
+.vfr-facts dt {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--vfr-muted);
+  min-width: 5rem;
+}
+
+.vfr-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vfr-chip {
+  display: inline-block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #eceff3;
+  border: 1px solid var(--vfr-line);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  margin-right: 0.3rem;
+}
+
+.vfr-explanation {
+  margin: 0.3rem 0;
+  padding: 0.35rem 0.55rem;
+  background: #fbfaf3;
+  border: 1px dashed var(--vfr-gold);
+  border-radius: 4px;
+}
+
+.vfr-change-detail {
+  margin: 0.2rem 0;
+  font-size: 0.875rem;
+  color: var(--vfr-partial);
+}
+
+.vfr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.35rem 0 0.1rem;
+}
+
+.vfr-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f4f9c;
+}
+
+.vfr-download {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1c1f24;
+  background: var(--vfr-gold);
+  border: 1px solid var(--vfr-gold-dark);
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  text-decoration: none;
+}
+
+.vfr-download:hover {
+  filter: brightness(1.06);
+}
+
+.vfr-details {
+  margin-top: 0.3rem;
+  font-size: 0.875rem;
+}
+
+.vfr-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--vfr-muted);
+}
+
+.vfr-details ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.vfr-conflicts > summary {
+  color: var(--vfr-conflicting);
+}
+
+.vfr-factor-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.3rem;
+  font-size: 0.875rem;
+}
+
+.vfr-factor-table th,
+.vfr-factor-table td {
+  border: 1px solid var(--vfr-line);
+  padding: 0.15rem 0.4rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.vfr-factor-table thead th {
+  background: #eceff3;
+  white-space: nowrap;
+}
+
+.vfr-factor-table tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vfr-provenance {
+  overflow-wrap: anywhere;
+}
+
+.vfr-confidence {
+  margin: 0.3rem 0 0;
+  color: var(--vfr-muted);
+}
+
+.vfr-footnote {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--vfr-muted);
+}
+
+.vfr-footnote p {
+  margin: 0.3rem 0;
+}
+
+/* Per-state accents so event states are distinguishable at a glance. */
+.vfr-card.vfr-state-verified {
+  border-left-color: var(--vfr-verified);
+}
+.vfr-badge.vfr-state-verified {
+  background: var(--vfr-verified);
+}
+.vfr-card.vfr-state-partially_verified {
+  border-left-color: var(--vfr-partial);
+}
+.vfr-badge.vfr-state-partially_verified {
+  background: var(--vfr-partial);
+}
+.vfr-card.vfr-state-conflicting {
+  border-left-color: var(--vfr-conflicting);
+}
+.vfr-badge.vfr-state-conflicting {
+  background: var(--vfr-conflicting);
+}
+.vfr-card.vfr-state-food_unconfirmed {
+  border-left-color: var(--vfr-unconfirmed);
+}
+.vfr-badge.vfr-state-food_unconfirmed {
+  background: var(--vfr-unconfirmed);
+}
+.vfr-card.vfr-state-cancelled {
+  border-left-color: var(--vfr-cancelled);
+  opacity: 0.78;
+}
+.vfr-card.vfr-state-cancelled .vfr-title {
+  text-decoration: line-through;
+}
+.vfr-badge.vfr-state-cancelled {
+  background: var(--vfr-cancelled);
+}
+
+.vfr-change-new {
+  background: var(--vfr-verified);
+}
+.vfr-change-time_changed {
+  background: var(--vfr-partial);
+}
+.vfr-change-venue_changed {
+  background: var(--vfr-unconfirmed);
+}
+.vfr-change-cancelled {
+  background: var(--vfr-cancelled);
+}
+
+@media (max-width: 640px) {
+  .vfr-masthead {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vfr-refresh {
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  .vfr-refresh-status {
+    text-align: left;
+  }
+
+  .vfr-facts dt,
+  .vfr-status-grid dt {
+    min-width: 4.5rem;
+  }
+
+  .vfr-factor-table {
+    display: block;
+    overflow-x: auto;
+  }
+}

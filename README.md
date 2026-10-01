@@ -17,8 +17,10 @@ The workflow uses `VFR_SITES_SERVICE_TOKEN` from repository secrets and rejects
 redirects. The previous Vercel URL and refresh-token secrets remain available for
 rollback. Future service-token rotation must also update that repository secret.
 
-The migrated source is a separate Sites-managed checkout under `sites/` in the
-local workspace and lives in the Site's own source repository. It has 87 offline
+The migrated source is included as ordinary files under [`sites/`](sites/) in
+this GitHub repository and is also maintained in the Site's own source
+repository. See [Sites source and publication](docs/sites-source-and-publication.md)
+for the relationship between GitHub pushes and Sites releases. It has 87 offline
 tests; the first hosted publication matched all 63 numeric ranking factors and
 the order of 9 real events from the Python implementation. Calendar actions
 export an `.ics` file for explicit import. Frontend redesign is deferred.
