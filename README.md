@@ -1,5 +1,32 @@
 # Vandy Food Radar
 
+## Current Sites deployment
+
+The live application is now hosted at
+[https://vandy-food-radar.rjy020128.chatgpt.site](https://vandy-food-radar.rjy020128.chatgpt.site)
+with owner-private access. React/Vinext serves the page and API in one Sites
+Worker, and Sites D1 stores feeds, source records, scoring, change history, and
+refresh leases. The production application operates on real AnchorLink data.
+
+The existing GitHub Actions workflow calls the Sites refresh endpoint every hour
+at minute 17, then reads the listing back to verify durable publication. GitHub
+only supplies the timer; discovery, ranking, persistence, and serving run on
+Sites. The Sites account's five-task limit prevented creating a native Site task,
+so this preserves unattended updates while that account limit is in effect.
+The workflow uses `VFR_SITES_SERVICE_TOKEN` from repository secrets and rejects
+redirects. The previous Vercel URL and refresh-token secrets remain available for
+rollback. Future service-token rotation must also update that repository secret.
+
+The migrated source is a separate Sites-managed checkout under `sites/` in the
+local workspace and lives in the Site's own source repository. It has 87 offline
+tests; the first hosted publication matched all 63 numeric ranking factors and
+the order of 9 real events from the Python implementation. Calendar actions
+export an `.ics` file for explicit import. Frontend redesign is deferred.
+
+The following documentation describes the retained Python/Vercel version.
+
+## Legacy Python/Vercel application
+
 Vandy Food Radar discovers Vanderbilt events advertising free food, normalizes
 and deduplicates them, verifies their provenance, ranks them, and renders dense
 event cards.
