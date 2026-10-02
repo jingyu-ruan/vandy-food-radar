@@ -11,6 +11,7 @@ import type { Config } from "./config.ts";
 import type { D1Like } from "./d1.ts";
 import { StorageError } from "./d1.ts";
 import { Repository } from "./repository.ts";
+import { WalkingRouter } from "./routing.ts";
 
 /** Build the configuration from the Worker environment. */
 export function getConfig(): Config {
@@ -32,6 +33,18 @@ export function getRepository(config: Config): Repository {
     );
   }
   return new Repository(database as D1Like, config);
+}
+
+let router: { key: string; instance: WalkingRouter } | null = null;
+
+/**
+ * One walking router per isolate, so its bounded route cache is shared across
+ * requests. Rebuilt only if the routing configuration itself changes.
+ */
+export function getRouter(config: Config): WalkingRouter {
+  const key = JSON.stringify(config.routing);
+  if (!router || router.key !== key) router = { key, instance: new WalkingRouter(config) };
+  return router.instance;
 }
 
 /** JSON response helper with caching disabled. */

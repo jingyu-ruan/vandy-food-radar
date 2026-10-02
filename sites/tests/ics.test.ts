@@ -146,11 +146,13 @@ test("the summary and description are escaped and carry the source link", () => 
   assert.ok(ics.includes("Line one\\nLine two"));
 });
 
-test("an event without absolute instants falls back to an all-day entry", () => {
-  const ics = buildEventIcs(event({ startUtc: null, endUtc: null }), {
-    nowMs: 0,
-    timezone: "America/Chicago",
-  });
-  assert.ok(ics.includes("DTSTART;VALUE=DATE:20250312"));
+test("an event with no start time becomes an all-day entry with an exclusive end", () => {
+  const ics = buildEventIcs(
+    event({ startUtc: null, endUtc: null, startTime: null, endTime: null }),
+    { nowMs: 0, timezone: "America/Chicago" },
+  );
+  assert.ok(ics.includes("DTSTART;VALUE=DATE:20250312\r\n"));
+  assert.ok(ics.includes("DTEND;VALUE=DATE:20250313\r\n"));
   assert.ok(!ics.includes("DTEND:"));
+  assert.ok(ics.includes("X-VFR-TIME-UNKNOWN:TRUE"));
 });

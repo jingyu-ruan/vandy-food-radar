@@ -45,6 +45,7 @@ export const FACTOR_LABELS: Record<string, string> = {
   timing: "Timing",
   walking: "Walking",
   confidence: "Verification confidence",
+  participation: "Participation convenience",
 };
 
 export const AGREEMENT_LABELS: Record<string, string> = {

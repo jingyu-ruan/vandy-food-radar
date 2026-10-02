@@ -1,55 +1,52 @@
 # Sites source and publication
 
-The GitHub repository contains the retained Python application at its root and
-the complete migrated React/Vinext application in `sites/`. The latter is an
-ordinary directory, not a submodule, so a GitHub clone includes its source,
-locked dependencies, migrations, and tests without another repository login.
+The root of this repository retains the Python application. The ordinary `sites/`
+directory contains the complete React/Vinext Worker application, locked dependencies,
+D1 migrations, browser modules, campus dataset, and tests. A GitHub clone includes
+all source files without a second repository login.
 
-The live Site has a separate Sites-managed source repository. In the original
-migration workspace, `sites/` also has its own local Git metadata. That metadata
-is checkout-local and is excluded from the GitHub commit.
+The live Site has a separate Sites-managed Git repository:
 
-## Verified source correspondence
-
-- Site: `appgprj_6abda08653248191bd4377356f3e0a33`
+- Site project: `appgprj_6abda08653248191bd4377356f3e0a33`
 - Production URL: https://vandy-food-radar.rjy020128.chatgpt.site
-- Published Sites version: 1
-- Sites source commit: `a3ab09abecb55e0cb158fddf67c72542ba492e0e`
-- Source tree: `8cc3d8d68c10936a4325f407a1c761ef5ad8fa58`
+- Access: owner-private
 
-The GitHub `sites/` tree matches that published source tree byte for byte,
-including file modes. The commits have different hashes because GitHub wraps
-this source in the larger repository alongside the Python application,
-workflow, and migration records.
+## Release sequence
 
-## Future changes
+1. Open the existing Sites-owned checkout and validate the changes using the
+   commands in `sites/README.md`. Preserve applied migrations; add a new delta
+   for a schema change.
+2. Synchronize all source additions, edits, and removals into GitHub's ordinary
+   `sites/` directory. Commit and push GitHub first.
+3. Build the same source through the bundled Sites workflow, commit and push it
+   to the Site's own repository, and package the output from that exact commit.
+4. Save and deploy that commit and archive through Sites, preserving owner-only
+   access. Check the deployment status until it reaches a terminal state.
+5. Compare the Sites source commit's tree with GitHub's `HEAD:sites` tree. These
+   trees must match byte for byte, including file modes. The commit hashes differ
+   because GitHub contains the larger Python repository and release records.
 
-1. Edit the Sites-owned checkout and validate the relevant changes using the
-   commands in `sites/README.md`. Preserve applied database migrations and add
-   a new delta when changing the schema.
-2. Push the reviewed source to the Site's own repository and publish that exact
-   source through Sites. Source pushes alone require an explicitly accepted
-   Sites publish-on-push window to trigger automatic publication.
-3. Synchronize the same source files, including additions and removals, into
-   GitHub's ordinary `sites/` directory. Compare its tree hash with the published
-   source tree, then commit and push the GitHub repository.
+A GitHub push stores source. Sites publication rebuilds the deployed application.
+The existing GitHub workflow refreshes data on the published application and
+verifies each date's durable readback. Runtime secrets and production D1 data live
+separately from both source repositories.
 
-A push to this GitHub repository stores the source; it does not rebuild or
-publish the Site. The existing GitHub hourly workflow only calls the already
-published API and verifies durable readback. Sites holds runtime secrets and
-production D1 data separately from either source repository.
+## Previous publication baseline
 
-When cloning GitHub elsewhere, `sites/.openai/hosting.json` identifies this
-existing Site. Reuse that project ID when preparing a Sites-owned source
-checkout; never register a replacement Site for this application. Preserve the
-current private audience unless a sharing change has been explicitly requested.
+The original migration published version 1 from Sites source commit
+`a3ab09abecb55e0cb158fddf67c72542ba492e0e`, with source tree
+`8cc3d8d68c10936a4325f407a1c761ef5ad8fa58`. GitHub retained that tree before
+this workspace update. These identifiers describe the previous baseline.
 
-The native hourly Sites task could not be created because the account's five
-scheduled-task slots were occupied. The existing GitHub workflow supplies the
-hourly timer at minute 17. Its `VFR_SITES_SERVICE_TOKEN` is held in GitHub secrets;
-future service-token rotation requires updating that secret as well.
+## Runtime operation
 
-Local secrets, captured live data, runtime logs, dependency installations,
-build artifacts, and Git metadata are excluded from source synchronization.
-The three migration records under `.agents/tasks/sites-migration-*.md` document
-the implementation request, review findings, and verification results.
+The workflow refreshes two days every two hours at minute 17, and seven days every
+six hours at minute 47. It holds `VFR_SITES_SERVICE_TOKEN` in GitHub secrets and
+sends that token only to the fixed Site origin. Service-token rotation requires
+updating the repository secret. The existing native Sites automation remains
+paused; the GitHub workflow provides the active schedule.
+
+`sites/.openai/hosting.json` identifies the existing Site. Reuse that project ID
+when preparing a Sites-owned checkout and preserve the current audience.
+Local secrets, captured live data, logs, dependencies, build artifacts, runtime
+state, and Git metadata are excluded from source synchronization.

@@ -7,14 +7,16 @@
  *   no sample data; if nothing has been published the caller is told exactly
  *   that, and a storage failure surfaces as a failure rather than as an empty
  *   page.
- * - A write replaces one target day wholesale inside a single D1 batch, which
- *   D1 executes as one transaction. The caller computes the entire day first, so
- *   a half-ingested day is never visible and a failed run leaves the previously
- *   published feed exactly as it was.
+ * - A write replaces every requested target day wholesale inside a single D1
+ *   batch, which D1 executes as one transaction. The caller computes all of the
+ *   days first, so a half-ingested day is never visible, a failed run leaves the
+ *   previously published feed exactly as it was, and a day that was not part of
+ *   the refresh is never touched.
  *
- * Retention is bounded on every successful publish: old target days, old history
- * rows, and old refresh-run rows are trimmed so the database cannot grow without
- * limit.
+ * Retention is bounded on every successful publish: days outside the rolling
+ * `[today - pastDays, today + futureDays]` window (requested days are always
+ * kept), old history rows, and old refresh-run rows are trimmed so the database
+ * cannot grow without limit.
  */
 
 import type { ChangeRecord } from "./changes.ts";
@@ -56,6 +58,20 @@ const LEASE_NAME = "refresh";
  */
 const PUBLISH_FENCE_KEY = "refresh:publisher";
 
+/** Operational key recording the last complete successful refresh. */
+export const LAST_SUCCESS_KEY = "refresh:last_success";
+
+export type LastSuccess = { at: string; days: string[] };
+
+/** One source row as read back for display. */
+export type StoredSource = {
+  sourceId: SourceId;
+  sourceUrl: string | null;
+  checkedAt: string | null;
+  rawPayload: string | null;
+  parsedFields: Record<string, unknown>;
+};
+
 /** Everything one published event carries, assembled for display or export. */
 export type StoredEvent = {
   event: Event;
@@ -65,7 +81,7 @@ export type StoredEvent = {
   components: ScoreComponent[];
   conflicts: Conflict[];
   provenance: FieldProvenance[];
-  sources: { sourceId: SourceId; sourceUrl: string | null; checkedAt: string | null }[];
+  sources: StoredSource[];
   change: ChangeRecord | null;
   history: EventHistoryEntry[];
 };
@@ -80,19 +96,11 @@ export type FeedSnapshot = {
   events: StoredEvent[];
 };
 
-/** A fully computed target day, ready to be swapped in atomically. */
-export type PublishPayload = {
+/** One fully computed target day inside a publication. */
+export type DayPublication = {
   targetDate: string;
-  timezone: string;
-  targetWindow: string;
-  publishedAt: string;
   sourceTotal: number;
   pagesFetched: number;
-  /**
-   * The refresh lease holder that produced this payload. Validated inside the
-   * publish transaction so a superseded run cannot overwrite a newer feed.
-   */
-  leaseHolder: string;
   events: {
     event: Event;
     rank: number;
@@ -102,11 +110,34 @@ export type PublishPayload = {
     conflicts: Conflict[];
     provenance: FieldProvenance[];
     sources: SourceRecord[];
-    change: ChangeRecord;
+    /** `detectedAt` is carried forward while a change warning is still live. */
+    change: ChangeRecord & { detectedAt: string };
     createdAt: string;
   }[];
   history: EventHistoryEntry[];
+};
+
+/** Every requested day of one refresh, ready to be swapped in atomically. */
+export type PublishPayload = {
+  timezone: string;
+  targetWindow: string;
+  publishedAt: string;
+  /** Local "today" the retention window is anchored on. */
+  todayDate: string;
+  /**
+   * The refresh lease holder that produced this payload. Validated inside the
+   * publish transaction so a superseded run cannot overwrite a newer feed.
+   */
+  leaseHolder: string;
+  days: DayPublication[];
   run: RefreshRunRecord;
+};
+
+/** A published event plus what change detection needs from the last run. */
+export type PreviousEvent = {
+  event: Event;
+  createdAt: string;
+  change: ChangeRecord | null;
 };
 
 export type RefreshRunRecord = {
@@ -185,9 +216,20 @@ type SourceRow = {
   source_id: string;
   source_url: string | null;
   checked_at: string | null;
+  raw_payload: string | null;
+  parsed_fields: string | null;
 };
 
-type ChangeRow = { identity_key: string; kind: string; detail: string | null };
+type ChangeRow = {
+  identity_key: string;
+  kind: string;
+  detail: string | null;
+  detected_at: string | null;
+};
+
+function changeFromRow(row: ChangeRow): ChangeRecord {
+  return { kind: row.kind as ChangeKind, detail: row.detail, detectedAt: row.detected_at };
+}
 
 type FeedRow = {
   target_date: string;
@@ -322,11 +364,9 @@ export class Repository {
    * commits mid-read cannot make this report a day as published while returning
    * another publication's events.
    */
-  async readPublishedEvents(
-    targetDate: string,
-  ): Promise<{ event: Event; createdAt: string }[] | null> {
+  async readPublishedEvents(targetDate: string): Promise<PreviousEvent[] | null> {
     return withStorage("read published events", async () => {
-      const [feedRows, eventRows] = batchRows(
+      const [feedRows, eventRows, changeRows] = batchRows(
         await this.db.batch([
           this.db
             .prepare("SELECT target_date FROM feeds WHERE target_date = ?")
@@ -334,13 +374,40 @@ export class Repository {
           this.db
             .prepare("SELECT * FROM events WHERE feed_date = ? ORDER BY `rank` ASC")
             .bind(targetDate),
+          this.db
+            .prepare(
+              "SELECT identity_key, kind, detail, detected_at FROM event_changes WHERE feed_date = ?",
+            )
+            .bind(targetDate),
         ]),
       );
       if (feedRows.length === 0) return null;
+      const changes = new Map(
+        (changeRows as ChangeRow[]).map((row) => [row.identity_key, changeFromRow(row)]),
+      );
       return (eventRows as EventRow[]).map((row) => ({
         event: rowToEvent(row),
         createdAt: row.created_at,
+        change: changes.get(row.identity_key) ?? null,
       }));
+    });
+  }
+
+  /** The last complete successful refresh, if one has been recorded. */
+  async lastSuccess(): Promise<LastSuccess | null> {
+    return withStorage("read refresh metadata", async () => {
+      const row = await this.db
+        .prepare("SELECT value FROM app_state WHERE key = ?")
+        .bind(LAST_SUCCESS_KEY)
+        .first<{ value: string }>();
+      const parsed = safeJsonParse<unknown>(row?.value ?? null, null);
+      if (typeof parsed !== "object" || parsed === null) return null;
+      const record = parsed as Record<string, unknown>;
+      if (typeof record.at !== "string" || !Array.isArray(record.days)) return null;
+      return {
+        at: record.at,
+        days: record.days.filter((day): day is string => typeof day === "string"),
+      };
     });
   }
 
@@ -359,7 +426,10 @@ export class Repository {
    * Returns `null` when the day has never been published, which the routes
    * report as uninitialized rather than as an empty result.
    */
-  async readFeed(targetDate: string): Promise<FeedSnapshot | null> {
+  async readFeed(
+    targetDate: string,
+    options: { history?: boolean } = {},
+  ): Promise<FeedSnapshot | null> {
     return withStorage("read published feed", async () => {
       const [
         feedRows,
@@ -400,13 +470,13 @@ export class Repository {
             .bind(targetDate),
           this.db
             .prepare(
-              `SELECT event_id, source_id, source_url, checked_at
+              `SELECT event_id, source_id, source_url, checked_at, raw_payload, parsed_fields
                  FROM source_records WHERE feed_date = ? ORDER BY event_id, source_id`,
             )
             .bind(targetDate),
           this.db
             .prepare(
-              "SELECT identity_key, kind, detail FROM event_changes WHERE feed_date = ?",
+              "SELECT identity_key, kind, detail, detected_at FROM event_changes WHERE feed_date = ?",
             )
             .bind(targetDate),
         ]),
@@ -423,15 +493,13 @@ export class Repository {
 
       const changeByIdentity = new Map<string, ChangeRecord>();
       for (const row of changeRows as ChangeRow[]) {
-        changeByIdentity.set(row.identity_key, {
-          kind: row.kind as ChangeKind,
-          detail: row.detail,
-        });
+        changeByIdentity.set(row.identity_key, changeFromRow(row));
       }
 
-      const historyByIdentity = await this.readHistoryFor(
-        events.map((row) => row.identity_key),
-      );
+      const historyByIdentity =
+        options.history === false
+          ? new Map<string, EventHistoryEntry[]>()
+          : await this.readHistoryFor(events.map((row) => row.identity_key));
 
       const stored: StoredEvent[] = events.map((row) => ({
         event: rowToEvent(row),
@@ -460,6 +528,8 @@ export class Repository {
           sourceId: s.source_id as SourceId,
           sourceUrl: s.source_url,
           checkedAt: s.checked_at,
+          rawPayload: s.raw_payload,
+          parsedFields: safeJsonParse<Record<string, unknown>>(s.parsed_fields, {}),
         })),
         change: changeByIdentity.get(row.identity_key) ?? null,
         history: historyByIdentity.get(row.identity_key) ?? [],
@@ -521,15 +591,26 @@ export class Repository {
     return byIdentity;
   }
 
-  /** Find a published event by its AnchorLink id, newest published day first. */
-  async findEventByAnchorlinkId(anchorlinkId: string): Promise<Event | null> {
+  /**
+   * Find a published event by its AnchorLink id. With `feedDate` the lookup is
+   * scoped to that one published day and never crosses into another; without
+   * it the newest published day wins.
+   */
+  async findEventByAnchorlinkId(
+    anchorlinkId: string,
+    feedDate?: string,
+  ): Promise<Event | null> {
     return withStorage("look up event", async () => {
-      const row = await this.db
-        .prepare(
-          `SELECT * FROM events WHERE anchorlink_id = ? ORDER BY feed_date DESC LIMIT 1`,
-        )
-        .bind(anchorlinkId)
-        .first<EventRow>();
+      const statement = feedDate
+        ? this.db
+            .prepare("SELECT * FROM events WHERE anchorlink_id = ? AND feed_date = ? LIMIT 1")
+            .bind(anchorlinkId, feedDate)
+        : this.db
+            .prepare(
+              "SELECT * FROM events WHERE anchorlink_id = ? ORDER BY feed_date DESC LIMIT 1",
+            )
+            .bind(anchorlinkId);
+      const row = await statement.first<EventRow>();
       return row ? rowToEvent(row) : null;
     });
   }
@@ -601,7 +682,8 @@ export class Repository {
   }
 
   /**
-   * Replace one target day with a fully computed feed in a single transaction.
+   * Replace every requested day with its fully computed feed in a single
+   * transaction.
    *
    * The first statement is a fence: it writes `app_state.value` from a scalar
    * sub-select of this publisher's own lease row. `app_state.value` is NOT NULL,
@@ -610,68 +692,95 @@ export class Repository {
    * back before anything is deleted or inserted. A refresh that overran its
    * lease therefore cannot overwrite the newer feed that superseded it.
    *
-   * The remaining statements delete the day's existing rows, insert the new
-   * ones, record the run, and trim retention. D1 executes a batch as one
-   * transaction, so either the whole day is swapped in or nothing changes.
+   * Then, for each requested day only, the day's existing rows are deleted and
+   * the new ones inserted. A day outside the request is never deleted here; it
+   * can only age out through the bounded retention window. Finally the
+   * last-success marker, the run, and retention are written. D1 executes a
+   * batch as one transaction, so either every requested day is swapped in or
+   * nothing changes.
    */
   async publishFeed(payload: PublishPayload): Promise<void> {
-    if (payload.events.length > this.config.maxEventsPerFeed) {
-      throw new Error(
-        `refusing to publish ${payload.events.length} events for ${payload.targetDate}; ` +
-          `cap is ${this.config.maxEventsPerFeed}`,
-      );
+    if (payload.days.length === 0) throw new Error("refusing to publish an empty refresh");
+    const dates = new Set<string>();
+    for (const day of payload.days) {
+      if (dates.has(day.targetDate)) {
+        throw new Error(`refusing to publish ${day.targetDate} twice in one refresh`);
+      }
+      dates.add(day.targetDate);
+      if (day.events.length > this.config.maxEventsPerFeed) {
+        throw new Error(
+          `refusing to publish ${day.events.length} events for ${day.targetDate}; ` +
+            `cap is ${this.config.maxEventsPerFeed}`,
+        );
+      }
     }
 
     await withStorage("publish feed", async () => {
       const db = this.db;
-      const date = payload.targetDate;
       const statements: D1StatementLike[] = [this.leaseFenceStatement(payload)];
 
-      for (const table of [
-        "events",
-        "source_records",
-        "field_provenance",
-        "conflicts",
-        "score_components",
-        "event_changes",
-      ]) {
-        statements.push(db.prepare(`DELETE FROM ${table} WHERE feed_date = ?`).bind(date));
+      for (const day of payload.days) {
+        const date = day.targetDate;
+        for (const table of [
+          "events",
+          "source_records",
+          "field_provenance",
+          "conflicts",
+          "score_components",
+          "event_changes",
+        ]) {
+          statements.push(db.prepare(`DELETE FROM ${table} WHERE feed_date = ?`).bind(date));
+        }
+
+        statements.push(
+          db
+            .prepare(
+              `INSERT INTO feeds (target_date, timezone, target_window, event_count,
+                                  published_at, source_total, pages_fetched)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(target_date) DO UPDATE
+                      SET timezone = excluded.timezone,
+                          target_window = excluded.target_window,
+                          event_count = excluded.event_count,
+                          published_at = excluded.published_at,
+                          source_total = excluded.source_total,
+                          pages_fetched = excluded.pages_fetched`,
+            )
+            .bind(
+              date,
+              payload.timezone,
+              payload.targetWindow,
+              day.events.length,
+              payload.publishedAt,
+              day.sourceTotal,
+              day.pagesFetched,
+            ),
+        );
+
+        statements.push(...this.eventInsertStatements(payload, day));
+        statements.push(...this.sourceInsertStatements(day));
+        statements.push(...this.provenanceInsertStatements(day));
+        statements.push(...this.conflictInsertStatements(day));
+        statements.push(...this.componentInsertStatements(day));
+        statements.push(...this.changeInsertStatements(day));
+        statements.push(...this.historyInsertStatements(payload, day));
       }
 
       statements.push(
         db
           .prepare(
-            `INSERT INTO feeds (target_date, timezone, target_window, event_count,
-                                published_at, source_total, pages_fetched)
-                  VALUES (?, ?, ?, ?, ?, ?, ?)
-             ON CONFLICT(target_date) DO UPDATE
-                    SET timezone = excluded.timezone,
-                        target_window = excluded.target_window,
-                        event_count = excluded.event_count,
-                        published_at = excluded.published_at,
-                        source_total = excluded.source_total,
-                        pages_fetched = excluded.pages_fetched`,
+            `INSERT INTO app_state (key, value, updated_at) VALUES (?, ?, ?)
+             ON CONFLICT(key) DO UPDATE
+                    SET value = excluded.value, updated_at = excluded.updated_at`,
           )
           .bind(
-            date,
-            payload.timezone,
-            payload.targetWindow,
-            payload.events.length,
+            LAST_SUCCESS_KEY,
+            JSON.stringify({ at: payload.publishedAt, days: [...dates].sort() }),
             payload.publishedAt,
-            payload.sourceTotal,
-            payload.pagesFetched,
           ),
       );
-
-      statements.push(...this.eventInsertStatements(payload));
-      statements.push(...this.sourceInsertStatements(payload));
-      statements.push(...this.provenanceInsertStatements(payload));
-      statements.push(...this.conflictInsertStatements(payload));
-      statements.push(...this.componentInsertStatements(payload));
-      statements.push(...this.changeInsertStatements(payload));
-      statements.push(...this.historyInsertStatements(payload));
       statements.push(...this.runInsertStatements(payload.run));
-      statements.push(...this.retentionStatements(payload.publishedAt));
+      statements.push(...this.retentionStatements(payload, [...dates]));
 
       await db.batch(statements);
       return null;
@@ -703,11 +812,11 @@ export class Repository {
       .bind(PUBLISH_FENCE_KEY, LEASE_NAME, payload.leaseHolder, payload.publishedAt);
   }
 
-  private eventInsertStatements(payload: PublishPayload): D1StatementLike[] {
-    type Row = PublishPayload["events"][number];
+  private eventInsertStatements(payload: PublishPayload, day: DayPublication): D1StatementLike[] {
+    type Row = DayPublication["events"][number];
     const columns: ColumnSpec<Row>[] = [
       { name: "id", value: (r) => r.event.id },
-      { name: "feed_date", value: () => payload.targetDate },
+      { name: "feed_date", value: () => day.targetDate },
       { name: "identity_key", value: (r) => r.event.identityKey },
       { name: "dedup_key", value: (r) => r.event.dedupKey },
       { name: "anchorlink_id", value: (r) => r.event.anchorlinkId },
@@ -736,10 +845,10 @@ export class Repository {
       { name: "created_at", value: (r) => r.createdAt },
       { name: "updated_at", value: () => payload.publishedAt },
     ];
-    return buildInsertStatements(this.db, "events", columns, payload.events);
+    return buildInsertStatements(this.db, "events", columns, day.events);
   }
 
-  private sourceInsertStatements(payload: PublishPayload): D1StatementLike[] {
+  private sourceInsertStatements(payload: DayPublication): D1StatementLike[] {
     type Row = { eventId: string; record: SourceRecord };
     const rows: Row[] = payload.events.flatMap((entry) =>
       entry.sources.map((record) => ({ eventId: entry.event.id, record })),
@@ -759,7 +868,7 @@ export class Repository {
     return buildInsertStatements(this.db, "source_records", columns, rows);
   }
 
-  private provenanceInsertStatements(payload: PublishPayload): D1StatementLike[] {
+  private provenanceInsertStatements(payload: DayPublication): D1StatementLike[] {
     type Row = { eventId: string; index: number; provenance: FieldProvenance };
     const rows: Row[] = payload.events.flatMap((entry) =>
       entry.provenance.map((provenance, index) => ({
@@ -780,7 +889,7 @@ export class Repository {
     return buildInsertStatements(this.db, "field_provenance", columns, rows);
   }
 
-  private conflictInsertStatements(payload: PublishPayload): D1StatementLike[] {
+  private conflictInsertStatements(payload: DayPublication): D1StatementLike[] {
     type Row = { eventId: string; index: number; conflict: Conflict };
     const rows: Row[] = payload.events.flatMap((entry) =>
       entry.conflicts.map((conflict, index) => ({
@@ -803,7 +912,7 @@ export class Repository {
     return buildInsertStatements(this.db, "conflicts", columns, rows);
   }
 
-  private componentInsertStatements(payload: PublishPayload): D1StatementLike[] {
+  private componentInsertStatements(payload: DayPublication): D1StatementLike[] {
     type Row = { eventId: string; index: number; component: ScoreComponent };
     const rows: Row[] = payload.events.flatMap((entry) =>
       entry.components.map((component, index) => ({
@@ -826,8 +935,8 @@ export class Repository {
     return buildInsertStatements(this.db, "score_components", columns, rows);
   }
 
-  private changeInsertStatements(payload: PublishPayload): D1StatementLike[] {
-    type Row = { identityKey: string; change: ChangeRecord };
+  private changeInsertStatements(payload: DayPublication): D1StatementLike[] {
+    type Row = { identityKey: string; change: DayPublication["events"][number]["change"] };
     const rows: Row[] = payload.events.map((entry) => ({
       identityKey: entry.event.identityKey,
       change: entry.change,
@@ -837,7 +946,7 @@ export class Repository {
       { name: "identity_key", value: (r) => r.identityKey },
       { name: "kind", value: (r) => r.change.kind },
       { name: "detail", value: (r) => r.change.detail },
-      { name: "detected_at", value: () => payload.publishedAt },
+      { name: "detected_at", value: (r) => r.change.detectedAt },
     ];
     // Keyed on (feed_date, identity_key), which the schema also enforces as
     // unique on `events`. `OR REPLACE` keeps a replayed publish of the same day
@@ -847,16 +956,23 @@ export class Repository {
     });
   }
 
-  private historyInsertStatements(payload: PublishPayload): D1StatementLike[] {
+  private historyInsertStatements(
+    payload: PublishPayload,
+    day: DayPublication,
+  ): D1StatementLike[] {
     type Row = { index: number; entry: EventHistoryEntry };
-    const rows: Row[] = payload.history.map((entry, index) => ({ index, entry }));
+    const rows: Row[] = day.history.map((entry, index) => ({ index, entry }));
     const columns: ColumnSpec<Row>[] = [
       // Deterministic within a publish, so replaying the same publish updates
       // rather than duplicating, and a long identity key cannot collide through
       // truncation.
-      { name: "id", value: (r) => `${payload.publishedAt}:${r.index}:${r.entry.fieldName}` },
+      {
+        name: "id",
+        value: (r) =>
+          `${payload.publishedAt}:${day.targetDate}:${r.index}:${r.entry.fieldName}`,
+      },
       { name: "identity_key", value: (r) => r.entry.identityKey },
-      { name: "feed_date", value: () => payload.targetDate },
+      { name: "feed_date", value: () => day.targetDate },
       { name: "changed_at", value: (r) => r.entry.changedAt },
       { name: "field_name", value: (r) => r.entry.fieldName },
       { name: "old_value", value: (r) => r.entry.oldValue },
@@ -908,18 +1024,25 @@ export class Repository {
     ];
   }
 
-  /** Trim old feeds, orphaned child rows, old history, and old run rows. */
-  private retentionStatements(asOfIso: string): D1StatementLike[] {
+  /**
+   * Trim days outside the rolling window, orphaned child rows, old history, and
+   * old run rows. Requested days are always kept, so a refresh can never
+   * discard what it just published.
+   */
+  private retentionStatements(payload: PublishPayload, keep: string[]): D1StatementLike[] {
+    const oldest = shiftIsoDate(payload.todayDate, -this.config.retention.pastDays);
+    const newest = shiftIsoDate(payload.todayDate, this.config.retention.futureDays);
+    const placeholders = keep.map(() => "?").join(", ");
     const statements: D1StatementLike[] = [
       this.db
         .prepare(
           `DELETE FROM feeds
-            WHERE target_date NOT IN (
-                  SELECT target_date FROM feeds ORDER BY target_date DESC LIMIT ?
-            )`,
+            WHERE (target_date < ? OR target_date > ?)
+              AND target_date NOT IN (${placeholders})`,
         )
-        .bind(this.config.feedRetentionDays),
+        .bind(oldest, newest, ...keep),
     ];
+    const asOfIso = payload.publishedAt;
     for (const table of [
       "events",
       "source_records",

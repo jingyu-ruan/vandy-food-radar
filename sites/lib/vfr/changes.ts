@@ -17,7 +17,30 @@
 import { ChangeKind, VerificationState } from "./models.ts";
 import type { Event } from "./models.ts";
 
-export type ChangeRecord = { kind: ChangeKind; detail: string | null };
+/**
+ * A classification. `detectedAt` is present on stored records: it is when the
+ * change was first seen, which bounds how long a warning stays visible.
+ */
+export type ChangeRecord = { kind: ChangeKind; detail: string | null; detectedAt?: string | null };
+
+/** Kinds worth warning a reader about for a while after they are detected. */
+export const MATERIAL_CHANGE_KINDS: ReadonlySet<ChangeKind> = new Set([
+  ChangeKind.TIME_CHANGED,
+  ChangeKind.VENUE_CHANGED,
+]);
+
+/** Whether a stored change is a material warning still inside its window. */
+export function isLiveMaterialChange(
+  change: ChangeRecord | null | undefined,
+  nowMs: number,
+  windowMs: number,
+): boolean {
+  if (!change || !MATERIAL_CHANGE_KINDS.has(change.kind) || !change.detectedAt) return false;
+  const detectedMs = Date.parse(change.detectedAt);
+  if (Number.isNaN(detectedMs)) return false;
+  const age = nowMs - detectedMs;
+  return age >= 0 && age <= windowMs;
+}
 
 function classify(fresh: Event, previous: Event): ChangeRecord {
   const wasCancelled = previous.verificationState === VerificationState.CANCELLED;

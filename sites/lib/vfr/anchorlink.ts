@@ -318,9 +318,9 @@ export class LiveAnchorLinkAdapter {
 
     const localStartDate = localDateOf(startsOnMs, this.timezone);
     if (localStartDate !== context.targetDate) return null;
-    // Keep in-progress events on a same-day feed; only events that have ended
-    // are stale.
-    if (endsOnMs <= this.nowMs) return null;
+    // A date-scoped feed contains the complete selected day, including events
+    // that already ended earlier that day. An evening refresh therefore never
+    // erases the day's schedule or brief.
 
     const localEndDate = localDateOf(endsOnMs, this.timezone);
     const eventUrl = `${CANONICAL_EVENT_BASE_URL}/event/${externalId}`;

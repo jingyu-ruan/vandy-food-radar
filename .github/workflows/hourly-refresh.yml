@@ -2,9 +2,19 @@ name: Refresh live AnchorLink events on Sites
 
 on:
   schedule:
-    # GitHub Actions cron is UTC; hourly minute 17 preserves the existing cadence.
-    - cron: "17 * * * *"
+    # GitHub Actions uses UTC. Distinct minutes keep the two cadences separate.
+    - cron: "17 */2 * * *"
+    - cron: "47 */6 * * *"
   workflow_dispatch:
+    inputs:
+      days:
+        description: "Day span to refresh"
+        required: false
+        default: "2"
+        type: choice
+        options:
+          - "2"
+          - "7"
 
 permissions: {}
 
@@ -15,12 +25,33 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
+      - name: Resolve the day span for this trigger
+        id: span
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          REQUESTED_DAYS: ${{ inputs.days }}
+        run: |
+          set -euo pipefail
+          if [ -n "${REQUESTED_DAYS:-}" ]; then
+            days="$REQUESTED_DAYS"
+          elif [ "${SCHEDULE:-}" = "47 */6 * * *" ]; then
+            days=7
+          else
+            days=2
+          fi
+          case "$days" in
+            2|7) ;;
+            *) echo "unsupported day span: $days" >&2; exit 1 ;;
+          esac
+          echo "days=$days" >> "$GITHUB_OUTPUT"
+
       - name: Refresh Sites and verify the persisted listing
         env:
           VFR_SITES_URL: https://vandy-food-radar.rjy020128.chatgpt.site
           VFR_SITES_SERVICE_TOKEN: ${{ secrets.VFR_SITES_SERVICE_TOKEN }}
+          DAYS: ${{ steps.span.outputs.days }}
         run: |
           python3 - <<'PY'
           import datetime
@@ -34,8 +65,11 @@ jobs:
 
           base = os.environ['VFR_SITES_URL'].rstrip('/')
           token = os.environ['VFR_SITES_SERVICE_TOKEN']
+          days = int(os.environ['DAYS'])
           if base != 'https://vandy-food-radar.rjy020128.chatgpt.site' or not token:
               raise SystemExit('Sites URL or service credential is missing or invalid')
+          if days not in (2, 7):
+              raise SystemExit('Unsupported refresh day span')
 
           class NoRedirect(urllib.request.HTTPRedirectHandler):
               def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -69,18 +103,36 @@ jobs:
                           continue
                       raise SystemExit('Sites request failed after bounded retries')
 
-          result = request('/api/refresh', 'POST')
-          feed = request('/api/events', 'GET')
-          tomorrow = (datetime.datetime.now(ZoneInfo('America/Chicago')).date()
-                      + datetime.timedelta(days=1)).isoformat()
-          if not (result.get('ok') is True and feed.get('state') == 'ok'
-                  and result.get('targetDate') == feed.get('targetDate') == tomorrow
-                  and result.get('timezone') == feed.get('timezone') == 'America/Chicago'
-                  and feed.get('publishedAt') and feed.get('stale') is False
-                  and result.get('published') == feed.get('eventCount') == len(feed.get('events', []))):
+          before = datetime.datetime.now(ZoneInfo('America/Chicago')).date()
+          result = request(f'/api/refresh?days={days}', 'POST')
+          after = datetime.datetime.now(ZoneInfo('America/Chicago')).date()
+          target = datetime.date.fromisoformat(result.get('targetDate', ''))
+          expected = [(target + datetime.timedelta(days=offset)).isoformat()
+                      for offset in range(days)]
+          if not (result.get('ok') is True and before <= target <= after
+                  and result.get('days') == expected
+                  and result.get('timezone') == 'America/Chicago'
+                  and result.get('publishedAt')):
               raise SystemExit('Sites publication readback failed validation')
+          total = 0
+          per_day = {row['targetDate']: row for row in result.get('perDay', [])}
+          for date in expected:
+              feed = request('/api/events?date=' + urllib.parse.quote(date), 'GET')
+              events = feed.get('events', [])
+              if not (feed.get('state') in ('ok', 'empty')
+                      and feed.get('targetDate') == date
+                      and feed.get('timezone') == 'America/Chicago'
+                      and feed.get('publishedAt') == result['publishedAt']
+                      and feed.get('stale') is False
+                      and feed.get('eventCount') == len(events)
+                      and per_day.get(date, {}).get('published') == len(events)
+                      and all(event.get('eventDate') == date for event in events)):
+                  raise SystemExit('Sites publication readback failed validation for ' + date)
+              total += len(events)
+          if total != result.get('published'):
+              raise SystemExit('Sites publication readback total differs from refresh')
           print(json.dumps({
-              'targetDate': feed['targetDate'], 'events': feed['eventCount'],
-              'publishedAt': feed['publishedAt'], 'changes': result.get('changes'),
+              'dates': expected, 'events': total,
+              'publishedAt': result['publishedAt'], 'changes': result.get('changes'),
           }))
           PY

@@ -18,6 +18,7 @@ import {
   FieldAgreement,
   FoodCategory,
   FoodConfirmed,
+  DESIGN_SCORE_FACTORS,
   SCORE_FACTORS,
   VerificationState,
 } from "../lib/vfr/models.ts";
@@ -75,8 +76,28 @@ test("the seven ranking weights are unchanged and sum to one", () => {
     walking: 0.1,
     confidence: 0.1,
   });
-  const total = SCORE_FACTORS.reduce((sum, factor) => sum + weights[factor], 0);
+  const total = DESIGN_SCORE_FACTORS.reduce((sum, factor) => sum + weights[factor], 0);
   assert.equal(Math.round(total * 1e6) / 1e6, 1);
+  // Participation convenience is the eighth factor and is capped at 5%.
+  assert.deepEqual([...SCORE_FACTORS], [...DESIGN_SCORE_FACTORS, "participation"]);
+  assert.equal(defaultConfig().ranking.participationInfluence, 0.05);
+});
+
+test("the persisted weights are the design weights scaled to make room for participation", () => {
+  const result = scoreEvent(baseEvent(), defaultConfig(), UNKNOWN_WALK);
+  const weights = Object.fromEntries(result.components.map((c) => [c.factor, c.weight]));
+  assert.deepEqual(weights, {
+    food_confirmed: 0.2375,
+    full_meal: 0.2375,
+    food_specificity: 0.1425,
+    rsvp_likelihood: 0.095,
+    timing: 0.0475,
+    walking: 0.095,
+    confidence: 0.095,
+    participation: 0.05,
+  });
+  const sum = result.components.reduce((total, c) => total + c.weight, 0);
+  assert.equal(Math.round(sum * 1e6) / 1e6, 1);
 });
 
 test("a confirmed full meal with an unknown walk scores the expected total", () => {
@@ -98,8 +119,11 @@ test("a confirmed full meal with an unknown walk scores the expected total", () 
   assert.equal(byFactor.get("walking")!.rawValue, 0.5);
   assert.equal(byFactor.get("confidence")!.rawValue, 0.3);
 
-  // 0.25 + 0.25 + 0.075 + 0.05 + 0.05 + 0.05 + 0.03
-  assert.equal(result.event.scoreTotal, 0.755);
+  // The listing says nothing about who may attend, so participation is neutral.
+  assert.equal(byFactor.get("participation")!.rawValue, 0.5);
+
+  // 0.95 * (0.25 + 0.25 + 0.075 + 0.05 + 0.05 + 0.05 + 0.03) + 0.05 * 0.5
+  assert.equal(result.event.scoreTotal, 0.74225);
 });
 
 test("factor values follow the documented tables", () => {

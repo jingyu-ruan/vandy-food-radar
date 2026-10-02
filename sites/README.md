@@ -1,6 +1,6 @@
 # Vandy Food Radar
 
-Ranked Vanderbilt events advertising free food, for one target day. The pipeline
+Ranked Vanderbilt events advertising free food, in a date-specific campus workspace. The pipeline
 is Discover → Normalize → Deduplicate → Verify → Rank → Display, and it is
 **live-only**: there is no fixture corpus, no sample data, and no fallback. If
 nothing has been published the page says so; if storage cannot be read it says
@@ -10,7 +10,7 @@ The single source is the Vanderbilt AnchorLink discovery API
 (`/api/discovery/event/search` with `benefitNames=FreeFood`). A row is accepted
 only when it carries the exact `Free Food` benefit, is `Approved` and `Public`,
 matches institution 24 / branch 56623, has a numeric API-returned id, and starts
-on the target local date without having already ended. Event links are built
+on the requested local date. Ended events remain visible on their date. Event links are built
 only from ids the API returned. Descriptions are reduced to plain text.
 
 ## Layout
@@ -26,7 +26,8 @@ only from ids the API returned. Descriptions are reduced to plain text.
 
 ```sh
 npm run install:ci   # one locked dependency install
-npm test             # 87 tests, no network
+npm test            # offline pipeline, parity, and real-SQL checks
+node --test tests/js/*.test.mjs
 npm run lint
 npm run typecheck
 npm run build
@@ -43,8 +44,9 @@ Applied migrations are immutable. A schema change means a new numbered delta fro
 
 ## Refresh and unattended operation
 
-`POST /api/refresh` is the primary writer. The token-protected `/cron/refresh` compatibility route also writes. One run fetches every source
-page, computes the whole day in memory, and publishes it in a single D1 batch, so
+`POST /api/refresh` is the primary writer. The token-protected `/cron/refresh` compatibility route also writes. The `days` query accepts 1, 2, or 7 (default 1), starting today in America/Chicago.
+One run fetches every source page for all requested dates, computes those feeds
+in memory, and publishes them together in a single D1 batch, so
 a source outage or a storage failure leaves the previously published feed exactly
 as it was. A successful response with zero events is a real empty day.
 
@@ -59,27 +61,43 @@ Concurrency is handled by a persistent lease with an expiry:
 - A lease that expired but was never taken over and never released may still
   finish, so a slow-but-uncontested run is not thrown away.
 
-For the Site-linked hourly cloud task:
+The GitHub workflow in the enclosing repository calls the fixed Site origin with
+its existing `VFR_SITES_SERVICE_TOKEN`. It refreshes today and tomorrow every two
+hours at minute 17, and seven days every six hours at minute 47. A manual run can
+select either span. After publication it reads `/api/events?date=YYYY-MM-DD` for
+each date and checks the date, event count, timezone, publication timestamp, and
+freshness. Transient failures receive bounded retries; redirects are rejected.
 
-1. Reopen Site `appgprj_6abda08653248191bd4377356f3e0a33` through Sites
-   `get_site`. Require an active published Site and use its current live URL.
-2. Obtain the Site service-access token from that response. Keep the token in
-   memory, send it only to this Site as `OAI-Sites-Authorization: Bearer <token>`,
-   and never put it in source, prompts, URLs, or logs. This credential authorizes
-   service access to shared Site data; it does not impersonate a visitor.
-3. Send `POST /api/refresh`, then read `GET /api/events` using the same service
-   header. Check the successful response and that the persisted target date is
-   tomorrow in America/Chicago. A successful zero-event response is valid.
-4. A `409` means a refresh is running; follow `Retry-After` for one bounded retry.
-   A source or storage failure keeps the previous publication. Report an
-   actionable failure or meaningful activity changes and stay quiet when the
-   result is unchanged.
+Scheduling updates data through the published writer. The legacy `/cron/refresh`
+route additionally requires `Authorization: Bearer <VFR_REFRESH_TOKEN>`, including
+on a private Site. The existing native Sites automation remains paused.
+`GET /api/health` reports storage reachability and the last run outcome.
 
-The inherited cadence is hourly at minute 17 in America/Chicago. Scheduling
-updates data through this writer; it does not rebuild the Site. The optional
-legacy `/cron/refresh` path additionally requires `Authorization: Bearer
-<VFR_REFRESH_TOKEN>`, including for private Sites. `GET /api/health` reports
-storage reachability, feed state, publication age, and the last run outcome.
+## Campus workspace
+
+The sidebar and mobile navigation switch between the selected day's cards, a
+seven-day schedule, a Leaflet map, a saved list, and a walking itinerary. Cards
+show source-derived food excerpts, participation restrictions, change warnings,
+calendar actions, and resolved campus buildings with room details. The daily
+brief is deterministic and cached by a hash of its source-derived inputs.
+The checked-in dataset contains 58 curated campus places; unknown names remain
+unresolved. Participation contributes at most five percent to ranking.
+
+Saved events, the selected walking origin, and the itinerary stay in device-local
+storage. Optional OpenRouteService routing uses a fixed HTTPS endpoint with bounded
+waypoints and a cache. Missing or failed routing is labelled as a distance-based
+estimate. Routing keys remain server-side.
+
+Date-specific reads never ingest events:
+
+| Route | Purpose |
+| --- | --- |
+| `/api/day?date=YYYY-MM-DD` | Card view for exactly one date, including its daily brief. |
+| `/api/week?start=YYYY-MM-DD` | Seven distinct date buckets. |
+| `/api/events?date=YYYY-MM-DD` | Persisted pipeline projection for readback. |
+| `/api/meta` | Public workspace defaults and refresh spans. |
+| `POST /api/walking` | Validated pedestrian route or labelled estimate. |
+| `/api/calendar/<AnchorLink id>` | Download a published event's ICS file. |
 
 ## Owner-private assumptions
 
@@ -109,7 +127,8 @@ Variables are read from the Worker environment; see `.dev.vars.example` for loca
 use and `lib/vfr/config.ts` for the full list and defaults. Every value has a
 working default, and an unrecognized value falls back to it rather than throwing.
 Common ones: `VFR_OWNER_PRIVATE`, `VFR_REFRESH_TOKEN` (or `CRON_SECRET`),
-`VFR_TIMEZONE`, `VFR_TARGET_WINDOW`, `VFR_STALE_AFTER_HOURS`. Secrets live only
+`VFR_TIMEZONE`, `VFR_STALE_AFTER_HOURS`, retention settings, and
+`VFR_ORS_API_KEY`. Refresh starts on today; selected dates are strict ISO dates. Secrets live only
 in the hosted environment or in `.dev.vars`, never in the repository.
 
 Visitor-facing failures are plain: the page and the JSON routes say the listing
@@ -140,12 +159,13 @@ Published snapshots, source payloads, per-field provenance, scoring, changes,
 refresh logs, and leases are durable; the read path never triggers ingestion.
 The original Python/Vercel checkout is retained separately as a rollback option.
 
-The seven numeric ranking factors and their weights retain the original rules.
+The seven original ranking factors retain their relative weights, scaled to
+leave at most five percent for source-text participation assessment.
 The description-detail label describes what the old specificity calculation
 actually measures. A single AnchorLink source has confidence 0.30 and is marked
 partially verified. Optional walking providers retain their configuration, with
 unknown walks represented neutrally by default.
 
-Calendar actions download one `.ics` file from `/api/calendar/<AnchorLink id>`.
+Calendar actions include a Google Calendar prefill link and download one `.ics` file from `/api/calendar/<AnchorLink id>`.
 The file contains the source URL and absolute event times. Importing the file is
 an explicit action in the user's calendar app.

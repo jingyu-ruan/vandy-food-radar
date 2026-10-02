@@ -19,8 +19,8 @@ import { runRefresh } from "../lib/vfr/pipeline.ts";
 import { Repository } from "../lib/vfr/repository.ts";
 import { FakeDb, anchorRow, fakeFetcher, searchPage } from "./helpers.ts";
 
-const NOW = Date.UTC(2025, 2, 11, 18); // 2025-03-11 13:00 local
-const TARGET = "2025-03-12"; // next_day window
+const NOW = Date.UTC(2025, 2, 12, 18); // 2025-03-12 13:00 local
+const TARGET = "2025-03-12"; // the feed opens on today
 const CHICAGO = "America/Chicago";
 
 function config() {
@@ -402,34 +402,41 @@ test("change classification follows the documented precedence", () => {
   assert.equal(entries.length, 0);
 });
 
-test("the target day honours the configured window in local time", async () => {
-  const db = new FakeDb();
-  db.prepare = patchLease(db);
-  const today = config();
-  today.targetWindow = "today";
-
-  const nextDayResult = await runRefresh({
-    repository: new Repository(db, config()),
-    config: config(),
-    trigger: "test",
-    nowMs: NOW,
-    fetcher: fakeFetcher([{ skip: 0, body: searchPage([]) }]),
-  });
-  assert.ok(nextDayResult.ok);
-  assert.equal(nextDayResult.summary.targetDate, "2025-03-12");
-
-  const db2 = new FakeDb();
-  db2.prepare = patchLease(db2);
-  const todayResult = await runRefresh({
-    repository: new Repository(db2, today),
-    config: today,
-    trigger: "test",
-    nowMs: NOW,
-    fetcher: fakeFetcher([{ skip: 0, body: searchPage([]) }]),
-  });
-  assert.ok(todayResult.ok);
-  assert.equal(todayResult.summary.targetDate, "2025-03-11");
-  assert.equal(today.timezone, CHICAGO);
+test("a refresh span starts today in local time and covers the requested days", async () => {
+  // 2025-03-12 04:30 UTC is still the evening of March 11 in Chicago, so "today"
+  // is the local date, not the UTC one.
+  const lateEvening = Date.UTC(2025, 2, 12, 4, 30);
+  for (const [days, expected] of [
+    [1, ["2025-03-11"]],
+    [2, ["2025-03-11", "2025-03-12"]],
+    [7, ["2025-03-11", "2025-03-12", "2025-03-13", "2025-03-14", "2025-03-15", "2025-03-16", "2025-03-17"]],
+  ] as const) {
+    const db = new FakeDb();
+    db.prepare = patchLease(db);
+    const fetcher = fakeFetcher([{ skip: 0, body: searchPage([]) }]);
+    const result = await runRefresh({
+      repository: new Repository(db, config()),
+      config: config(),
+      trigger: "test",
+      days,
+      nowMs: lateEvening,
+      fetcher,
+    });
+    assert.ok(result.ok, JSON.stringify(result));
+    assert.equal(result.summary.targetDate, "2025-03-11");
+    assert.deepEqual(result.summary.days, expected);
+    // One source query per requested day, and exactly one publish batch.
+    assert.equal(fetcher.calls.length, days);
+    const publishBatches = db.batches.filter((entries) =>
+      entries.some((entry) => entry.sql.startsWith("INSERT INTO feeds")),
+    );
+    assert.equal(publishBatches.length, 1);
+    assert.equal(
+      publishBatches[0].filter((entry) => entry.sql.startsWith("INSERT INTO feeds")).length,
+      days,
+    );
+  }
+  assert.equal(config().timezone, CHICAGO);
 });
 
 /**

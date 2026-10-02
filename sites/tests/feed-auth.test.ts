@@ -18,13 +18,13 @@ import { Repository } from "../lib/vfr/repository.ts";
 import { FakeDb } from "./helpers.ts";
 
 const NOW = Date.UTC(2025, 2, 11, 18);
-const TARGET = "2025-03-12";
+const TARGET = "2025-03-11";
 
 function feedRow(publishedAt: string, eventCount: number) {
   return {
     target_date: TARGET,
     timezone: "America/Chicago",
-    target_window: "next_day",
+    target_window: "today",
     event_count: eventCount,
     published_at: publishedAt,
     source_total: eventCount,
@@ -228,15 +228,21 @@ test("the legacy cron route always requires the token", async () => {
 test("configuration reads secrets from the environment and clamps ranges", () => {
   const config = configFromEnv({
     VFR_TIMEZONE: "America/New_York",
-    VFR_TARGET_WINDOW: "today",
     VFR_OWNER_PRIVATE: "true",
     CRON_SECRET: "from-env",
     VFR_ANCHORLINK_PAGE_SIZE: "5000",
     VFR_STALE_AFTER_HOURS: "3",
-    VFR_TARGET_WINDOW_UNKNOWN: "nonsense",
+    VFR_RETENTION_PAST_DAYS: "3",
+    VFR_RETENTION_FUTURE_DAYS: "500",
+    VFR_ORS_API_KEY: "  ors-key  ",
+    VFR_ORS_TIMEOUT_SECONDS: "90",
+    VFR_ITINERARY_DWELL_MINUTES: "45",
   });
   assert.equal(config.timezone, "America/New_York");
-  assert.equal(config.targetWindow, "today");
+  assert.deepEqual(config.retention, { pastDays: 3, futureDays: 60 });
+  assert.equal(config.routing.apiKey, "ors-key");
+  assert.equal(config.routing.timeoutMs, 30000);
+  assert.equal(config.itinerary.dwellMinutes, 45);
   assert.equal(config.ownerPrivate, true);
   assert.equal(config.refreshToken, "from-env");
   // Page size is clamped to the documented API maximum.
@@ -244,7 +250,11 @@ test("configuration reads secrets from the environment and clamps ranges", () =>
   assert.equal(config.staleAfterMs, 3 * 3600000);
 
   // An unrecognized value falls back to the default rather than throwing.
-  assert.equal(configFromEnv({ VFR_TARGET_WINDOW: "yesterday" }).targetWindow, "next_day");
+  assert.equal(configFromEnv({ VFR_ITINERARY_DWELL_MINUTES: "soon" }).itinerary.dwellMinutes, 30);
+  assert.equal(configFromEnv({ VFR_ORS_TIMEOUT_SECONDS: "x" }).routing.timeoutMs, 6000);
+  // Defaults: no routing key, and a rolling window of today plus 13 days.
+  assert.equal(defaultConfig().routing.apiKey, "");
+  assert.deepEqual(defaultConfig().retention, { pastDays: 0, futureDays: 13 });
   // VFR_REFRESH_TOKEN takes precedence over CRON_SECRET.
   assert.equal(
     configFromEnv({ VFR_REFRESH_TOKEN: "explicit", CRON_SECRET: "fallback" }).refreshToken,

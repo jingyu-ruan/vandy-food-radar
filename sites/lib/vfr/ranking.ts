@@ -2,7 +2,11 @@
  * Transparent weighted-sum ranking.
  *
  * Each factor is normalized to [0, 1], multiplied by its configured weight, and
- * summed: `scoreTotal = sum(weight_f * value_f)`. Every factor's raw value,
+ * summed: `scoreTotal = sum(weight_f * value_f)`. The seven design weights keep
+ * their documented values and are scaled by `1 - participationInfluence`; the
+ * remaining share (5% by default) goes to participation convenience, so the
+ * total stays in [0, 1] and that inference can never dominate the food
+ * factors. Explicit eligibility restrictions are warnings, not penalties. Every factor's raw value,
  * weight, contribution, and an explanatory note are retained, so a total is
  * always fully explainable and nothing about a rank is opaque.
  *
@@ -13,6 +17,13 @@
 import type { Config } from "./config.ts";
 import { FoodCategory, FoodConfirmed, SCORE_FACTORS, VerificationState } from "./models.ts";
 import type { Event, ScoreComponent, ScoreFactor } from "./models.ts";
+import {
+  ParticipationLevel,
+  assessParticipation,
+  participationFactorValue,
+  participationInputFor,
+} from "./participation.ts";
+import type { ParticipationAssessment } from "./participation.ts";
 import { walkingFactorValue } from "./walking.ts";
 import type { WalkingResult } from "./walking.ts";
 
@@ -76,8 +87,27 @@ function namedFoodTerms(description: string | null): string[] {
 }
 
 function round(value: number, places: number): number {
-  const factor = 10 ** places;
-  return Math.round(value * factor) / factor;
+  if (!Number.isFinite(value) || value === 0) return value;
+  // Round the exact IEEE-754 value with ties to even, matching Python round.
+  // Multiplying before Math.round can manufacture a tie from a value just
+  // below one (for example 0.0475 * 0.625 at six decimal places).
+  const buffer = new ArrayBuffer(8);
+  const bits = new DataView(buffer);
+  bits.setFloat64(0, Math.abs(value));
+  const encoded = bits.getBigUint64(0);
+  const exponent = Number((encoded >> 52n) & 0x7ffn);
+  const fraction = encoded & ((1n << 52n) - 1n);
+  let numerator = (exponent === 0 ? fraction : fraction | (1n << 52n)) * 10n ** BigInt(places);
+  const power = exponent === 0 ? -1074 : exponent - 1023 - 52;
+  let denominator = 1n;
+  if (power >= 0) numerator <<= BigInt(power);
+  else denominator <<= BigInt(-power);
+  let rounded = numerator / denominator;
+  const twiceRemainder = (numerator % denominator) * 2n;
+  if (twiceRemainder > denominator || (twiceRemainder === denominator && rounded % 2n !== 0n)) {
+    rounded += 1n;
+  }
+  return Math.sign(value) * Number(rounded) / 10 ** places;
 }
 
 /**
@@ -173,13 +203,30 @@ function confidenceNote(event: Event): string {
   return `verified with ${Math.round(event.confidence * 100)}% confidence`;
 }
 
-/** Score one event, producing its total and the full per-factor breakdown. */
+function participationNote(assessment: ParticipationAssessment): string {
+  if (assessment.level === ParticipationLevel.OPEN) return "listed as open to attend";
+  if (assessment.level === ParticipationLevel.RESTRICTED) {
+    return "the listing states an eligibility limit";
+  }
+  return "the listing does not say who may attend";
+}
+
+/**
+ * Score one event, producing its total and the full per-factor breakdown.
+ *
+ * `participation` is derived from the event's own listed text when omitted;
+ * the pipeline passes the assessment built from the full source records.
+ */
 export function scoreEvent(
   event: Event,
   config: Config,
   walking: WalkingResult,
+  participation?: ParticipationAssessment,
 ): ScoredEvent {
   const weights = config.ranking.weights;
+  const assessment = participation ?? assessParticipation(participationInputFor(event));
+  const influence = Math.min(Math.max(config.ranking.participationInfluence, 0), 0.05);
+  const designScale = 1 - influence;
   const rawValues: Record<ScoreFactor, number> = {
     food_confirmed: FOOD_CONFIRMED_VALUE[event.foodConfirmed] ?? 0.3,
     full_meal: FULL_MEAL_VALUE[event.foodCategory] ?? 0.2,
@@ -188,6 +235,10 @@ export function scoreEvent(
     timing: timingValue(event, config),
     walking: walkingFactorValue(walking, config.ranking.walkingUnknownValue),
     confidence: event.confidence ?? 0.5,
+    participation: participationFactorValue(
+      assessment,
+      config.ranking.participationUnknownValue,
+    ),
   };
   const notes: Record<ScoreFactor, string> = {
     food_confirmed: foodConfirmedNote(event),
@@ -197,12 +248,14 @@ export function scoreEvent(
     timing: timingNote(event),
     walking: walkingNote(walking),
     confidence: confidenceNote(event),
+    participation: participationNote(assessment),
   };
 
   const components: ScoreComponent[] = [];
   let total = 0;
   for (const factor of SCORE_FACTORS) {
-    const weight = weights[factor] ?? 0;
+    const weight =
+      factor === "participation" ? influence : round((weights[factor] ?? 0) * designScale, 6);
     const raw = rawValues[factor];
     const contribution = round(weight * raw, 6);
     total += contribution;
@@ -219,6 +272,24 @@ export function scoreEvent(
     event: { ...event, scoreTotal: round(total, 6) },
     components,
   };
+}
+
+/**
+ * Map a total score to the 0-5 recommendation stars on a card. The scale is
+ * fixed and linear over [0, 1], so equal scores always show equal stars.
+ */
+export function recommendationStars(scoreTotal: number | null): number {
+  if (scoreTotal === null || !Number.isFinite(scoreTotal)) return 0;
+  const clamped = Math.min(Math.max(scoreTotal, 0), 1);
+  return pythonRound(clamped * 5);
+}
+
+/** Round half to even, as Python's `round` does, so stars match the reference. */
+function pythonRound(value: number): number {
+  const floor = Math.floor(value);
+  const fraction = value - floor;
+  if (Math.abs(fraction - 0.5) < 1e-12) return floor % 2 === 0 ? floor : floor + 1;
+  return Math.round(value);
 }
 
 function timeOrdinal(value: string | null): number {

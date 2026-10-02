@@ -21,7 +21,8 @@ import { Repository } from "../lib/vfr/repository.ts";
 import { anchorRow, fakeFetcher, searchPage } from "./helpers.ts";
 import { SqliteD1, freshDatabase } from "./sqlite-d1.ts";
 
-const NOW = Date.UTC(2025, 2, 11, 18); // 2025-03-11 13:00 America/Chicago
+// The feed opens on today, so "now" is on the target day itself.
+const NOW = Date.UTC(2025, 2, 12, 18); // 2025-03-12 13:00 America/Chicago
 const TARGET = "2025-03-12";
 
 function repositoryFor(db: DatabaseSync) {
@@ -104,12 +105,15 @@ test("a refresh publishes and reads back through real SQL", async () => {
   assert.ok((first.event.scoreTotal ?? 0) > (second.event.scoreTotal ?? 0));
 
   // Everything needed to explain a result survived the round trip.
-  assert.equal(first.components.length, 7);
+  assert.equal(first.components.length, 8);
   assert.equal(first.provenance.length, 12);
   assert.equal(first.sources.length, 1);
   assert.equal(first.change?.kind, "new");
   assert.match(first.explanation, /Ranked/);
-  assert.equal(first.walkingLabel, "Walking time unavailable");
+  // "Sarratt Student Center 216" resolves through the campus dataset, so the
+  // walk is a labelled estimate from the reference point rather than unknown.
+  assert.match(first.walkingLabel, /^~\d+ min walk$/);
+  assert.equal(second.walkingLabel, first.walkingLabel);
   assert.equal(first.event.verificationState, "partially_verified");
   assert.equal(first.event.confidence, 0.3);
 
@@ -282,30 +286,43 @@ test("a genuine empty day is distinguishable from a day never published", async 
   db.close();
 });
 
-test("retention keeps the feed window bounded", async () => {
+test("retention keeps a bounded rolling window anchored on today", async () => {
   const db = freshDatabase();
   const config = defaultConfig();
-  config.feedRetentionDays = 2;
+  config.retention = { pastDays: 1, futureDays: 2 };
   const repository = new Repository(new SqliteD1(db), config);
-  // Publish three consecutive target days.
+  // Publish one day at a time on three consecutive days.
   for (const dayOffset of [0, 1, 2]) {
-    await runRefresh({
+    const result = await runRefresh({
       repository,
       config,
       trigger: "test",
       nowMs: NOW + dayOffset * 86400000,
-      fetcher: fakeFetcher([
-        { skip: 0, body: searchPage([]) },
-      ]),
+      fetcher: fakeFetcher([{ skip: 0, body: searchPage([]) }]),
     });
+    assert.ok(result.ok, JSON.stringify(result));
   }
+  // Today is 2025-03-14 now; the 12th is outside the one-day past window.
+  const dates = () =>
+    db
+      .prepare("SELECT target_date FROM feeds ORDER BY target_date")
+      .all()
+      .map((row) => (row as { target_date: string }).target_date);
+  assert.deepEqual(dates(), ["2025-03-13", "2025-03-14"]);
 
-  const dates = db
-    .prepare("SELECT target_date FROM feeds ORDER BY target_date")
-    .all()
-    .map((row) => (row as { target_date: string }).target_date);
-  assert.equal(dates.length, 2);
-  assert.deepEqual(dates, ["2025-03-13", "2025-03-14"]);
+  // A requested span is always kept, even beyond the configured future window.
+  const wide = await runRefresh({
+    repository,
+    config,
+    trigger: "week",
+    days: 7,
+    nowMs: NOW + 2 * 86400000,
+    fetcher: fakeFetcher([{ skip: 0, body: searchPage([]) }]),
+  });
+  assert.ok(wide.ok);
+  assert.equal(dates().length, 8);
+  assert.equal(dates()[0], "2025-03-13");
+  assert.equal(dates()[7], "2025-03-20");
 
   db.close();
 });

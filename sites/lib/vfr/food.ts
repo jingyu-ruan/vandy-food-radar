@@ -28,6 +28,7 @@ export const FULL_MEAL_KEYWORDS = [
   "bbq",
   "barbecue",
   "tacos",
+  "taco",
   "catered",
   "catering",
 ] as const;

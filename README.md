@@ -8,22 +8,26 @@ with owner-private access. React/Vinext serves the page and API in one Sites
 Worker, and Sites D1 stores feeds, source records, scoring, change history, and
 refresh leases. The production application operates on real AnchorLink data.
 
-The existing GitHub Actions workflow calls the Sites refresh endpoint every hour
-at minute 17, then reads the listing back to verify durable publication. GitHub
-only supplies the timer; discovery, ranking, persistence, and serving run on
-Sites. The Sites account's five-task limit prevented creating a native Site task,
-so this preserves unattended updates while that account limit is in effect.
-The workflow uses `VFR_SITES_SERVICE_TOKEN` from repository secrets and rejects
-redirects. The previous Vercel URL and refresh-token secrets remain available for
-rollback. Future service-token rotation must also update that repository secret.
+The campus workspace includes date-specific cards, a source-derived daily brief,
+a weekly schedule, a map, saved events, calendar actions, and a walking itinerary.
+The Sites implementation follows the retained Python application's current
+behavior, including a curated campus-place dataset, participation warnings,
+ended events on the selected date, and atomic publication across multiple days.
+Saved events, the selected walking origin, and itineraries are stored on the device.
 
-The migrated source is included as ordinary files under [`sites/`](sites/) in
-this GitHub repository and is also maintained in the Site's own source
-repository. See [Sites source and publication](docs/sites-source-and-publication.md)
-for the relationship between GitHub pushes and Sites releases. It has 87 offline
-tests; the first hosted publication matched all 63 numeric ranking factors and
-the order of 9 real events from the Python implementation. Calendar actions
-export an `.ics` file for explicit import. Frontend redesign is deferred.
+The existing GitHub Actions workflow refreshes today and tomorrow every two hours
+at minute 17, and seven days every six hours at minute 47. It reads every published
+day back to verify durable publication. GitHub supplies the timer; discovery,
+ranking, persistence, and serving run on Sites. The workflow uses
+`VFR_SITES_SERVICE_TOKEN` from repository secrets and rejects redirects. Future
+service-token rotation must also update that repository secret.
+
+The complete Sites source is included as ordinary files under [`sites/`](sites/)
+and is also maintained in the Site's own source repository. See
+[Sites source and publication](docs/sites-source-and-publication.md) for the
+release sequence and source correspondence. Its offline tests include real SQL
+transaction rollback checks and fixtures generated from the Python implementation.
+Calendar actions provide a Google Calendar prefill link and an `.ics` download.
 
 The following documentation describes the retained Python/Vercel version.
 
@@ -363,39 +367,25 @@ After setting the variables and deploying, trigger the GitHub workflow once or
 call the protected endpoint once to create the initial feed. An empty page
 before that first successful refresh is expected.
 
-### Scheduling on Vercel Hobby
+### Scheduling
 
-Vercel Hobby cron is limited to daily execution, so the repository includes
-[`.github/workflows/hourly-refresh.yml`](.github/workflows/hourly-refresh.yml),
-which runs two cadences against the protected endpoint:
+The current [GitHub workflow](.github/workflows/hourly-refresh.yml) targets Sites:
 
 | Cadence | Span | Purpose |
 | --- | --- | --- |
-| every 2 hours (minute 17) | `days=2` | today and tomorrow — the dates people act on |
-| every 6 hours (minute 47) | `days=7` | the full week the schedule view browses |
+| every 2 hours (minute 17) | `days=2` | today and tomorrow |
+| every 6 hours (minute 47) | `days=7` | the schedule's coming week |
 
-Both cadences and any manual run share one concurrency group with
-`cancel-in-progress: false`, so refreshes serialize instead of interleaving;
-the server independently rejects a concurrent refresh with HTTP 409. The job
-requests no `GITHUB_TOKEN` scope, refuses a non-HTTPS target before making any
-request, pins redirects to HTTPS, and retries transient failures. A manual
-`workflow_dispatch` run can choose a 2- or 7-day span. GitHub scheduled
-workflows run from the latest commit on the default branch and may be delayed
-during periods of high load.
+Manual runs can select either span. All triggers share a concurrency group with
+`cancel-in-progress: false`. The job uses the existing
+`VFR_SITES_SERVICE_TOKEN` repository secret, rejects redirects, retries transient
+failures, and verifies each date's persisted feed after publication. GitHub may
+delay scheduled runs during periods of high load.
 
-Configure these **GitHub Actions repository secrets**:
-
-| GitHub secret | Value |
-| --- | --- |
-| `VFR_REFRESH_URL` | Bare production URL with no query string, e.g. `https://your-app.vercel.app/cron/refresh` |
-| `VFR_REFRESH_TOKEN` | Exactly the Vercel `CRON_SECRET` value (or its `VFR_REFRESH_TOKEN`). |
-
-The endpoint accepts GET or POST for scheduler compatibility but requires
-`Authorization: Bearer <token>` in live mode. `/refresh` is protected by the
-same token. No writable unauthenticated refresh path is exposed.
-
-`vercel.json` retains one daily Vercel Cron invocation as a safety net. It is
-not the main scheduler and also requires `CRON_SECRET`.
+The retained Python/Vercel endpoint accepts GET or POST and requires
+`Authorization: Bearer <VFR_REFRESH_TOKEN>` in live mode. Its `/refresh` endpoint
+uses the same token. `vercel.json` retains a daily Vercel Cron invocation requiring
+`CRON_SECRET`; this is separate from the current Sites workflow.
 
 ### Optional providers
 

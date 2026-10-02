@@ -28,7 +28,8 @@ import type { PublishPayload } from "../lib/vfr/repository.ts";
 import { anchorRow, fakeFetcher, searchPage } from "./helpers.ts";
 import { SqliteD1, bindable, freshDatabase } from "./sqlite-d1.ts";
 
-const NOW = Date.UTC(2025, 2, 11, 18); // 2025-03-11 13:00 America/Chicago
+// The feed opens on today, so "now" is on the target day itself.
+const NOW = Date.UTC(2025, 2, 12, 18); // 2025-03-12 13:00 America/Chicago
 const TARGET = "2025-03-12";
 
 type Recorded = { sql: string; values: unknown[] };
@@ -174,7 +175,7 @@ test("a refresh that lost its lease cannot overwrite the newer published feed", 
   assert.equal(view.publishedAt, new Date(laterMs).toISOString());
   assert.equal(view.snapshot?.events.length, 1);
   assert.equal(view.snapshot?.events[0].event.title, "Taco Tuesday");
-  assert.equal(view.snapshot?.events[0].components.length, 7);
+  assert.equal(view.snapshot?.events[0].components.length, 8);
 
   const titles = db
     .prepare("SELECT title FROM events WHERE feed_date = ?")
@@ -276,7 +277,7 @@ test("a feed read cannot mix one publication's metadata with another's rows", as
   );
   // Every card carries its own complete scoring and provenance.
   for (const stored of snapshot.events) {
-    assert.equal(stored.components.length, 7);
+    assert.equal(stored.components.length, 8);
     assert.equal(stored.sources.length, 1);
     assert.ok(stored.provenance.length > 0);
     assert.notEqual(stored.explanation, "");
@@ -358,7 +359,7 @@ test("two AnchorLink events with identical fields keep their own metadata", asyn
   }
 
   for (const stored of events) {
-    assert.equal(stored.components.length, 7, "score breakdown lost");
+    assert.equal(stored.components.length, 8, "score breakdown lost");
     assert.equal(stored.sources.length, 1, "source record lost");
     assert.equal(
       stored.sources[0].sourceUrl,
@@ -384,8 +385,8 @@ test("a live row with an impossible timestamp fails the refresh and keeps the fe
   const db = freshDatabase();
   const config = defaultConfig();
   const repository = new Repository(new SqliteD1(db), config);
-  // 2025-03-01 12:00 America/Chicago, so the next-day target is 2025-03-02.
-  const nowMs = Date.UTC(2025, 2, 1, 18);
+  // 2025-03-02 12:00 America/Chicago, so today's target is 2025-03-02.
+  const nowMs = Date.UTC(2025, 2, 2, 18);
   const target = "2025-03-02";
 
   const good = await runRefresh({
@@ -454,7 +455,7 @@ test("a duplicate feed identity is rejected by the schema rather than merged", (
   db.exec(
     `INSERT INTO feeds (target_date, timezone, target_window, event_count, published_at,
                         source_total, pages_fetched)
-          VALUES ('${TARGET}', 'America/Chicago', 'next_day', 0, '2025-03-11T18:00:00Z', 0, 1)`,
+          VALUES ('${TARGET}', 'America/Chicago', 'today', 0, '2025-03-11T18:00:00Z', 0, 1)`,
   );
   const insert = (id: string) =>
     db.exec(

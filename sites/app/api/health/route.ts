@@ -1,8 +1,9 @@
 /**
  * `GET /api/health` — concise operational state.
  *
- * Reports whether durable storage is reachable, whether the target day has been
- * published, and how old that publication is. Deliberately terse and free of any
+ * Reports whether durable storage is reachable, whether today has been
+ * published, how old that publication is, and the last complete multi-day
+ * refresh. Deliberately terse and free of any
  * credential, hostname, or internal identifier.
  */
 
@@ -17,6 +18,7 @@ export async function GET(): Promise<Response> {
     const repository = getRepository(config);
     const probe = await repository.probe();
     const view = await loadFeedView(repository, config);
+    const lastSuccess = await repository.lastSuccess();
     const healthy = view.state !== "unavailable";
     return jsonResponse(
       {
@@ -30,6 +32,7 @@ export async function GET(): Promise<Response> {
         stale: view.stale,
         eventCount: view.snapshot?.events.length ?? 0,
         retainedFeedDays: probe.feedCount,
+        lastSuccess,
         lastRun: view.lastRun
           ? {
               status: view.lastRun.status,

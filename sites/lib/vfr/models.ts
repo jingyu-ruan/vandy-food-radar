@@ -66,10 +66,10 @@ export type FieldAgreement =
   (typeof FieldAgreement)[keyof typeof FieldAgreement];
 
 /**
- * Ranking factors, in the fixed order used for deterministic persistence and
- * for tie-breaking inside the explanation generator.
+ * The seven design ranking factors, whose weights sum to 1.0 before the
+ * participation share is carved out.
  */
-export const SCORE_FACTORS = [
+export const DESIGN_SCORE_FACTORS = [
   "food_confirmed",
   "full_meal",
   "food_specificity",
@@ -78,6 +78,14 @@ export const SCORE_FACTORS = [
   "walking",
   "confidence",
 ] as const;
+export type DesignScoreFactor = (typeof DESIGN_SCORE_FACTORS)[number];
+
+/**
+ * Every ranking factor, in the fixed order used for deterministic persistence
+ * and for tie-breaking inside the explanation generator. `participation` is a
+ * small convenience nudge capped by `ranking.participationInfluence`.
+ */
+export const SCORE_FACTORS = [...DESIGN_SCORE_FACTORS, "participation"] as const;
 export type ScoreFactor = (typeof SCORE_FACTORS)[number];
 
 /** How a fresh event compares to the previously published feed. */

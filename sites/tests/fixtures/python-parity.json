@@ -1,0 +1,1034 @@
+{
+ "scoring": [
+  {
+   "title": "Free Pizza Night",
+   "location": "Sarratt Student Center 216",
+   "description": "Free pizza and salad provided. Open to all students.",
+   "organizer": "Student Life",
+   "startTime": "18:00",
+   "rsvpRequired": null,
+   "confidence": 0.3,
+   "foodCategory": "full_meal",
+   "foodConfirmed": "confirmed",
+   "total": 0.839821,
+   "components": [
+    {
+     "factor": "food_confirmed",
+     "raw": 1.0,
+     "weight": 0.2375,
+     "contribution": 0.2375
+    },
+    {
+     "factor": "full_meal",
+     "raw": 1.0,
+     "weight": 0.2375,
+     "contribution": 0.2375
+    },
+    {
+     "factor": "food_specificity",
+     "raw": 0.75,
+     "weight": 0.1425,
+     "contribution": 0.106875
+    },
+    {
+     "factor": "rsvp_likelihood",
+     "raw": 0.5,
+     "weight": 0.095,
+     "contribution": 0.0475
+    },
+    {
+     "factor": "timing",
+     "raw": 1.0,
+     "weight": 0.0475,
+     "contribution": 0.0475
+    },
+    {
+     "factor": "walking",
+     "raw": 0.8889,
+     "weight": 0.095,
+     "contribution": 0.084446
+    },
+    {
+     "factor": "confidence",
+     "raw": 0.3,
+     "weight": 0.095,
+     "contribution": 0.0285
+    },
+    {
+     "factor": "participation",
+     "raw": 1.0,
+     "weight": 0.05,
+     "contribution": 0.05
+    }
+   ]
+  },
+  {
+   "title": "Members Mixer",
+   "location": "Kissam Center Multipurpose Room",
+   "description": "Members only. Snacks provided.",
+   "organizer": "Club",
+   "startTime": "21:30",
+   "rsvpRequired": true,
+   "confidence": 0.3,
+   "foodCategory": "snacks_or_refreshments",
+   "foodConfirmed": "confirmed",
+   "total": 0.647449,
+   "components": [
+    {
+     "factor": "food_confirmed",
+     "raw": 1.0,
+     "weight": 0.2375,
+     "contribution": 0.2375
+    },
+    {
+     "factor": "full_meal",
+     "raw": 0.4,
+     "weight": 0.2375,
+     "contribution": 0.095
+    },
+    {
+     "factor": "food_specificity",
+     "raw": 0.5,
+     "weight": 0.1425,
+     "contribution": 0.07125
+    },
+    {
+     "factor": "rsvp_likelihood",
+     "raw": 0.7,
+     "weight": 0.095,
+     "contribution": 0.0665
+    },
+    {
+     "factor": "timing",
+     "raw": 0.625,
+     "weight": 0.0475,
+     "contribution": 0.029687
+    },
+    {
+     "factor": "walking",
+     "raw": 0.9896,
+     "weight": 0.095,
+     "contribution": 0.094012
+    },
+    {
+     "factor": "confidence",
+     "raw": 0.3,
+     "weight": 0.095,
+     "contribution": 0.0285
+    },
+    {
+     "factor": "participation",
+     "raw": 0.5,
+     "weight": 0.05,
+     "contribution": 0.025
+    }
+   ]
+  },
+  {
+   "title": "Study Break",
+   "location": "Online",
+   "description": "Study break with cookies",
+   "organizer": null,
+   "startTime": "09:00",
+   "rsvpRequired": false,
+   "confidence": 0.3,
+   "foodCategory": "snacks_or_refreshments",
+   "foodConfirmed": "unconfirmed",
+   "total": 0.507875,
+   "components": [
+    {
+     "factor": "food_confirmed",
+     "raw": 0.3,
+     "weight": 0.2375,
+     "contribution": 0.07125
+    },
+    {
+     "factor": "full_meal",
+     "raw": 0.4,
+     "weight": 0.2375,
+     "contribution": 0.095
+    },
+    {
+     "factor": "food_specificity",
+     "raw": 0.75,
+     "weight": 0.1425,
+     "contribution": 0.106875
+    },
+    {
+     "factor": "rsvp_likelihood",
+     "raw": 1.0,
+     "weight": 0.095,
+     "contribution": 0.095
+    },
+    {
+     "factor": "timing",
+     "raw": 0.5,
+     "weight": 0.0475,
+     "contribution": 0.02375
+    },
+    {
+     "factor": "walking",
+     "raw": 0.5,
+     "weight": 0.095,
+     "contribution": 0.0475
+    },
+    {
+     "factor": "confidence",
+     "raw": 0.3,
+     "weight": 0.095,
+     "contribution": 0.0285
+    },
+    {
+     "factor": "participation",
+     "raw": 0.8,
+     "weight": 0.05,
+     "contribution": 0.04
+    }
+   ]
+  },
+  {
+   "title": "Far Event",
+   "location": "Vanderbilt Recreation and Wellness Center",
+   "description": "Workshop with lunch.",
+   "organizer": "Rec",
+   "startTime": null,
+   "rsvpRequired": null,
+   "confidence": null,
+   "foodCategory": "full_meal",
+   "foodConfirmed": "confirmed",
+   "total": 0.715636,
+   "components": [
+    {
+     "factor": "food_confirmed",
+     "raw": 1.0,
+     "weight": 0.2375,
+     "contribution": 0.2375
+    },
+    {
+     "factor": "full_meal",
+     "raw": 1.0,
+     "weight": 0.2375,
+     "contribution": 0.2375
+    },
+    {
+     "factor": "food_specificity",
+     "raw": 0.5,
+     "weight": 0.1425,
+     "contribution": 0.07125
+    },
+    {
+     "factor": "rsvp_likelihood",
+     "raw": 0.5,
+     "weight": 0.095,
+     "contribution": 0.0475
+    },
+    {
+     "factor": "timing",
+     "raw": 0.5,
+     "weight": 0.0475,
+     "contribution": 0.02375
+    },
+    {
+     "factor": "walking",
+     "raw": 0.3488,
+     "weight": 0.095,
+     "contribution": 0.033136
+    },
+    {
+     "factor": "confidence",
+     "raw": 0.5,
+     "weight": 0.095,
+     "contribution": 0.0475
+    },
+    {
+     "factor": "participation",
+     "raw": 0.35,
+     "weight": 0.05,
+     "contribution": 0.0175
+    }
+   ]
+  }
+ ],
+ "places": [
+  {
+   "location": "Stevenson Center",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "Sarratt Student Center, Room 216",
+   "id": "sarratt-student-center",
+   "detail": "Room 216",
+   "matched": "Sarratt Student Center, Room 216"
+  },
+  {
+   "location": "Sarratt Student Center 216",
+   "id": "sarratt-student-center",
+   "detail": "216",
+   "matched": "Sarratt Student Center 216"
+  },
+  {
+   "location": "Sarratt, Second Floor Lounge",
+   "id": "sarratt-student-center",
+   "detail": "Second Floor Lounge",
+   "matched": "Sarratt, Second Floor Lounge"
+  },
+  {
+   "location": "The Stevenson Center",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "Some Unlisted Barn",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "Barnyard Hall, Room 3",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "   ",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "Stevens Center",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "Stevenson",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "Sarratt Student Centerville",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "Stevenson Centerville",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "Kirkland Hall",
+   "id": "kirkland-hall",
+   "detail": null,
+   "matched": "Kirkland Hall"
+  },
+  {
+   "location": "KIRKLAND HALL 101",
+   "id": "kirkland-hall",
+   "detail": "101",
+   "matched": "KIRKLAND HALL 101"
+  },
+  {
+   "location": "Alumni Hall 201",
+   "id": "alumni-hall",
+   "detail": "201",
+   "matched": "Alumni Hall 201"
+  },
+  {
+   "location": "Alumni Lawn",
+   "id": "alumni-lawn",
+   "detail": null,
+   "matched": "Alumni Lawn"
+  },
+  {
+   "location": "SC 5326",
+   "id": "stevenson-center-science-and-engineering-building",
+   "detail": "Room 5326",
+   "matched": "SC 5326"
+  },
+  {
+   "location": "Stevenson Center Room 1206",
+   "id": "stevenson-center-mathematics-building",
+   "detail": "Room 1206",
+   "matched": "Stevenson Center Room 1206"
+  },
+  {
+   "location": "Featheringill–Jacobs Hall 134",
+   "id": "featheringill-jacobs-hall",
+   "detail": "134",
+   "matched": "Featheringill–Jacobs Hall 134"
+  },
+  {
+   "location": "Rand Hall - Rand Lounge",
+   "id": "rand-hall",
+   "detail": "Rand Lounge",
+   "matched": "Rand Hall - Rand Lounge"
+  },
+  {
+   "location": "E. Bronson Ingram College, Lobby",
+   "id": "e-bronson-ingram-college",
+   "detail": "Lobby",
+   "matched": "E. Bronson Ingram College, Lobby"
+  },
+  {
+   "location": "Commons Center",
+   "id": "the-commons-center",
+   "detail": null,
+   "matched": "Commons Center"
+  },
+  {
+   "location": "The Commons Center, Multipurpose Room",
+   "id": "the-commons-center",
+   "detail": "Multipurpose Room",
+   "matched": "The Commons Center, Multipurpose Room"
+  },
+  {
+   "location": "Student Life Center Ballroom",
+   "id": "student-life-center",
+   "detail": null,
+   "matched": "Student Life Center Ballroom"
+  },
+  {
+   "location": "Online",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "Zoom",
+   "id": null,
+   "detail": null,
+   "matched": null
+  },
+  {
+   "location": "Buttrick Hall 102 | Vanderbilt",
+   "id": "buttrick-hall",
+   "detail": "102 | Vanderbilt",
+   "matched": "Buttrick Hall 102 | Vanderbilt"
+  },
+  {
+   "location": "Wyatt Center; Rotunda",
+   "id": "wyatt-center",
+   "detail": "; Rotunda",
+   "matched": "Wyatt Center; Rotunda"
+  },
+  {
+   "location": "Peabody Library Reading Room",
+   "id": "peabody-library",
+   "detail": "Reading Room",
+   "matched": "Peabody Library Reading Room"
+  },
+  {
+   "location": "Engineering and Science Building 1403",
+   "id": "engineering-and-science-building",
+   "detail": "1403",
+   "matched": "Engineering and Science Building 1403"
+  },
+  {
+   "location": "Owen Graduate School of Management, Room 104",
+   "id": "owen-graduate-school-of-management",
+   "detail": "Room 104",
+   "matched": "Owen Graduate School of Management, Room 104"
+  },
+  {
+   "location": "Bishop Joseph Johnson Black Cultural Center",
+   "id": "bishop-joseph-johnson-black-cultural-center",
+   "detail": null,
+   "matched": "Bishop Joseph Johnson Black Cultural Center"
+  },
+  {
+   "location": "Kissam Center Multipurpose Room",
+   "id": "kissam-center",
+   "detail": "Multipurpose Room",
+   "matched": "Kissam Center Multipurpose Room"
+  },
+  {
+   "location": "Central Library",
+   "id": "central-and-divinity-libraries",
+   "detail": null,
+   "matched": "Central Library"
+  },
+  {
+   "location": "Divinity Library",
+   "id": "central-and-divinity-libraries",
+   "detail": null,
+   "matched": "Divinity Library"
+  },
+  {
+   "location": "Rothschild College lounge",
+   "id": "rothschild",
+   "detail": "lounge",
+   "matched": "Rothschild College lounge"
+  },
+  {
+   "location": "Featheringill Hall",
+   "id": "featheringill-jacobs-hall",
+   "detail": null,
+   "matched": "Featheringill Hall"
+  },
+  {
+   "location": "Schulman Center for Jewish Life - Courtyard",
+   "id": "schulman-center-for-jewish-life",
+   "detail": "Courtyard",
+   "matched": "Schulman Center for Jewish Life - Courtyard"
+  },
+  {
+   "location": "Saint Augustine's Chapel",
+   "id": "saint-augustine-s-chapel",
+   "detail": null,
+   "matched": "Saint Augustine's Chapel"
+  },
+  {
+   "location": "Saint Augustine’s Chapel",
+   "id": "saint-augustine-s-chapel",
+   "detail": null,
+   "matched": "Saint Augustine’s Chapel"
+  }
+ ],
+ "participation": [
+  {
+   "description": "Join us! Open to all students. Pizza provided.",
+   "title": null,
+   "organizer": null,
+   "level": "open",
+   "note": "The listing says anyone can attend (open to all).",
+   "certain": true,
+   "evidence": [
+    "open to all"
+   ],
+   "warnings": [],
+   "factor": 1.0
+  },
+  {
+   "description": "Members only dinner for the society.",
+   "title": "Society Dinner",
+   "organizer": "Chess Club",
+   "level": "restricted",
+   "note": "The listing states a limit on who can attend: listed as members only.",
+   "certain": true,
+   "evidence": [
+    "members only"
+   ],
+   "warnings": [
+    "listed as members only"
+   ],
+   "factor": 0.5
+  },
+  {
+   "description": "Everyone is welcome, but this is for graduate students only.",
+   "title": null,
+   "organizer": null,
+   "level": "restricted",
+   "note": "The listing both invites a general audience and states a limit, so eligibility is unclear — check the source.",
+   "certain": false,
+   "evidence": [
+    "everyone is welcome",
+    "graduate students only"
+   ],
+   "warnings": [
+    "limited to one student population"
+   ],
+   "factor": 0.5
+  },
+  {
+   "description": "Drop by our tabling event for snacks.",
+   "title": null,
+   "organizer": null,
+   "level": "unknown",
+   "note": "Inferred: The drop-in format suggests a brief visit is comfortable.",
+   "certain": false,
+   "evidence": [
+    "drop by"
+   ],
+   "warnings": [],
+   "factor": 0.85
+  },
+  {
+   "description": "A workshop on resume writing with lunch.",
+   "title": null,
+   "organizer": null,
+   "level": "unknown",
+   "note": "Inferred: The program suggests active participation or discussion.",
+   "certain": false,
+   "evidence": [
+    "workshop"
+   ],
+   "warnings": [],
+   "factor": 0.35
+  },
+  {
+   "description": "Study break with cookies while supplies last.",
+   "title": null,
+   "organizer": null,
+   "level": "unknown",
+   "note": "Inferred: The casual gathering suggests a relaxed visit and some conversation.",
+   "certain": false,
+   "evidence": [
+    "study break"
+   ],
+   "warnings": [
+    "food is served while supplies last"
+   ],
+   "factor": 0.8
+  },
+  {
+   "description": "Faculty head hosts house community dinner with fellow Ingram residents.",
+   "title": null,
+   "organizer": null,
+   "level": "unknown",
+   "note": "Inferred: The gathering appears centered on a residential community.",
+   "certain": false,
+   "evidence": [
+    "faculty head"
+   ],
+   "warnings": [],
+   "factor": 0.5
+  },
+  {
+   "description": "Networking night with research opportunities.",
+   "title": null,
+   "organizer": null,
+   "level": "unknown",
+   "note": "Inferred: The format suggests conversations about the event's subject.",
+   "certain": false,
+   "evidence": [
+    "networking"
+   ],
+   "warnings": [],
+   "factor": 0.55
+  },
+  {
+   "description": "Food.",
+   "title": null,
+   "organizer": null,
+   "level": "unknown",
+   "note": "The listing gives too little detail to assess the participation format.",
+   "certain": false,
+   "evidence": [],
+   "warnings": [],
+   "factor": 0.5
+  },
+  {
+   "description": "",
+   "title": null,
+   "organizer": null,
+   "level": "unknown",
+   "note": "Participation details are not described in the listing.",
+   "certain": false,
+   "evidence": [],
+   "warnings": [],
+   "factor": 0.5
+  },
+  {
+   "description": "Free and open to the public. First come, first served.",
+   "title": null,
+   "organizer": null,
+   "level": "open",
+   "note": "The listing says anyone can attend (open to the public).",
+   "certain": true,
+   "evidence": [
+    "open to the public",
+    "free and open to the public"
+   ],
+   "warnings": [
+    "first come, first served"
+   ],
+   "factor": 1.0
+  },
+  {
+   "description": "No RSVP required; drop-ins welcome",
+   "title": null,
+   "organizer": null,
+   "level": "open",
+   "note": "The listing says anyone can attend (no rsvp required).",
+   "certain": true,
+   "evidence": [
+    "no rsvp required",
+    "drop-ins welcome"
+   ],
+   "warnings": [],
+   "factor": 1.0
+  },
+  {
+   "description": "Invitation only reception. Limited seating.",
+   "title": null,
+   "organizer": null,
+   "level": "restricted",
+   "note": "The listing states a limit on who can attend: listed as invitation only.",
+   "certain": true,
+   "evidence": [
+    "invitation only"
+   ],
+   "warnings": [
+    "listed as invitation only",
+    "limited capacity"
+   ],
+   "factor": 0.5
+  },
+  {
+   "description": "Who can join: absolutely everyone",
+   "title": null,
+   "organizer": null,
+   "level": "open",
+   "note": "The listing says anyone can attend (who can join: absolutely everyone).",
+   "certain": true,
+   "evidence": [
+    "who can join: absolutely everyone"
+   ],
+   "warnings": [],
+   "factor": 1.0
+  },
+  {
+   "description": "Registration required to attend. MBA students only",
+   "title": null,
+   "organizer": null,
+   "level": "restricted",
+   "note": "The listing states a limit on who can attend: limited to one student population.",
+   "certain": true,
+   "evidence": [
+    "mba students only",
+    "registration required to attend"
+   ],
+   "warnings": [
+    "limited to one student population",
+    "entry requires a ticket or registration"
+   ],
+   "factor": 0.5
+  },
+  {
+   "description": "Bible study and worship",
+   "title": "Fellowship",
+   "organizer": null,
+   "level": "unknown",
+   "note": "Inferred: The program suggests active participation or discussion.",
+   "certain": false,
+   "evidence": [
+    "bible"
+   ],
+   "warnings": [],
+   "factor": 0.35
+  },
+  {
+   "description": "Grab something to go between classes",
+   "title": null,
+   "organizer": "Dining",
+   "level": "unknown",
+   "note": "Inferred: The drop-in format suggests a brief visit is comfortable.",
+   "certain": false,
+   "evidence": [
+    "grab something to go"
+   ],
+   "warnings": [],
+   "factor": 0.85
+  }
+ ],
+ "excerpts": [
+  {
+   "description": "Join us for free pizza and drinks! We will discuss the semester. Dr. Smith will speak.",
+   "excerpt": "Join us for free pizza and drinks!"
+  },
+  {
+   "description": "Talk about research. No mention.",
+   "excerpt": null
+  },
+  {
+   "description": "Coffee and tea at 9 a.m. sharp. Come by St. Augustine's for brunch!",
+   "excerpt": "Coffee and tea at 9 a.m. sharp. Come by St. Augustine's for brunch!"
+  },
+  {
+   "description": "We'll have tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, and more food.",
+   "excerpt": "We'll have tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos, tacos…"
+  },
+  {
+   "description": "Lunch provided.\n\nBring a friend.   Snacks too!",
+   "excerpt": "Lunch provided. Snacks too!"
+  },
+  {
+   "description": null,
+   "excerpt": null
+  }
+ ],
+ "briefs": [
+  {
+   "name": "empty",
+   "events": [],
+   "headline": "No listings",
+   "sentences": [
+    "There are no events to display for this date.",
+    "Check another date or try again after the next refresh."
+   ],
+   "hash": "29a5102cbb3f93bd68adca6fde6ebf310c8cac6c96dcf112f90208ca7b4b1360"
+  },
+  {
+   "name": "mixed",
+   "events": [
+    {
+     "identityKey": "source|anchorlink:1",
+     "title": "Taco Night",
+     "startTime": "18:00",
+     "endTime": "20:00",
+     "location": "Sarratt",
+     "foodCategory": "full_meal",
+     "foodConfirmed": "confirmed",
+     "verificationState": "partially_verified",
+     "scoreTotal": 0.81
+    },
+    {
+     "identityKey": "source|anchorlink:2",
+     "title": "Coffee Hour",
+     "startTime": "09:30",
+     "endTime": null,
+     "location": "Sarratt",
+     "foodCategory": "snacks_or_refreshments",
+     "foodConfirmed": "unconfirmed",
+     "verificationState": "conflicting",
+     "scoreTotal": 0.4
+    },
+    {
+     "identityKey": "source|anchorlink:3",
+     "title": "Cancelled Lunch",
+     "startTime": "12:00",
+     "endTime": "13:00",
+     "location": "Sarratt",
+     "foodCategory": "full_meal",
+     "foodConfirmed": "confirmed",
+     "verificationState": "cancelled",
+     "scoreTotal": 0.9
+    }
+   ],
+   "headline": "2 listings · top: Taco Night",
+   "sentences": [
+    "2 listings with free food, starting from 9:30 AM.",
+    "1 event describes a full meal rather than snacks.",
+    "Free food is confirmed by a source for 1 of 2.",
+    "Check 1 listing cancelled and 1 listing with conflicting details."
+   ],
+   "hash": "d8026cd3f87b476ca33125d0f4bd4bca7fe7d75c20b907051143833b152baa66"
+  },
+  {
+   "name": "allcancelled",
+   "events": [
+    {
+     "identityKey": "source|anchorlink:4",
+     "title": "Gone",
+     "startTime": "12:00",
+     "endTime": null,
+     "location": "Sarratt",
+     "foodCategory": "full_meal",
+     "foodConfirmed": "confirmed",
+     "verificationState": "cancelled",
+     "scoreTotal": 0.5
+    }
+   ],
+   "headline": "All listings cancelled",
+   "sentences": [
+    "Every listing for this day is cancelled.",
+    "Check 1 listing cancelled."
+   ],
+   "hash": "a3b1b966e7b9a444321d827ba70b11a9ed5e4c05fce1edb24c479c253443fc82"
+  },
+  {
+   "name": "single",
+   "events": [
+    {
+     "identityKey": "source|anchorlink:5",
+     "title": "Solo Snack",
+     "startTime": null,
+     "endTime": null,
+     "location": "Sarratt",
+     "foodCategory": "snacks_or_refreshments",
+     "foodConfirmed": "confirmed",
+     "verificationState": "partially_verified",
+     "scoreTotal": null
+    }
+   ],
+   "headline": "1 listing · top: Solo Snack",
+   "sentences": [
+    "1 listing with free food.",
+    "All of them describe snacks or unspecified food.",
+    "Free food is confirmed by a source for all of them."
+   ],
+   "hash": "42f220feaef37c7bb27cdadabf4738d7248a798d1b56145d9aff24c3e4f31c12"
+  },
+  {
+   "name": "twomeals",
+   "events": [
+    {
+     "identityKey": "source|anchorlink:6",
+     "title": "B Meal",
+     "startTime": "17:15",
+     "endTime": "19:00",
+     "location": "Sarratt",
+     "foodCategory": "full_meal",
+     "foodConfirmed": "confirmed",
+     "verificationState": "partially_verified",
+     "scoreTotal": 0.7
+    },
+    {
+     "identityKey": "source|anchorlink:7",
+     "title": "A Meal",
+     "startTime": "11:00",
+     "endTime": "12:00",
+     "location": "Sarratt",
+     "foodCategory": "full_meal",
+     "foodConfirmed": "confirmed",
+     "verificationState": "partially_verified",
+     "scoreTotal": 0.7
+    }
+   ],
+   "headline": "2 listings · top: A Meal",
+   "sentences": [
+    "2 listings with free food, starting from 11 AM.",
+    "2 events describe a full meal rather than snacks.",
+    "Free food is confirmed by a source for all of them."
+   ],
+   "hash": "42619505f17aeb254e7360187e10361bc00c5b6cf99a2fba1b609cfe09fe4318"
+  }
+ ],
+ "stars": [
+  {
+   "score": null,
+   "stars": 0
+  },
+  {
+   "score": 0.0,
+   "stars": 0
+  },
+  {
+   "score": 0.09,
+   "stars": 0
+  },
+  {
+   "score": 0.1,
+   "stars": 0
+  },
+  {
+   "score": 0.3,
+   "stars": 2
+  },
+  {
+   "score": 0.5,
+   "stars": 2
+  },
+  {
+   "score": 0.7,
+   "stars": 4
+  },
+  {
+   "score": 0.74225,
+   "stars": 4
+  },
+  {
+   "score": 0.9,
+   "stars": 4
+  },
+  {
+   "score": 1.0,
+   "stars": 5
+  },
+  {
+   "score": 1.4,
+   "stars": 5
+  },
+  {
+   "score": -0.2,
+   "stars": 0
+  }
+ ],
+ "ranges": [
+  {
+   "start": null,
+   "end": null,
+   "label": "Time not listed"
+  },
+  {
+   "start": "18:00",
+   "end": null,
+   "label": "6 PM"
+  },
+  {
+   "start": "18:00",
+   "end": "20:30",
+   "label": "6 PM – 8:30 PM"
+  },
+  {
+   "start": "23:00",
+   "end": "01:30",
+   "label": "11 PM – 1:30 AM (next day)"
+  },
+  {
+   "start": "12:00",
+   "end": "12:00",
+   "label": "12 PM – 12 PM (next day)"
+  },
+  {
+   "start": "09:05",
+   "end": "10:00",
+   "label": "9:05 AM – 10 AM"
+  }
+ ],
+ "calendar": [
+  {
+   "date": "2026-03-07",
+   "start": "18:00",
+   "end": "20:00",
+   "allDay": false,
+   "startUtc": "20260308T000000Z",
+   "endUtc": "20260308T020000Z",
+   "crosses": false,
+   "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Late+Night%2C+Pancakes%3B+%26+More&dates=20260308T000000Z%2F20260308T020000Z&details=Pancakes+provided.%0AOrganizer%3A+Student+Life%0ASource%3A+https%3A%2F%2Fanchorlink.vanderbilt.edu%2Fevent%2F9&ctz=America%2FChicago&location=Sarratt+Student+Center%2C+Room+216"
+  },
+  {
+   "date": "2026-03-08",
+   "start": "18:00",
+   "end": "20:00",
+   "allDay": false,
+   "startUtc": "20260308T230000Z",
+   "endUtc": "20260309T010000Z",
+   "crosses": false,
+   "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Late+Night%2C+Pancakes%3B+%26+More&dates=20260308T230000Z%2F20260309T010000Z&details=Pancakes+provided.%0AOrganizer%3A+Student+Life%0ASource%3A+https%3A%2F%2Fanchorlink.vanderbilt.edu%2Fevent%2F9&ctz=America%2FChicago&location=Sarratt+Student+Center%2C+Room+216"
+  },
+  {
+   "date": "2026-11-01",
+   "start": "01:30",
+   "end": null,
+   "allDay": false,
+   "startUtc": "20261101T063000Z",
+   "endUtc": "20261101T083000Z",
+   "crosses": false,
+   "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Late+Night%2C+Pancakes%3B+%26+More&dates=20261101T063000Z%2F20261101T083000Z&details=Pancakes+provided.%0AOrganizer%3A+Student+Life%0ASource%3A+https%3A%2F%2Fanchorlink.vanderbilt.edu%2Fevent%2F9&ctz=America%2FChicago&location=Sarratt+Student+Center%2C+Room+216"
+  },
+  {
+   "date": "2026-10-02",
+   "start": "23:00",
+   "end": "01:00",
+   "allDay": false,
+   "startUtc": "20261003T040000Z",
+   "endUtc": "20261003T060000Z",
+   "crosses": true,
+   "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Late+Night%2C+Pancakes%3B+%26+More&dates=20261003T040000Z%2F20261003T060000Z&details=Pancakes+provided.%0AOrganizer%3A+Student+Life%0ASource%3A+https%3A%2F%2Fanchorlink.vanderbilt.edu%2Fevent%2F9&ctz=America%2FChicago&location=Sarratt+Student+Center%2C+Room+216"
+  },
+  {
+   "date": "2026-10-02",
+   "start": null,
+   "end": null,
+   "allDay": true,
+   "startUtc": null,
+   "endUtc": null,
+   "crosses": false,
+   "google": "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Late+Night%2C+Pancakes%3B+%26+More&dates=20261002%2F20261003&details=Pancakes+provided.%0AOrganizer%3A+Student+Life%0ASource%3A+https%3A%2F%2Fanchorlink.vanderbilt.edu%2Fevent%2F9&ctz=America%2FChicago&location=Sarratt+Student+Center%2C+Room+216"
+  }
+ ]
+}

@@ -1,9 +1,11 @@
 /**
- * `POST /api/refresh` — run one complete refresh.
+ * `POST /api/refresh?days=1|2|7` — run one complete refresh.
  *
- * Mutating, authorized, and the only route that writes. A refresh ingests every
- * source page and computes the full day before publishing it in one transaction,
- * so a failure leaves the previously published feed intact and visible.
+ * Mutating and authorized. A refresh covers `days` consecutive local days
+ * starting today (any other value means one day). It ingests every source page
+ * of every requested day and computes them all before publishing them in one
+ * transaction, so a failure leaves the previously published feed intact and
+ * visible, and days outside the request are never erased.
  *
  * `GET` is deliberately rejected: loading a page must never have a side effect.
  *
@@ -12,6 +14,7 @@
  * and cannot act on a deployment fault.
  */
 
+import { parseRefreshDays } from "@/lib/vfr/config.ts";
 import { authorizeRefresh } from "@/lib/vfr/auth.ts";
 import { runRefresh } from "@/lib/vfr/pipeline.ts";
 import { getConfig, getRepository, jsonResponse } from "@/lib/vfr/runtime.ts";
@@ -48,7 +51,8 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const result = await runRefresh({ repository, config, trigger: "api" });
+  const days = parseRefreshDays(new URL(request.url).searchParams.get("days"));
+  const result = await runRefresh({ repository, config, trigger: "api", days });
 
   if (result.ok) {
     return jsonResponse({ ok: true, ...result.summary });

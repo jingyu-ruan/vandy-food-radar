@@ -116,12 +116,14 @@ test("branchIds is accepted as an alternative to branchId", async () => {
   assert.equal(result.records.length, 1);
 });
 
-test("an event that already ended is filtered but an in-progress one is kept", async () => {
+test("events that already ended or are in progress stay on their own day", async () => {
+  // A date-scoped feed holds the whole selected day, so an evening refresh
+  // never erases listings that finished earlier.
   const ended = adapter(
     [{ skip: 0, body: searchPage([anchorRow()]) }],
     Date.UTC(2025, 2, 13, 2), // after the 01:00Z end
   );
-  assert.equal((await ended.adapter.fetch(TARGET)).records.length, 0);
+  assert.equal((await ended.adapter.fetch(TARGET)).records.length, 1);
 
   const inProgress = adapter(
     [{ skip: 0, body: searchPage([anchorRow()]) }],

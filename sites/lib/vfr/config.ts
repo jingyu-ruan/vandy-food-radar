@@ -10,11 +10,14 @@
  */
 
 import { FoodConfirmed } from "./models.ts";
-import type { ScoreFactor, SourceId } from "./models.ts";
+import type { DesignScoreFactor, SourceId } from "./models.ts";
 
 export const ENV_PREFIX = "VFR_";
 
-export type TargetWindow = "next_day" | "today";
+/** Day spans a protected refresh may request; each span starts today. */
+export const REFRESH_DAY_CHOICES = [1, 2, 7] as const;
+export type RefreshDays = (typeof REFRESH_DAY_CHOICES)[number];
+
 export type LocationProviderKind = "haversine" | "google_maps" | "null";
 
 export type AnchorLinkConfig = {
@@ -36,7 +39,12 @@ export type AnchorLinkConfig = {
 };
 
 export type RankingConfig = {
-  weights: Record<ScoreFactor, number>;
+  /** Design weights; they sum to 1.0 and are scaled by `1 - participationInfluence`. */
+  weights: Record<DesignScoreFactor, number>;
+  /** Share of the total reserved for participation convenience (capped). */
+  participationInfluence: number;
+  /** Neutral participation value when the listing gives no evidence. */
+  participationUnknownValue: number;
   /** Neutral value used when a walk is unknown so it never zeroes a score. */
   walkingUnknownValue: number;
   timingGoodStartHour: number;
@@ -51,9 +59,24 @@ export type DedupConfig = {
 
 export type ReferenceLocation = { label: string; lat: number; lng: number };
 
+/** Optional OpenRouteService walking routing; the key stays server-side. */
+export type RoutingConfig = {
+  apiKey: string;
+  timeoutMs: number;
+  maxWaypoints: number;
+  cacheEntries: number;
+  /** Waypoints must lie within this radius of the reference location. */
+  maxRadiusKm: number;
+};
+
+/** Bounded rolling retention for the multi-day feed, anchored on today. */
+export type RetentionConfig = { pastDays: number; futureDays: number };
+
+/** Defaults handed to the browser itinerary planner. */
+export type ItineraryConfig = { dwellMinutes: number; maxExactStops: number };
+
 export type Config = {
   timezone: string;
-  targetWindow: TargetWindow;
   referenceLocation: ReferenceLocation;
   anchorLink: AnchorLinkConfig;
   /** Authority order for conflict resolution, most authoritative first. */
@@ -72,8 +95,12 @@ export type Config = {
   ownerPrivate: boolean;
   /** How long a published feed stays fresh before the UI warns about it. */
   staleAfterMs: number;
-  /** Published target days to retain. */
-  feedRetentionDays: number;
+  /** Rolling window of published days kept by every successful refresh. */
+  retention: RetentionConfig;
+  routing: RoutingConfig;
+  itinerary: ItineraryConfig;
+  /** How long a detected time or venue change stays visible as a warning. */
+  changeWarningMs: number;
   /** Age limit for retained history rows. */
   historyRetentionDays: number;
   /** Refresh-run rows to retain. */
@@ -85,7 +112,7 @@ export type Config = {
 };
 
 /** Ranking weights. These sum to 1.0 and match the reference application. */
-function defaultWeights(): Record<ScoreFactor, number> {
+function defaultWeights(): Record<DesignScoreFactor, number> {
   return {
     food_confirmed: 0.25,
     full_meal: 0.25,
@@ -100,7 +127,6 @@ function defaultWeights(): Record<ScoreFactor, number> {
 export function defaultConfig(): Config {
   return {
     timezone: "America/Chicago",
-    targetWindow: "next_day",
     referenceLocation: { label: "Kirkland Hall", lat: 36.1487, lng: -86.8027 },
     anchorLink: {
       enabled: true,
@@ -117,6 +143,8 @@ export function defaultConfig(): Config {
     authorityPrecedence: ["official_page", "anchor_link", "google_calendar"],
     ranking: {
       weights: defaultWeights(),
+      participationInfluence: 0.05,
+      participationUnknownValue: 0.5,
       walkingUnknownValue: 0.5,
       timingGoodStartHour: 11,
       timingGoodEndHour: 20,
@@ -128,7 +156,16 @@ export function defaultConfig(): Config {
     refreshToken: "",
     ownerPrivate: false,
     staleAfterMs: 2 * 60 * 60 * 1000,
-    feedRetentionDays: 7,
+    retention: { pastDays: 0, futureDays: 13 },
+    routing: {
+      apiKey: "",
+      timeoutMs: 6000,
+      maxWaypoints: 12,
+      cacheEntries: 512,
+      maxRadiusKm: 50,
+    },
+    itinerary: { dwellMinutes: 30, maxExactStops: 7 },
+    changeWarningMs: 24 * 60 * 60 * 1000,
     historyRetentionDays: 30,
     refreshRunRetention: 50,
     leaseTtlMs: 5 * 60 * 1000,
@@ -175,9 +212,6 @@ export function configFromEnv(env: EnvLike): Config {
 
   const timezone = readString(env, `${ENV_PREFIX}TIMEZONE`);
   if (timezone && timezone.trim()) config.timezone = timezone.trim();
-
-  const window = readString(env, `${ENV_PREFIX}TARGET_WINDOW`)?.trim().toLowerCase();
-  if (window === "today" || window === "next_day") config.targetWindow = window;
 
   const label = readString(env, `${ENV_PREFIX}REF_LABEL`);
   if (label && label.trim()) config.referenceLocation.label = label.trim();
@@ -239,11 +273,32 @@ export function configFromEnv(env: EnvLike): Config {
       3600000;
   }
 
-  config.feedRetentionDays = parseIntIn(
-    readString(env, `${ENV_PREFIX}FEED_RETENTION_DAYS`),
-    config.feedRetentionDays,
-    1,
-    90,
+  config.retention.pastDays = parseIntIn(
+    readString(env, `${ENV_PREFIX}RETENTION_PAST_DAYS`),
+    config.retention.pastDays,
+    0,
+    30,
+  );
+  config.retention.futureDays = parseIntIn(
+    readString(env, `${ENV_PREFIX}RETENTION_FUTURE_DAYS`),
+    config.retention.futureDays,
+    0,
+    60,
+  );
+
+  // Server-side routing secret. Never echoed into HTML, URLs, or logs.
+  config.routing.apiKey = readString(env, `${ENV_PREFIX}ORS_API_KEY`)?.trim() ?? "";
+  const routingTimeout = readString(env, `${ENV_PREFIX}ORS_TIMEOUT_SECONDS`);
+  if (routingTimeout !== undefined) {
+    const seconds = parseFloatOr(routingTimeout, config.routing.timeoutMs / 1000);
+    config.routing.timeoutMs = Math.min(30, Math.max(1, seconds)) * 1000;
+  }
+
+  config.itinerary.dwellMinutes = parseIntIn(
+    readString(env, `${ENV_PREFIX}ITINERARY_DWELL_MINUTES`),
+    config.itinerary.dwellMinutes,
+    0,
+    240,
   );
   config.historyRetentionDays = parseIntIn(
     readString(env, `${ENV_PREFIX}HISTORY_RETENTION_DAYS`),
@@ -256,16 +311,13 @@ export function configFromEnv(env: EnvLike): Config {
 }
 
 /**
- * The local date the feed targets, derived from the current instant.
- *
- * `today` is passed in so window derivation stays pure and testable.
+ * Parse the refresh `days` parameter. Anything other than an allowed span
+ * collapses to a single day rather than widening the refresh.
  */
-export function targetDateFor(config: Config, todayIso: string): string {
-  if (config.targetWindow === "today") return todayIso;
-  const [y, m, d] = todayIso.split("-").map(Number);
-  const next = new Date(Date.UTC(y, m - 1, d + 1));
-  const pad = (value: number, width = 2) => String(value).padStart(width, "0");
-  return `${pad(next.getUTCFullYear(), 4)}-${pad(next.getUTCMonth() + 1)}-${pad(next.getUTCDate())}`;
+export function parseRefreshDays(raw: string | null | undefined): RefreshDays {
+  if (!raw || !/^\d+$/.test(raw.trim())) return 1;
+  const value = Number(raw.trim());
+  return (REFRESH_DAY_CHOICES as readonly number[]).includes(value) ? (value as RefreshDays) : 1;
 }
 
 /** Re-exported so callers comparing food state need only one import. */

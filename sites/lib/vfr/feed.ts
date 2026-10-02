@@ -19,12 +19,25 @@
  */
 
 import { StorageError } from "./d1.ts";
-import { targetDateFor } from "./config.ts";
 import type { Config } from "./config.ts";
 import type { FeedSnapshot, RefreshRunRecord, Repository } from "./repository.ts";
-import { localDateOf } from "./time.ts";
+import { localDateOf, parseIsoDate } from "./time.ts";
 
 export type FeedState = "ok" | "empty" | "uninitialized" | "unavailable";
+
+/**
+ * Parse a strict `YYYY-MM-DD` query value, or return `fallback`.
+ *
+ * Strict by design: a malformed or impossible date falls back to today rather
+ * than being coerced into a neighbouring day, so the date shown in the UI
+ * always matches the data that was queried.
+ */
+export function parseSelectedDate(raw: string | null | undefined, fallback: string): string {
+  if (typeof raw !== "string") return fallback;
+  const trimmed = raw.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed) || !parseIsoDate(trimmed)) return fallback;
+  return trimmed;
+}
 
 export type FeedView = {
   state: FeedState;
@@ -47,7 +60,8 @@ const UNAVAILABLE_MESSAGE =
   "Event data is temporarily unavailable. The last published listing could not be read.";
 
 /**
- * Load the current target day for display.
+ * Load one local day for display: `selectedDate` when given, otherwise today
+ * in the configured zone.
  *
  * This never triggers a refresh. A GET must not mutate durable state, so a stale
  * or missing feed is reported as such rather than quietly repaired.
@@ -56,9 +70,10 @@ export async function loadFeedView(
   repository: Repository,
   config: Config,
   nowMs: number = Date.now(),
+  selectedDate?: string,
 ): Promise<FeedView> {
   const todayDate = localDateOf(nowMs, config.timezone);
-  const targetDate = targetDateFor(config, todayDate);
+  const targetDate = selectedDate ?? todayDate;
 
   const base: FeedView = {
     state: "uninitialized",
@@ -165,9 +180,13 @@ export function feedViewToJson(view: FeedView): Record<string, unknown> {
       scoreComponents: stored.components,
       conflicts: stored.conflicts,
       provenance: stored.provenance,
-      sources: stored.sources,
+      sources: stored.sources.map((source) => ({
+        sourceId: source.sourceId,
+        sourceUrl: source.sourceUrl,
+        checkedAt: source.checkedAt,
+      })),
       calendarUrl: stored.event.anchorlinkId
-        ? `/api/calendar/${stored.event.anchorlinkId}`
+        ? `/api/calendar/${stored.event.anchorlinkId}?date=${stored.event.eventDate}`
         : null,
     })),
   };

@@ -1,5 +1,5 @@
 /**
- * `GET|POST /cron/refresh` — legacy scheduler compatibility.
+ * `GET|POST /cron/refresh?days=1|2|7` — legacy scheduler compatibility.
  *
  * The previous deployment exposed this path, so an external scheduler already
  * configured against it keeps working. It accepts both verbs because schedulers
@@ -7,6 +7,7 @@
  * relies on the owner-private deployment boundary.
  */
 
+import { parseRefreshDays } from "@/lib/vfr/config.ts";
 import { authorizeLegacyCron } from "@/lib/vfr/auth.ts";
 import { runRefresh } from "@/lib/vfr/pipeline.ts";
 import { getConfig, getRepository, jsonResponse } from "@/lib/vfr/runtime.ts";
@@ -40,7 +41,8 @@ async function handle(request: Request): Promise<Response> {
     );
   }
 
-  const result = await runRefresh({ repository, config, trigger: "cron" });
+  const days = parseRefreshDays(new URL(request.url).searchParams.get("days"));
+  const result = await runRefresh({ repository, config, trigger: "cron", days });
 
   if (result.ok) return jsonResponse({ ok: true, ...result.summary });
 

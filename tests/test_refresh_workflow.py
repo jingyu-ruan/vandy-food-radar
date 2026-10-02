@@ -1,14 +1,14 @@
 """Tests for the GitHub Actions refresh workflow.
 
-Vercel Hobby cron cannot run more than daily, so this workflow is the real
-scheduler and its guarantees are worth pinning:
+GitHub Actions supplies the timer for the Sites application, so the workflow's
+cadence and authenticated publication readback are part of its contract:
 
 * two cadences — ``days=2`` every two hours and ``days=7`` every six — and both
   spans are ones the server actually accepts;
 * a single concurrency group with ``cancel-in-progress: false``, so refreshes
   serialize instead of interleaving;
-* the token travels only over HTTPS, with redirects pinned to HTTPS and
-  transient failures retried;
+* the Site service token travels only to its fixed HTTPS origin, with redirects
+  refused and transient failures retried;
 * no ``GITHUB_TOKEN`` permissions, and no secret inlined in the file.
 
 The workflow is parsed as YAML where possible and otherwise read as text, so no
@@ -102,21 +102,20 @@ def test_runs_are_serialized_by_one_concurrency_group() -> None:
 
 def test_the_token_is_only_ever_sent_over_https() -> None:
     text = _text()
-    assert 'case "$VFR_REFRESH_URL" in\n            https://*) ;;' in text
-    assert "--proto '=https'" in text
-    assert "--proto-redir '=https'" in text
-    assert "Authorization: Bearer $VFR_REFRESH_TOKEN" in text
-    # The URL must be a bare endpoint because the day span is appended to it.
-    assert "must not contain a query string" in text
-    assert '"${VFR_REFRESH_URL}?days=${DAYS}"' in text
+    assert "base != 'https://vandy-food-radar.rjy020128.chatgpt.site'" in text
+    assert "'OAI-Sites-Authorization': 'Bearer ' + token" in text
+    assert "class NoRedirect(urllib.request.HTTPRedirectHandler):" in text
+    assert "return None" in text
+    assert "urllib.request.build_opener(NoRedirect())" in text
+    assert "request(f'/api/refresh?days={days}', 'POST')" in text
 
 
 def test_transient_failures_are_retried_and_bounded() -> None:
     text = _text()
-    assert "--retry 3" in text
-    assert "--retry-all-errors" in text
-    assert "--fail-with-body" in text
-    assert re.search(r"--max-time \d+", text)
+    assert "for attempt in range(3):" in text
+    assert "exc.code in (409, 429, 500, 502, 503, 504)" in text
+    assert "client.open(req, timeout=60)" in text
+    assert "min(30, max(1, int(retry_after)))" in text
     assert re.search(r"timeout-minutes: \d+", text)
 
 
@@ -126,8 +125,17 @@ def test_the_workflow_requests_no_github_token_scope() -> None:
 
 def test_credentials_come_only_from_repository_secrets() -> None:
     text = _text()
-    assert "${{ secrets.VFR_REFRESH_URL }}" in text
-    assert "${{ secrets.VFR_REFRESH_TOKEN }}" in text
+    assert "${{ secrets.VFR_SITES_SERVICE_TOKEN }}" in text
     # Nothing that looks like an inlined bearer token or Upstash URL.
     assert "upstash" not in text.lower()
     assert not re.search(r"Bearer [A-Za-z0-9]{8,}", text)
+
+
+def test_every_requested_day_is_read_back_from_durable_storage() -> None:
+    text = _text()
+    assert "for date in expected:" in text
+    assert "request('/api/events?date=' + urllib.parse.quote(date), 'GET')" in text
+    assert "feed.get('state') in ('ok', 'empty')" in text
+    assert "feed.get('publishedAt') == result['publishedAt']" in text
+    assert "all(event.get('eventDate') == date for event in events)" in text
+    assert "total != result.get('published')" in text
