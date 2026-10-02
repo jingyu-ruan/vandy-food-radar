@@ -22,6 +22,7 @@ from vandy_food_radar.sources import (
     Window,
     build_sources,
     default_fetcher,
+    window_dates,
 )
 
 TARGET_DATE = date(2025, 3, 11)
@@ -35,14 +36,38 @@ def _fetcher() -> FixtureFetcher:
     return FixtureFetcher()
 
 
-def test_window_from_config_next_day_and_today() -> None:
+def test_window_from_config_today_default_and_next_day() -> None:
     today = date(2025, 3, 10)
-    next_day = Window.from_config(Config(), today=today)
-    assert next_day.target_date == date(2025, 3, 11)
+    # The product opens on the current local day, so TODAY is the default.
+    assert Window.from_config(Config(), today=today).target_date == today
 
     cfg = Config()
-    cfg.target_window = TargetWindow.TODAY
-    assert Window.from_config(cfg, today=today).target_date == today
+    cfg.target_window = TargetWindow.NEXT_DAY
+    assert Window.from_config(cfg, today=today).target_date == date(2025, 3, 11)
+
+
+def test_window_dates_spans_consecutive_local_days() -> None:
+    today = date(2025, 3, 10)
+    assert window_dates(Config(), today=today, days=1) == [today]
+    assert window_dates(Config(), today=today, days=2) == [
+        today,
+        date(2025, 3, 11),
+    ]
+    week = window_dates(Config(), today=today, days=7)
+    assert week[0] == today
+    assert week[-1] == date(2025, 3, 16)
+    assert len(week) == 7
+
+    # A nonsensical count still yields exactly one day rather than nothing.
+    assert window_dates(Config(), today=today, days=0) == [today]
+
+    # NEXT_DAY shifts the whole span, it does not widen it.
+    cfg = Config()
+    cfg.target_window = TargetWindow.NEXT_DAY
+    assert window_dates(cfg, today=today, days=2) == [
+        date(2025, 3, 11),
+        date(2025, 3, 12),
+    ]
 
 
 def test_fixture_fetcher_unknown_url_is_fetch_error() -> None:

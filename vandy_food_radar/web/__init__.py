@@ -1,13 +1,22 @@
-"""Web presentation layer for Vandy Food Radar (design.md §1.1, T6.6–T6.8).
+"""Web presentation layer for Vandy Food Radar.
 
-A small server-rendered Flask app that shows the next day's ranked events as
-dense cards. It reads **only** through the :class:`~vandy_food_radar.store.\
-Repository` and offers a 'Refresh now' action that re-runs the pipeline for the
-target day.
+A server-rendered working page for one selected local date plus a small JSON
+API that backs the cards, weekly schedule, map, calendar handoff, and walking
+estimates. Everything reads only through the
+:class:`~vandy_food_radar.store.Repository`; the view models in
+:mod:`vandy_food_radar.web.viewmodel` are shared by the HTML and the API so the
+two can never describe the feed differently.
 """
 
 from __future__ import annotations
 
-from .app import create_app
+from .app import WEEK_LENGTH, create_app
+from .viewmodel import DayFeed, EventCard, build_day_feed
 
-__all__ = ["create_app"]
+__all__ = [
+    "WEEK_LENGTH",
+    "DayFeed",
+    "EventCard",
+    "build_day_feed",
+    "create_app",
+]

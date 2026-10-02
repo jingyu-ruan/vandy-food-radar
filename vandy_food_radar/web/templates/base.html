@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>{% block title %}Vandy Food Radar{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}" />
+</head>
+<body data-offline="{{ 'true' if offline else 'false' }}">
+  <a class="skip-link" href="#workspace">Skip to events</a>
+  {% block body %}{% endblock %}
+  <script type="application/json" id="vfr-config">
+    {{ client_config | tojson }}
+  </script>
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -154,6 +154,16 @@ class RankingConfig:
     # Preferred start-time window (24h local hours) for the `timing` factor.
     timing_good_start_hour: int = 11
     timing_good_end_hour: int = 20
+    # Share of the total score reserved for participation convenience. The
+    # weights above keep their documented design values and are scaled by
+    # ``1 - participation_influence`` so the total still lands in [0, 1] and the
+    # participation inference can never dominate the food-centric factors.
+    # Explicit eligibility restrictions are surfaced as warnings instead of
+    # being folded into this small convenience nudge.
+    participation_influence: float = 0.05
+    # Neutral participation value used when the description carries no explicit
+    # evidence either way, so an unclear listing is never penalised.
+    participation_unknown_value: float = 0.5
 
 
 @dataclass
@@ -221,6 +231,69 @@ class SnapshotConfig:
 
 
 @dataclass
+class PlacesConfig:
+    """Campus place dataset used to resolve listed locations to coordinates.
+
+    ``path`` points at the JSON array of ``{id,name,aliases,lat,lng,source_url}``
+    objects derived from the official Vanderbilt campus map. The default is the
+    repository's ``public/static/campus-places.json`` so the same file is served
+    to the browser and read by the server. A missing or invalid file simply
+    leaves every location unresolved; no coordinates are ever invented.
+    """
+
+    path: str = ""
+
+
+@dataclass
+class RoutingConfig:
+    """Optional OpenRouteService walking routing (server-side only).
+
+    ``api_key`` comes from ``VFR_ORS_API_KEY`` and is never rendered into HTML,
+    URLs, or logs: it is sent as an ``Authorization`` header to the one fixed
+    directions endpoint. With no key the walking endpoint still answers, using
+    an explicitly labelled straight-line estimate.
+    """
+
+    api_key: str = ""
+    timeout_seconds: float = 6.0
+    # Upper bound on request size so a client cannot ask for an unbounded route.
+    max_waypoints: int = 12
+    # Bounded in-process memo so repeated identical legs are not re-requested.
+    cache_entries: int = 512
+    # Requests must stay within this radius of the configured reference point.
+    max_radius_km: float = 50.0
+
+    @property
+    def enabled(self) -> bool:
+        """Whether a live routing key is configured."""
+
+        return bool(self.api_key)
+
+
+@dataclass
+class RetentionConfig:
+    """Bounded rolling retention for the multi-day durable feed.
+
+    A refresh keeps only stored days inside
+    ``[today - past_days, today + future_days]`` so the published snapshot stays
+    small no matter how often the schedulers run.
+    """
+
+    past_days: int = 0
+    future_days: int = 13
+
+
+@dataclass
+class ItineraryConfig:
+    """Defaults for the client-side itinerary planner."""
+
+    default_dwell_minutes: int = 30
+    # Time-window-aware search is exhaustive only for small selections; larger
+    # ones fall back to a greedy heuristic that is never claimed to be optimal.
+    max_exact_stops: int = 7
+
+
+@dataclass
 class Config:
     """Top-level application configuration (CFG-1..CFG-8).
 
@@ -230,8 +303,9 @@ class Config:
 
     # CFG-1
     timezone: str = "America/Chicago"
-    # CFG-2
-    target_window: TargetWindow = TargetWindow.NEXT_DAY
+    # CFG-2 — the product opens on the current local day, so the default
+    # ingestion/display window is TODAY in ``timezone``.
+    target_window: TargetWindow = TargetWindow.TODAY
     # Runs with no network access when True (default for MVP / tests).
     offline: bool = True
     # CFG-3
@@ -254,6 +328,14 @@ class Config:
     snapshot: SnapshotConfig = field(default_factory=SnapshotConfig)
     # Google Calendar write credentials (M8); disabled by default.
     calendar_write: CalendarWriteConfig = field(default_factory=CalendarWriteConfig)
+    # Campus place dataset for location resolution.
+    places: PlacesConfig = field(default_factory=PlacesConfig)
+    # Optional server-side walking routing.
+    routing: RoutingConfig = field(default_factory=RoutingConfig)
+    # Bounded rolling retention for the multi-day feed.
+    retention: RetentionConfig = field(default_factory=RetentionConfig)
+    # Itinerary planner defaults handed to the browser.
+    itinerary: ItineraryConfig = field(default_factory=ItineraryConfig)
     # Bearer token required by live refresh endpoints. Vercel Cron uses
     # CRON_SECRET; VFR_REFRESH_TOKEN can explicitly override it.
     refresh_token: str = ""
@@ -375,6 +457,41 @@ class Config:
         cfg.refresh_token = env.get(f"{ENV_PREFIX}REFRESH_TOKEN", "") or env.get(
             "CRON_SECRET", ""
         )
+
+        places_path = env.get(f"{ENV_PREFIX}CAMPUS_PLACES_PATH")
+        if places_path:
+            cfg.places.path = places_path
+
+        # Server-side routing secret. Never echoed into HTML, URLs, or logs.
+        ors_key = env.get(f"{ENV_PREFIX}ORS_API_KEY")
+        if ors_key is not None:
+            cfg.routing.api_key = ors_key.strip()
+        routing_timeout = env.get(f"{ENV_PREFIX}ORS_TIMEOUT_SECONDS")
+        if routing_timeout is not None:
+            cfg.routing.timeout_seconds = min(
+                30.0,
+                max(1.0, _parse_float(routing_timeout, cfg.routing.timeout_seconds)),
+            )
+
+        past_days = env.get(f"{ENV_PREFIX}RETENTION_PAST_DAYS")
+        if past_days is not None:
+            cfg.retention.past_days = _parse_int(
+                past_days, cfg.retention.past_days, minimum=0, maximum=30
+            )
+        future_days = env.get(f"{ENV_PREFIX}RETENTION_FUTURE_DAYS")
+        if future_days is not None:
+            cfg.retention.future_days = _parse_int(
+                future_days, cfg.retention.future_days, minimum=0, maximum=60
+            )
+
+        dwell = env.get(f"{ENV_PREFIX}ITINERARY_DWELL_MINUTES")
+        if dwell is not None:
+            cfg.itinerary.default_dwell_minutes = _parse_int(
+                dwell,
+                cfg.itinerary.default_dwell_minutes,
+                minimum=0,
+                maximum=240,
+            )
 
         return cfg
 

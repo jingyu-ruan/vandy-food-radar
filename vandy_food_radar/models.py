@@ -82,6 +82,11 @@ class ScoreFactor(StrEnum):
     TIMING = "timing"
     WALKING = "walking"
     CONFIDENCE = "confidence"
+    # Small convenience nudge from the inferred ease of taking part. Capped by
+    # ``RankingConfig.participation_influence`` so it never outweighs the
+    # food-centric factors, and explicit eligibility limits are reported as
+    # warnings instead of being hidden inside this number.
+    PARTICIPATION = "participation"
 
 
 # ---------------------------------------------------------------------------

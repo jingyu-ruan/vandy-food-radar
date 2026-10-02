@@ -16,7 +16,7 @@ import urllib.error
 import urllib.request
 import uuid
 
-from .sqlite_repository import SqliteRepository
+from .sqlite_repository import SCHEMA, SqliteRepository
 
 _REPOSITORY_KEY = "vfr:repository:v1"
 _REVISION_KEY = "vfr:repository:v1:revision"
@@ -183,6 +183,12 @@ class UpstashSqliteRepository(SqliteRepository):
         try:
             self._conn.deserialize(database)
             self._conn.execute("PRAGMA foreign_keys = ON")
+            # A snapshot published by an earlier release can predate tables or
+            # indexes added since. Every statement is CREATE ... IF NOT EXISTS,
+            # so re-applying the schema migrates the loaded snapshot forward
+            # without disturbing existing rows.
+            self._conn.executescript(SCHEMA)
+            self._conn.commit()
         except (AttributeError, sqlite3.DatabaseError) as exc:
             raise DurableRepositoryError(
                 "could not install the durable SQLite snapshot"

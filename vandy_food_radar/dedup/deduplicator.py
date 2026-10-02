@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date, time
+from uuid import NAMESPACE_URL, uuid5
 
 from ..config import DedupConfig
 from ..models import Event
@@ -175,7 +176,14 @@ def _build_event_shell(dedup_key: str, members: list[NormalizedRecord]) -> Event
         else compute_identity_key(resolved_date, representative.title)
     )
     return Event(
-        id=dedup_key,
+        # Distinct provider IDs can share the same title/time/venue fingerprint.
+        # Give those records distinct stable primary keys while retaining the
+        # fingerprint for cross-source similarity and legacy fixture events.
+        id=(
+            uuid5(NAMESPACE_URL, identity_key).hex
+            if len(source_identities) == 1
+            else dedup_key
+        ),
         dedup_key=dedup_key,
         identity_key=identity_key,
         title=representative.title or "",

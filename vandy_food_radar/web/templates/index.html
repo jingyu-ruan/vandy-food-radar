@@ -1,56 +1,179 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vandy Food Radar — {{ target_date }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}" />
-</head>
-<body>
-  <header class="masthead">
-    <div>
-      <h1>Vandy Food Radar</h1>
-      <p class="subtitle">
-        Ranked free-food events for {{ target_date }} · walking from
-        {{ reference_label }}
-      </p>
-    </div>
-    {% if offline %}
-      <form method="post" action="{{ url_for('refresh') }}">
-        <button type="submit" class="refresh">Refresh demo</button>
-      </form>
-    {% endif %}
-  </header>
+{% extends "base.html" %}
+{% block title %}Vandy Food Radar — {{ selected_date.strftime('%a %b') }} {{ selected_date.day }}{% endblock %}
 
-  <main>
+{% block body %}
+<div class="shell">
+  <aside class="sidebar" id="workspace-sidebar" aria-label="Workspace navigation">
+    <button type="button" class="mobile-sidebar-close control-button" data-action="toggle-sidebar">Close settings</button>
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">Vandy Food Radar</span>
+    </div>
+
+    {% if offline %}
+      <p class="demo-flag">Offline demo data</p>
+    {% endif %}
+
+    <nav class="nav" aria-label="Views">
+      <button type="button" class="nav-item is-current" data-view="cards" aria-current="page">Cards</button>
+      <button type="button" class="nav-item" data-view="schedule">Schedule</button>
+      <button type="button" class="nav-item" data-view="itinerary">Itinerary</button>
+    </nav>
+
+    <section class="side-block" aria-labelledby="origin-heading">
+      <h2 class="side-heading" id="origin-heading">Walking origin</h2>
+      <div class="combobox" data-module="origin">
+        <label class="visually-hidden" for="origin-input">Search campus places</label>
+        <input
+          id="origin-input"
+          class="control"
+          type="text"
+          role="combobox"
+          aria-expanded="false"
+          aria-controls="origin-options"
+          aria-autocomplete="list"
+          autocomplete="off"
+          placeholder="Search campus building"
+        />
+        <ul class="combobox-list" id="origin-options" role="listbox" hidden></ul>
+        <div class="side-actions">
+          <button type="button" class="control-button" data-action="origin-gps">Use my location</button>
+          <button type="button" class="control-button" data-action="origin-pin">Pick on map</button>
+          <button type="button" class="control-button" data-action="origin-reset">Reset</button>
+        </div>
+        <p class="side-status" data-role="origin-status" aria-live="polite">
+          Origin: {{ reference_label }}
+        </p>
+      </div>
+    </section>
+
+    <section class="side-block" aria-labelledby="saved-heading">
+      <h2 class="side-heading" id="saved-heading">Saved</h2>
+      <p class="side-status" data-role="saved-count" aria-live="polite">None saved</p>
+      <button type="button" class="control-button" data-action="clear-saved">Clear saved</button>
+    </section>
+
+    <section class="side-block" aria-labelledby="status-heading">
+      <h2 class="side-heading" id="status-heading">Data</h2>
+      <p class="side-status">
+        {% if last_success.at %}
+          Last refresh {{ last_success.at[:16].replace('T', ' ') }} UTC
+        {% else %}
+          No recorded refresh yet
+        {% endif %}
+      </p>
+      {% if offline %}
+        <form method="post" action="{{ url_for('refresh') }}">
+          <button type="submit" class="control-button">Refresh demo</button>
+        </form>
+      {% endif %}
+    </section>
+  </aside>
+
+  <main class="workspace" id="workspace">
+    <header class="work-head">
+      <div class="work-head-row">
+        <button type="button" class="mobile-settings control-button" data-action="toggle-sidebar" aria-expanded="false" aria-controls="workspace-sidebar">Location & saved</button>
+        <h1 class="work-title">Free food on campus</h1>
+        <div class="date-nav" data-module="date-nav">
+          <button type="button" class="control-button" data-action="prev-day" aria-label="Previous day">‹</button>
+          <label class="visually-hidden" for="date-input">Selected date</label>
+          <input
+            id="date-input"
+            class="control control-date"
+            type="date"
+            value="{{ selected_date.isoformat() }}"
+          />
+          <button type="button" class="control-button" data-action="next-day" aria-label="Next day">›</button>
+          <button type="button" class="control-button" data-action="today">Today</button>
+        </div>
+      </div>
+      <p class="work-sub" data-role="scope">
+        {{ selected_date.strftime('%A, %B') }} {{ selected_date.day }}, {{ selected_date.year }}
+        {%- if selected_date == today %} · today{% endif %}
+        · walking from <span data-role="origin-label">{{ reference_label }}</span>
+      </p>
+    </header>
+
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <ul class="flash">
-          {% for message in messages %}
-            <li>{{ message }}</li>
-          {% endfor %}
+        <ul class="notices" role="status">
+          {% for message in messages %}<li>{{ message }}</li>{% endfor %}
         </ul>
       {% endif %}
     {% endwith %}
-    {% if cards %}
-      <ol class="event-list">
+
+    <section class="brief" aria-labelledby="brief-heading" data-role="brief">
+      <h2 class="section-heading" id="brief-heading">Daily brief</h2>
+      <p class="brief-text" data-role="brief-text">{{ feed.brief.text }}</p>
+    </section>
+
+    <section class="view view-cards is-active" data-view-panel="cards" aria-labelledby="cards-heading">
+      <h2 class="section-heading" id="cards-heading">
+        Listings <span class="count" data-role="card-count">{{ cards | length }}</span>
+      </h2>
+      <div class="card-grid" data-role="card-grid">
         {% for card in cards %}
-          {% with rank = loop.index %}
-            {% include "_event_card.html" %}
-          {% endwith %}
-        {% endfor %}
-      </ol>
-    {% else %}
-      <p class="empty">
-        {% if offline %}
-          No demo events yet for {{ target_date }}. Run <code>make seed</code>
-          or use “Refresh demo” to load fixtures.
+          {% include "_event_card.html" %}
         {% else %}
-          No approved public AnchorLink events with the Free Food perk are
-          currently available for {{ target_date }}.
-        {% endif %}
-      </p>
-    {% endif %}
+          <p class="empty">
+            No free-food listings are published for this date.
+            {%- if offline %} Use “Refresh demo” to reload the fixture corpus.{% endif %}
+          </p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="view view-schedule" data-view-panel="schedule" aria-labelledby="schedule-heading" hidden>
+      <div class="schedule-head">
+        <h2 class="section-heading" id="schedule-heading">Week of <span data-role="week-label"></span></h2>
+        <div class="schedule-toggle" aria-label="Schedule display">
+          <button type="button" class="control-button is-current" data-schedule-mode="agenda" aria-pressed="true">Agenda</button>
+          <button type="button" class="control-button" data-schedule-mode="map" aria-pressed="false">Map</button>
+        </div>
+      </div>
+      <div class="schedule-layout" data-schedule-display="agenda">
+        <div class="agenda" data-role="agenda" aria-live="polite"></div>
+        <div class="schedule-map-host" data-role="schedule-map-host"></div>
+      </div>
+    </section>
+
+    <section class="view view-map" data-view-panel="map" aria-labelledby="map-heading" hidden>
+      <h2 class="section-heading" id="map-heading">Map</h2>
+      <div data-role="map-home"><div class="map-split" data-role="map-split">
+        <div class="map-canvas" data-role="map" role="application" aria-label="Campus map">
+          <p class="map-placeholder" data-role="map-status">Loading map…</p>
+        </div>
+        <p class="map-selection" data-role="map-selection" aria-live="polite"></p>
+        <ol class="map-list" data-role="map-list" aria-label="Mapped listings"></ol>
+      </div></div>
+    </section>
+
+    <section class="view view-itinerary" data-view-panel="itinerary" aria-labelledby="itinerary-heading" hidden>
+      <h2 class="section-heading" id="itinerary-heading">Itinerary</h2>
+      <div class="itinerary-controls">
+        <label class="field">
+          <span>Leave at</span>
+          <input class="control" type="time" data-role="depart-at" value="17:00" />
+        </label>
+        <label class="field">
+          <span>Minutes per stop</span>
+          <input class="control" type="number" min="0" max="240" step="5" data-role="dwell" />
+        </label>
+        <button type="button" class="control-button" data-action="optimize">Order by feasibility</button>
+      </div>
+      <p class="side-status" data-role="itinerary-status" aria-live="polite"></p>
+      <div class="plan-layout">
+        <ol class="itinerary-list" data-role="itinerary"></ol>
+        <div class="plan-map-host" data-role="plan-map-host"></div>
+      </div>
+    </section>
   </main>
-</body>
-</html>
+</div>
+
+<nav class="mobile-nav" aria-label="Views">
+  <button type="button" class="mobile-nav-item is-current" data-view="cards">Cards</button>
+  <button type="button" class="mobile-nav-item" data-view="schedule">Schedule</button>
+  <button type="button" class="mobile-nav-item" data-view="itinerary">Plan</button>
+</nav>
+{% endblock %}

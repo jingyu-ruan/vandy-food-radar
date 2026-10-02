@@ -240,6 +240,29 @@ def test_identity_key_differs_by_date_and_title() -> None:
     )
 
 
+def test_distinct_provider_events_with_same_fingerprint_have_unique_ids() -> None:
+    records = []
+    for source_number in (101, 102):
+        record = _synthetic(
+            record_id=f"anchor-{source_number}",
+            source_id=SourceId.ANCHOR_LINK,
+            title="Community Study Break",
+            event_date=date(2026, 9, 30),
+            start_time=time(20, 30),
+            location="Memorial Circle",
+            organizer="Residential Education",
+        )
+        record.source_identity = f"anchorlink:{source_number}"
+        records.append(record)
+
+    first = deduplicate(records, config=CFG)
+    repeated = deduplicate(records, config=CFG)
+    assert len(first) == 2
+    assert first[0].dedup_key == first[1].dedup_key
+    assert first[0].event.id != first[1].event.id
+    assert [item.event.id for item in first] == [item.event.id for item in repeated]
+
+
 def test_borderline_match_flags_possible_duplicate() -> None:
     # Same title/day and same venue but times ~20 min apart with differing
     # organizers -> mid-range score that merges yet is flagged for review

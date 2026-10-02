@@ -7,7 +7,7 @@ from .anchor_link import (
     AnchorLinkFetchError,
     LiveAnchorLinkAdapter,
 )
-from .base import FetchResult, HttpFetcher, SourceAdapter, Window
+from .base import FetchResult, HttpFetcher, SourceAdapter, Window, window_dates
 from .factory import FixtureSourceAdapter, build_sources, default_fetcher
 from .fixture_fetcher import FixtureFetcher
 from .google_calendar import GoogleCalendarAdapter
@@ -31,6 +31,7 @@ __all__ = [
     "SourceAdapter",
     "UrllibHttpFetcher",
     "Window",
+    "window_dates",
     "build_sources",
     "default_fetcher",
     "fetch_official_page",

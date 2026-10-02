@@ -1,0 +1,666 @@
+[
+  {
+    "id": "kirkland-hall",
+    "name": "Kirkland Hall",
+    "aliases": [
+      "KIRKLAND HALL",
+      "Kirkland"
+    ],
+    "lat": 36.1481248,
+    "lng": -86.8028216,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "student-life-center",
+    "name": "Student Life Center",
+    "aliases": [
+      "STUDENT LIFE",
+      "SLC",
+      "Student Life",
+      "Student Life Center Ballroom"
+    ],
+    "lat": 36.1443827,
+    "lng": -86.8058736,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "sarratt-student-center",
+    "name": "Sarratt Student Center",
+    "aliases": [
+      "SARRATT STUDENT CENTER",
+      "Sarratt",
+      "Sarratt Cinema"
+    ],
+    "lat": 36.1464554,
+    "lng": -86.8037437,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "rand-hall",
+    "name": "Rand Hall",
+    "aliases": [
+      "RAND HALL",
+      "Rand",
+      "Rand Wall",
+      "Rand Patio"
+    ],
+    "lat": 36.1464231,
+    "lng": -86.8031351,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "the-commons-center",
+    "name": "The Commons Center",
+    "aliases": [
+      "THE COMMONS CENTER",
+      "Commons",
+      "Commons Center"
+    ],
+    "lat": 36.1417886,
+    "lng": -86.7971595,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "alumni-hall",
+    "name": "Alumni Hall",
+    "aliases": [
+      "ALUMNI HALL",
+      "Alumni Hall Reading Room"
+    ],
+    "lat": 36.1479457,
+    "lng": -86.8033339,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "alumni-lawn",
+    "name": "Alumni Lawn",
+    "aliases": [
+      "Alumni Lawn"
+    ],
+    "lat": 36.1473061,
+    "lng": -86.8040548,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "buttrick-hall",
+    "name": "Buttrick Hall",
+    "aliases": [
+      "BUTTRICK HALL",
+      "Buttrick"
+    ],
+    "lat": 36.1458226,
+    "lng": -86.8025578,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "mayborn-building",
+    "name": "Mayborn Building",
+    "aliases": [
+      "MAYBORN",
+      "Mayborn"
+    ],
+    "lat": 36.1425224,
+    "lng": -86.7976724,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "featheringill-jacobs-hall",
+    "name": "Featheringill–Jacobs Hall",
+    "aliases": [
+      "FEATHERINGILL-JACOBS HALL",
+      "Featheringill",
+      "Featheringill Hall",
+      "Jacobs Hall",
+      "FGH"
+    ],
+    "lat": 36.1447854,
+    "lng": -86.8031051,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "engineering-and-science-building",
+    "name": "Engineering and Science Building",
+    "aliases": [
+      "THE ENGINEERING AND SCIENCE BUILDING",
+      "ESB",
+      "Engineering Science Building"
+    ],
+    "lat": 36.14289,
+    "lng": -86.80595,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "olin-hall",
+    "name": "Olin Hall",
+    "aliases": [
+      "OLIN HALL",
+      "Olin"
+    ],
+    "lat": 36.14292,
+    "lng": -86.80527,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "central-and-divinity-libraries",
+    "name": "Central and Divinity Libraries",
+    "aliases": [
+      "CENTRAL AND DIVINITY LIBRARIES",
+      "Central Library",
+      "Divinity Library",
+      "Jean and Alexander Heard Library"
+    ],
+    "lat": 36.145705,
+    "lng": -86.8002044,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "peabody-library",
+    "name": "Peabody Library",
+    "aliases": [
+      "PEABODY LIBRARY"
+    ],
+    "lat": 36.1424884,
+    "lng": -86.7992033,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "sarah-shannon-stevenson-science-and-engineering-library",
+    "name": "Sarah Shannon Stevenson Science and Engineering Library",
+    "aliases": [
+      "SC LIBRARY",
+      "Stevenson Library",
+      "Science and Engineering Library"
+    ],
+    "lat": 36.145029,
+    "lng": -86.8014053,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "stevenson-center-mathematics-building",
+    "name": "Stevenson Center Mathematics Building",
+    "aliases": [
+      "SC MATH",
+      "Stevenson Mathematics",
+      "Stevenson 1227",
+      "Stevenson Center Building 1",
+      "SC Mathematics"
+    ],
+    "lat": 36.1452729,
+    "lng": -86.8015271,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "stevenson-center-molecular-biology-building",
+    "name": "Stevenson Center Molecular Biology Building",
+    "aliases": [
+      "SC MOLEC BIOLOGY",
+      "Stevenson Molecular Biology",
+      "Stevenson Center Building 2"
+    ],
+    "lat": 36.1449574,
+    "lng": -86.8010681,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "stevenson-center-lecture-halls",
+    "name": "Stevenson Center Lecture Halls",
+    "aliases": [
+      "SC LECTURE",
+      "Stevenson Lecture",
+      "Stevenson Center Building 4"
+    ],
+    "lat": 36.1449912,
+    "lng": -86.801752,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "stevenson-center-science-and-engineering-building",
+    "name": "Stevenson Center Science and Engineering Building",
+    "aliases": [
+      "SC SCIENCE AND ENGINEERING",
+      "Stevenson Science and Engineering",
+      "Stevenson Center Building 5",
+      "SC 5502"
+    ],
+    "lat": 36.1446773,
+    "lng": -86.8020033,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "stevenson-center-physics-and-astronomy-building",
+    "name": "Stevenson Center Physics and Astronomy Building",
+    "aliases": [
+      "SC PHYSICS AND ASTRONOMY",
+      "Stevenson Physics",
+      "Stevenson Center Building 6"
+    ],
+    "lat": 36.1443603,
+    "lng": -86.8021384,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "stevenson-center-chemistry-building",
+    "name": "Stevenson Center Chemistry Building",
+    "aliases": [
+      "SC CHEMISTRY",
+      "Stevenson Chemistry",
+      "Stevenson Center Building 7"
+    ],
+    "lat": 36.1447201,
+    "lng": -86.8016576,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "bishop-joseph-johnson-black-cultural-center",
+    "name": "Bishop Joseph Johnson Black Cultural Center",
+    "aliases": [
+      "BISHOP JOHNSON CENTER",
+      "BCC",
+      "Black Cultural Center",
+      "BCC Auditorium"
+    ],
+    "lat": 36.1457153,
+    "lng": -86.8031141,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "saint-augustine-s-chapel",
+    "name": "Saint Augustine’s Chapel",
+    "aliases": [
+      "ST AUGUSTINE CHAPEL",
+      "Saint Augustine's Chapel",
+      "St. Augustine's Chapel",
+      "St Augustine Chapel",
+      "St. Augustine's A-Frame"
+    ],
+    "lat": 36.1468823,
+    "lng": -86.8051992,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "schulman-center-for-jewish-life",
+    "name": "Schulman Center for Jewish Life",
+    "aliases": [
+      "SCHULMAN CENTER HILLEL",
+      "Hillel",
+      "Schulman Center"
+    ],
+    "lat": 36.1447339,
+    "lng": -86.8063732,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "kissam-center",
+    "name": "Kissam Center",
+    "aliases": [
+      "KISSAM CENTER",
+      "Kissam"
+    ],
+    "lat": 36.1494379,
+    "lng": -86.8017925,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "e-bronson-ingram-college",
+    "name": "E. Bronson Ingram College",
+    "aliases": [
+      "E. Bronson Ingram College",
+      "EBI",
+      "Bronson Courtyard",
+      "Bronson College"
+    ],
+    "lat": 36.1487175,
+    "lng": -86.8034455,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "hank-ingram-house",
+    "name": "Hank Ingram House",
+    "aliases": [
+      "HANK INGRAM",
+      "Hank House",
+      "Hank",
+      "Hank Ingram",
+      "Hank Ingram Circle"
+    ],
+    "lat": 36.1406913,
+    "lng": -86.7967498,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "murray-house",
+    "name": "Murray House",
+    "aliases": [
+      "MURRAY",
+      "Murray"
+    ],
+    "lat": 36.1399341,
+    "lng": -86.7968947,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "north-house",
+    "name": "North House",
+    "aliases": [],
+    "lat": 36.1411411,
+    "lng": -86.7995514,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "east-house",
+    "name": "East House",
+    "aliases": [],
+    "lat": 36.1403354,
+    "lng": -86.7983138,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "west-house",
+    "name": "West House",
+    "aliases": [],
+    "lat": 36.1404511,
+    "lng": -86.7996092,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "memorial-house",
+    "name": "Memorial House",
+    "aliases": [
+      "MEMORIAL",
+      "Memorial Circle"
+    ],
+    "lat": 36.1406424,
+    "lng": -86.7977472,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "stambaugh-house",
+    "name": "Stambaugh House",
+    "aliases": [
+      "STAMBAUGH",
+      "Stambaugh"
+    ],
+    "lat": 36.1402712,
+    "lng": -86.7973226,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "sutherland-house",
+    "name": "Sutherland House",
+    "aliases": [
+      "SUTHERLAND",
+      "Sutherland Lobby",
+      "Sutherland"
+    ],
+    "lat": 36.1396905,
+    "lng": -86.7974004,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "gillette-house",
+    "name": "Gillette House",
+    "aliases": [
+      "GILLETTE",
+      "Gillette"
+    ],
+    "lat": 36.1410224,
+    "lng": -86.7981822,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "crawford-house",
+    "name": "Crawford House",
+    "aliases": [
+      "CRAWFORD",
+      "Crawford"
+    ],
+    "lat": 36.140017,
+    "lng": -86.7978225,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "warren-college",
+    "name": "Warren College",
+    "aliases": [
+      "WARREN COLLEGE",
+      "Warren Great Room",
+      "Warren College Main Entrance"
+    ],
+    "lat": 36.1495832,
+    "lng": -86.8013128,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "moore-college",
+    "name": "Moore College",
+    "aliases": [
+      "MOORE COLLEGE"
+    ],
+    "lat": 36.1493355,
+    "lng": -86.8022464,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "wilson-hall",
+    "name": "Wilson Hall",
+    "aliases": [
+      "WILSON HALL",
+      "Wilson"
+    ],
+    "lat": 36.1489397,
+    "lng": -86.8006941,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "furman-hall",
+    "name": "Furman Hall",
+    "aliases": [
+      "FURMAN HALL",
+      "Furman"
+    ],
+    "lat": 36.1479542,
+    "lng": -86.801331,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "calhoun-hall",
+    "name": "Calhoun Hall",
+    "aliases": [
+      "CALHOUN HALL",
+      "Calhoun"
+    ],
+    "lat": 36.1472491,
+    "lng": -86.8014279,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "garland-hall",
+    "name": "Garland Hall",
+    "aliases": [
+      "GARLAND HALL",
+      "Garland"
+    ],
+    "lat": 36.1465415,
+    "lng": -86.8015665,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "neely-auditorium",
+    "name": "Neely Auditorium",
+    "aliases": [
+      "NEELY AUDITORIUM"
+    ],
+    "lat": 36.1473996,
+    "lng": -86.8030048,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "vanderbilt-law-school",
+    "name": "Vanderbilt Law School",
+    "aliases": [
+      "LAW SCHOOL",
+      "Law School"
+    ],
+    "lat": 36.1479845,
+    "lng": -86.8003134,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "owen-graduate-school-of-management",
+    "name": "Owen Graduate School of Management",
+    "aliases": [
+      "OWEN GRAD MGMT",
+      "Owen",
+      "Management Hall"
+    ],
+    "lat": 36.1471301,
+    "lng": -86.8000394,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "blair-school-of-music",
+    "name": "Blair School of Music",
+    "aliases": [
+      "BLAIR SCHOOL OF MUSIC",
+      "Blair"
+    ],
+    "lat": 36.138608,
+    "lng": -86.8060114,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "cohen-memorial-hall",
+    "name": "Cohen Memorial Hall",
+    "aliases": [
+      "COHEN MEMORIAL",
+      "Cohen Memorial"
+    ],
+    "lat": 36.1415369,
+    "lng": -86.7993821,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "vanderbilt-recreation-and-wellness-center",
+    "name": "Vanderbilt Recreation and Wellness Center",
+    "aliases": [
+      "VANDERBILT RECREATION AND WELLNESS CENTER",
+      "Recreation Center",
+      "Rec Center"
+    ],
+    "lat": 36.1402202,
+    "lng": -86.808492,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "baker-building",
+    "name": "Baker Building",
+    "aliases": [
+      "Baker Building"
+    ],
+    "lat": 36.1499025,
+    "lng": -86.8003951,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "wyatt-center",
+    "name": "Wyatt Center",
+    "aliases": [
+      "WYATT CENTER",
+      "Wyatt"
+    ],
+    "lat": 36.1399888,
+    "lng": -86.7990083,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "payne-hall",
+    "name": "Payne Hall",
+    "aliases": [
+      "PAYNE",
+      "Payne"
+    ],
+    "lat": 36.142396,
+    "lng": -86.7981765,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "frist-hall",
+    "name": "Frist Hall",
+    "aliases": [
+      "FRIST HALL",
+      "Frist"
+    ],
+    "lat": 36.145198,
+    "lng": -86.8005863,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "godchaux-hall",
+    "name": "Godchaux Hall",
+    "aliases": [
+      "GODCHAUX HALL",
+      "Godchaux"
+    ],
+    "lat": 36.1449118,
+    "lng": -86.8003994,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "mcgill-hall",
+    "name": "McGill Hall",
+    "aliases": [
+      "MCGILL HALL",
+      "McGill"
+    ],
+    "lat": 36.147696,
+    "lng": -86.8047561,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "mctyeire-hall",
+    "name": "McTyeire Hall",
+    "aliases": [
+      "MCTYEIRE HALL",
+      "McTyeire"
+    ],
+    "lat": 36.1437692,
+    "lng": -86.803208,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "special-collections",
+    "name": "Special Collections and University Archives",
+    "aliases": [
+      "Special Collections",
+      "SCUA"
+    ],
+    "lat": 36.14565,
+    "lng": -86.7977389,
+    "source_url": "https://www.vanderbilt.edu/map/"
+  },
+  {
+    "id": "zeppos",
+    "name": "Nicholas S. Zeppos Residential College",
+    "aliases": [
+      "Zeppos",
+      "Zeppos College",
+      "Zeppos Great Room"
+    ],
+    "lat": 36.146809,
+    "lng": -86.8072749,
+    "source_url": "https://www.openstreetmap.org/relation/14026186",
+    "name_source_url": "https://www.vanderbilt.edu/student-affairs/housing/residential-colleges/"
+  },
+  {
+    "id": "rothschild",
+    "name": "Rothschild College",
+    "aliases": [
+      "Rothschild",
+      "Rothschild Great Room"
+    ],
+    "lat": 36.1479246,
+    "lng": -86.8066707,
+    "source_url": "https://www.openstreetmap.org/way/1344050362",
+    "name_source_url": "https://www.vanderbilt.edu/student-affairs/housing/residential-colleges/"
+  }
+]

@@ -24,10 +24,12 @@ onto the target day so the web view always has content.
 
 from __future__ import annotations
 
+import json
 import uuid
 from collections.abc import Sequence
+from contextlib import nullcontext
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -43,6 +45,8 @@ from ..models import (
     VerificationState,
 )
 from ..normalize import normalize
+from ..participation import assess_participation, participation_input_for
+from ..places import PlaceDataset, load_places_for
 from ..providers.location import LocationProvider
 from ..ranking import score_event
 from ..sources import FixtureFetcher, FixtureSourceAdapter, SourceAdapter, Window
@@ -79,6 +83,23 @@ class RunReport:
     scored: int = 0
     history_entries: int = 0
     saved_event_ids: list[str] = field(default_factory=list)
+    # Every local day this report covers, in ascending order. Single-day runs
+    # list exactly ``target_date``.
+    days: list[date] = field(default_factory=list)
+    # Dates retained after the run applied the rolling retention window.
+    retained_days: list[date] = field(default_factory=list)
+
+
+# Metadata keys written to the repository after a complete successful refresh.
+LAST_SUCCESS_KEY = "refresh:last_success_at"
+LAST_SUCCESS_DAYS_KEY = "refresh:last_success_days"
+
+# Day counts a protected refresh may request.
+REFRESH_DAY_CHOICES: tuple[int, ...] = (1, 2, 7)
+
+
+def material_change_key(event: Event) -> str:
+    return f"change:{event.event_date.isoformat()}:{event.identity_key}"
 
 
 def run(
@@ -88,15 +109,24 @@ def run(
     sources: Sequence[SourceAdapter],
     location_provider: LocationProvider,
     config: Config,
+    publish: bool = True,
+    places: PlaceDataset | None = None,
 ) -> RunReport:
     """Run the full pipeline for ``window`` and persist the results.
 
     Returns a :class:`RunReport` with per-stage counts. Idempotent: a repeated
-    run upserts by ``dedup_key`` and records history only for fields that
+    run upserts by ``identity_key`` and records history only for fields that
     actually changed (FR-42/FR-43, AC-10/AC-11).
+
+    ``publish`` controls durable publication. The default ``True`` preserves the
+    established single-day contract (the run ends with a flush). A batched
+    multi-day refresh passes ``False`` for each day and flushes exactly once
+    after every day has succeeded, so a failure partway through leaves the
+    previously published feed untouched.
     """
 
-    report = RunReport(target_date=window.target_date)
+    report = RunReport(target_date=window.target_date, days=[window.target_date])
+    dataset = places if places is not None else load_places_for(config)
 
     ingested: list[SourceRecord] = []
     for adapter in sources:
@@ -111,22 +141,29 @@ def run(
 
     for merged in merged_events:
         verified = verify(merged, source_map, config=config)
+        member_records = [
+            source_map[m.source_record_id]
+            for m in merged.members
+            if m.source_record_id in source_map
+        ]
+        # Coordinates come only from the curated campus dataset; an unmatched
+        # location stays unresolved rather than being approximated.
+        resolved = dataset.resolve(verified.event.location)
+        verified.event.location_geo = resolved.place.point if resolved else None
+        assessment = assess_participation(
+            participation_input_for(verified.event, member_records)
+        )
         scored = score_event(
             verified.event,
             config=config,
             location_provider=location_provider,
+            participation=assessment,
         )
         event = scored.event
         report.conflicts += len(verified.conflicts)
         if event.verification_state is VerificationState.CANCELLED:
             report.cancelled += 1
         report.scored += 1
-
-        member_records = [
-            source_map[m.source_record_id]
-            for m in merged.members
-            if m.source_record_id in source_map
-        ]
 
         previous = repository.find_by_identity_key(event.identity_key)
         # Adopt the persisted event id when the event already exists so the row
@@ -139,6 +176,21 @@ def run(
 
         now = _now_utc()
         event.updated_at = now
+        if previous is not None:
+            changed_kind = None
+            if (previous.event_date, previous.start_time, previous.end_time) != (
+                event.event_date,
+                event.start_time,
+                event.end_time,
+            ):
+                changed_kind = "time_changed"
+            elif previous.location != event.location:
+                changed_kind = "venue_changed"
+            if changed_kind:
+                repository.set_metadata(
+                    material_change_key(event),
+                    json.dumps({"kind": changed_kind, "at": now.isoformat()}),
+                )
         if previous is None:
             event.created_at = now
 
@@ -165,12 +217,79 @@ def run(
         report.saved_event_ids.append(event.id)
         published_identity_keys.add(event.identity_key)
 
-    # Only replace the visible day after every source page and event completed.
-    # Durable repositories publish once here, so API/pipeline failures cannot
-    # overwrite the last known-good feed with a partial or empty snapshot.
+    # Scoped to the refreshed day only, so a partial multi-day batch can never
+    # erase another day. Durable repositories publish in ``flush``, so an API or
+    # pipeline failure cannot overwrite the last known-good feed.
     repository.replace_day(window.target_date, published_identity_keys)
-    repository.flush()
+    if publish:
+        repository.flush()
     return report
+
+
+def retention_window(today: date, config: Config) -> set[date]:
+    """Dates a refresh is allowed to keep, anchored on ``today``.
+
+    Bounds the durable snapshot regardless of how often the schedulers run:
+    anything older than ``retention.past_days`` or further out than
+    ``retention.future_days`` is dropped.
+    """
+
+    start = today - timedelta(days=max(0, config.retention.past_days))
+    end = today + timedelta(days=max(0, config.retention.future_days))
+    span = (end - start).days
+    return {start + timedelta(days=offset) for offset in range(span + 1)}
+
+
+def run_days(
+    days: Sequence[date],
+    *,
+    repository: Repository,
+    sources: Sequence[SourceAdapter],
+    location_provider: LocationProvider,
+    config: Config,
+    today: date,
+) -> RunReport:
+    """Refresh several local days and publish them in one durable write.
+
+    Each day is ingested, scored, and written locally with ``publish=False``.
+    Only once every requested day has completed does the run apply the rolling
+    retention window, record the last-success metadata, and flush. Any failure
+    propagates before the flush, so the previously published feed survives
+    intact and no day is partially replaced.
+    """
+
+    ordered = sorted(set(days))
+    if not ordered:
+        raise ValueError("run_days requires at least one day")
+
+    combined = RunReport(target_date=ordered[0], days=list(ordered))
+    batch_factory = getattr(repository, "atomic_batch", None)
+    batch = batch_factory() if callable(batch_factory) else nullcontext()
+    with batch:
+        for day in ordered:
+            day_report = run(
+                Window(target_date=day),
+                repository=repository,
+                sources=sources,
+                location_provider=location_provider,
+                config=config,
+                publish=False,
+            )
+            combined.fetched += day_report.fetched
+            combined.merged += day_report.merged
+            combined.conflicts += day_report.conflicts
+            combined.cancelled += day_report.cancelled
+            combined.scored += day_report.scored
+            combined.history_entries += day_report.history_entries
+            combined.saved_event_ids.extend(day_report.saved_event_ids)
+
+        keep = retention_window(today, config) | set(ordered)
+        repository.prune_days(keep)
+        repository.set_metadata(LAST_SUCCESS_KEY, _now_utc().isoformat())
+        repository.set_metadata(LAST_SUCCESS_DAYS_KEY, str(len(ordered)))
+        repository.flush()
+        combined.retained_days = repository.stored_days()
+    return combined
 
 
 def seed_demo(
@@ -331,4 +450,13 @@ def _now_utc() -> datetime:
     return datetime.now(tz=UTC)
 
 
-__all__ = ["RunReport", "run", "seed_demo"]
+__all__ = [
+    "LAST_SUCCESS_DAYS_KEY",
+    "LAST_SUCCESS_KEY",
+    "REFRESH_DAY_CHOICES",
+    "RunReport",
+    "retention_window",
+    "run",
+    "run_days",
+    "seed_demo",
+]

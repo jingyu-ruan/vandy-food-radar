@@ -10,12 +10,13 @@ ordering, and the explanation generator.
 
 from __future__ import annotations
 
-from .engine import ScoredEvent, order_events, score_event
+from .engine import ScoredEvent, order_events, recommendation_stars, score_event
 from .explanation import build_explanation
 
 __all__ = [
     "ScoredEvent",
     "build_explanation",
     "order_events",
+    "recommendation_stars",
     "score_event",
 ]

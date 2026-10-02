@@ -1,14 +1,38 @@
 name: Refresh live AnchorLink events
 
+# Vercel Hobby cron is limited to one run per day, so GitHub Actions supplies
+# the real schedule. Two cadences cover two different needs:
+#
+#   * every 2 hours  -> days=2  (today and tomorrow; the dates people act on)
+#   * every 6 hours  -> days=7  (the whole week the schedule view browses)
+#
+# The endpoint publishes a multi-day batch in one durable write, so a wider
+# span is never partially applied. Both cadences share a concurrency group, so
+# a 2-day run and a 7-day run can never overlap.
+
 on:
   schedule:
-    # GitHub Actions cron is UTC. Minute 17 avoids the busiest top-of-hour slot.
-    - cron: "17 * * * *"
+    # GitHub Actions cron is UTC. Off-the-hour minutes avoid the busiest slots,
+    # and the two expressions never land on the same minute.
+    - cron: "17 */2 * * *"
+    - cron: "47 */6 * * *"
   workflow_dispatch:
+    inputs:
+      days:
+        description: "Day span to refresh"
+        required: false
+        default: "2"
+        type: choice
+        options:
+          - "2"
+          - "7"
 
 # The job only calls an external HTTPS endpoint and needs no GITHUB_TOKEN scope.
 permissions: {}
 
+# One group for every cadence and every manual run: refreshes are serialized,
+# never cancelled mid-flight. The server also refuses a concurrent refresh with
+# HTTP 409, so an overlap would be rejected rather than interleaved.
 concurrency:
   group: vandy-food-radar-live-refresh
   cancel-in-progress: false
@@ -16,15 +40,49 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
+      - name: Resolve the day span for this trigger
+        id: span
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          REQUESTED_DAYS: ${{ inputs.days }}
+        run: |
+          set -euo pipefail
+          if [ -n "${REQUESTED_DAYS:-}" ]; then
+            days="$REQUESTED_DAYS"
+          elif [ "${SCHEDULE:-}" = "47 */6 * * *" ]; then
+            days=7
+          else
+            days=2
+          fi
+          # Only the server-supported spans may be requested.
+          case "$days" in
+            2|7) ;;
+            *) echo "unsupported day span: $days" >&2; exit 1 ;;
+          esac
+          echo "days=$days" >> "$GITHUB_OUTPUT"
+          echo "Refreshing a $days-day span."
+
       - name: Call protected Vandy Food Radar refresh
         env:
           VFR_REFRESH_URL: ${{ secrets.VFR_REFRESH_URL }}
           VFR_REFRESH_TOKEN: ${{ secrets.VFR_REFRESH_TOKEN }}
+          DAYS: ${{ steps.span.outputs.days }}
         run: |
+          set -euo pipefail
           test -n "$VFR_REFRESH_URL"
           test -n "$VFR_REFRESH_TOKEN"
+          # The token is only ever sent over TLS, so refuse a non-HTTPS target
+          # before any request is made.
+          case "$VFR_REFRESH_URL" in
+            https://*) ;;
+            *) echo "VFR_REFRESH_URL must be an https:// URL" >&2; exit 1 ;;
+          esac
+          # The day span is appended here, so the secret must be a bare URL.
+          case "$VFR_REFRESH_URL" in
+            *\?*) echo "VFR_REFRESH_URL must not contain a query string" >&2; exit 1 ;;
+          esac
           curl --fail-with-body \
             --silent \
             --show-error \
@@ -34,7 +92,7 @@ jobs:
             --proto-redir '=https' \
             --retry 3 \
             --retry-all-errors \
-            --max-time 90 \
+            --max-time 180 \
             --request POST \
             --header "Authorization: Bearer $VFR_REFRESH_TOKEN" \
-            "$VFR_REFRESH_URL"
+            "${VFR_REFRESH_URL}?days=${DAYS}"

@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import date, datetime, time
 from typing import Any
 
@@ -40,7 +42,7 @@ from ..models import (
     VerificationState,
 )
 
-_SCHEMA = """
+SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
     id TEXT PRIMARY KEY,
     identity_key TEXT NOT NULL UNIQUE,
@@ -115,6 +117,13 @@ CREATE TABLE IF NOT EXISTS event_history (
     new_value TEXT,
     reason TEXT
 );
+
+CREATE TABLE IF NOT EXISTS run_metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS events_by_date ON events(event_date);
 """
 
 
@@ -136,37 +145,112 @@ class SqliteRepository:
         self, db_path: str = ":memory:", *, check_same_thread: bool = True
     ) -> None:
         self._conn = sqlite3.connect(db_path, check_same_thread=check_same_thread)
+        self._batching = False
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
-        self._conn.executescript(_SCHEMA)
+        self._conn.executescript(SCHEMA)
         self._conn.commit()
 
     def close(self) -> None:
         """Close the underlying connection."""
         self._conn.close()
 
-    def replace_day(self, day: date, identity_keys: set[str]) -> None:
-        """Remove stale/non-target events after a complete successful run.
+    @contextmanager
+    def _transaction(self) -> Iterator[None]:
+        if self._batching:
+            yield
+        else:
+            with self._conn:
+                yield
 
-        Vandy Food Radar publishes one configured day at a time. Deleting all
-        other rows keeps the durable serverless snapshot bounded, while
-        deleting missing rows on the target day removes events that lost the
-        Free Food perk or public approval.
+    @contextmanager
+    def atomic_batch(self) -> Iterator[None]:
+        """Commit all selected days together; roll back a failed local batch."""
+        if self._batching:
+            raise RuntimeError("a repository batch is already running")
+        self._conn.execute("BEGIN IMMEDIATE")
+        self._batching = True
+        try:
+            yield
+            self._conn.commit()
+        except BaseException:
+            self._conn.rollback()
+            raise
+        finally:
+            self._batching = False
+
+    def replace_day(self, day: date, identity_keys: set[str]) -> None:
+        """Remove stale rows **on ``day`` only** after a successful day run.
+
+        A delete scoped to the single refreshed date is what makes a multi-day
+        feed safe: refreshing today removes events that lost the Free Food perk
+        or public approval today, and leaves every other published day intact
+        even if a later day in the same batch fails. Overall storage stays
+        bounded through :meth:`prune_days` instead.
         """
 
-        with self._conn:
+        with self._transaction():
             if identity_keys:
                 placeholders = ", ".join("?" for _ in identity_keys)
                 self._conn.execute(
                     f"""
                     DELETE FROM events
-                    WHERE event_date != ?
-                       OR identity_key NOT IN ({placeholders})
+                    WHERE event_date = ?
+                      AND identity_key NOT IN ({placeholders})
                     """,
                     (day.isoformat(), *sorted(identity_keys)),
                 )
             else:
+                self._conn.execute(
+                    "DELETE FROM events WHERE event_date = ?", (day.isoformat(),)
+                )
+
+    def prune_days(self, keep: set[date]) -> None:
+        """Delete stored events outside the retention window ``keep``."""
+
+        with self._transaction():
+            if keep:
+                placeholders = ", ".join("?" for _ in keep)
+                self._conn.execute(
+                    f"DELETE FROM events WHERE event_date NOT IN ({placeholders})",
+                    tuple(day.isoformat() for day in sorted(keep)),
+                )
+                self._conn.execute(
+                    f"DELETE FROM run_metadata WHERE key LIKE 'change:%' "
+                    f"AND substr(key, 8, 10) NOT IN ({placeholders})",
+                    tuple(day.isoformat() for day in sorted(keep)),
+                )
+            else:
                 self._conn.execute("DELETE FROM events")
+                self._conn.execute("DELETE FROM run_metadata WHERE key LIKE 'change:%'")
+
+    def stored_days(self) -> list[date]:
+        """Return the sorted distinct dates that currently hold events."""
+
+        rows = self._conn.execute(
+            "SELECT DISTINCT event_date FROM events ORDER BY event_date ASC"
+        ).fetchall()
+        return [date.fromisoformat(str(row["event_date"])) for row in rows]
+
+    def set_metadata(self, key: str, value: str) -> None:
+        """Upsert one operational metadata value."""
+
+        with self._transaction():
+            self._conn.execute(
+                """
+                INSERT INTO run_metadata (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """,
+                (key, value),
+            )
+
+    def get_metadata(self, key: str) -> str | None:
+        """Read one operational metadata value, or ``None``."""
+
+        row = self._conn.execute(
+            "SELECT value FROM run_metadata WHERE key = ?", (key,)
+        ).fetchone()
+        return str(row["value"]) if row is not None else None
 
     def flush(self) -> None:
         """Lifecycle hook for durable repositories; SQLite commits eagerly."""
@@ -186,7 +270,9 @@ class SqliteRepository:
         score_components: list[ScoreComponent],
     ) -> None:
         """Upsert the event (by ``identity_key``) and replace its child rows."""
-        with self._conn:  # one transaction; commits on success, rolls back on error
+        with (
+            self._transaction()
+        ):  # one transaction; commits on success, rolls back on error
             self._conn.execute(
                 """
                 INSERT INTO events (
@@ -295,7 +381,7 @@ class SqliteRepository:
 
     def append_history(self, entry: EventHistory) -> None:
         """Append one history row (never replaced), recording a change."""
-        with self._conn:
+        with self._transaction():
             self._conn.execute(
                 """
                 INSERT INTO event_history (

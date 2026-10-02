@@ -209,10 +209,9 @@ class LiveAnchorLinkAdapter:
         local_end = ends_on.astimezone(self._timezone)
         if local_start.date() != window.target_date:
             return None
-        # Keep in-progress events on a TODAY feed; only events that have ended
-        # are stale. A single fetch-level clock keeps every page consistent.
-        if ends_on <= now:
-            return None
+        # A date-scoped feed contains the complete selected day's listings,
+        # including events that ended earlier that day. This also keeps an
+        # evening refresh from erasing the day's calendar and summary.
 
         event_url = f"{_CANONICAL_EVENT_BASE_URL}/event/{external_id}"
         description = _plain_text(item.get("description"))

@@ -13,7 +13,7 @@ Nothing here performs I/O; concrete fetchers/adapters live in sibling modules.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Protocol
 
 from ..config import Config, TargetWindow
@@ -24,8 +24,10 @@ from ..models import SourceRecord
 class Window:
     """The ingestion window an adapter should return events for (CFG-2).
 
-    The MVP focuses on a single target day (the next calendar day by default,
-    FR-1). ``target_date`` is the local date events must fall on.
+    Adapters work one local day at a time; ``target_date`` is the local date
+    events must fall on. A multi-day refresh runs the same adapters once per
+    date from :func:`window_dates` rather than widening this type, which keeps
+    strict per-day isolation in both ingestion and storage.
     """
 
     target_date: date
@@ -41,6 +43,18 @@ class Window:
         if config.target_window is TargetWindow.TODAY:
             return cls(target_date=today)
         return cls(target_date=today.fromordinal(today.toordinal() + 1))
+
+
+def window_dates(config: Config, *, today: date, days: int = 1) -> list[date]:
+    """Return ``days`` consecutive local dates starting at the configured window.
+
+    With the default ``TODAY`` window and ``days=7`` this is today through six
+    days out — the span the weekly schedule browses.
+    """
+
+    start = Window.from_config(config, today=today).target_date
+    count = max(1, days)
+    return [start + timedelta(days=offset) for offset in range(count)]
 
 
 @dataclass

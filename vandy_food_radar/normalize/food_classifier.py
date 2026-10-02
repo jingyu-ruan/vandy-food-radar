@@ -42,6 +42,7 @@ FOOD_CATEGORY_KEYWORDS: dict[FoodCategory, tuple[str, ...]] = {
         "bbq",
         "barbecue",
         "tacos",
+        "taco",
         "catered",
         "catering",
     ),

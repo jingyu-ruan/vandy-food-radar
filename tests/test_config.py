@@ -22,8 +22,8 @@ def test_defaults_run_offline_out_of_the_box() -> None:
     cfg = default_config()
     # CFG-1 timezone default.
     assert cfg.timezone == "America/Chicago"
-    # CFG-2 target window default.
-    assert cfg.target_window is TargetWindow.NEXT_DAY
+    # CFG-2: the product opens on the current local day.
+    assert cfg.target_window is TargetWindow.TODAY
     # Offline by default (no network in MVP / tests).
     assert cfg.offline is True
 
@@ -94,14 +94,14 @@ def test_env_overrides_and_invalid_values_fall_back() -> None:
         {
             "VFR_OFFLINE": "false",
             "VFR_TIMEZONE": "America/New_York",
-            "VFR_TARGET_WINDOW": "today",
+            "VFR_TARGET_WINDOW": "next_day",
             "VFR_LOCATION_PROVIDER": "null",
             "VFR_CALENDAR_PROVIDER": "google",
         }
     )
     assert cfg.offline is False
     assert cfg.timezone == "America/New_York"
-    assert cfg.target_window is TargetWindow.TODAY
+    assert cfg.target_window is TargetWindow.NEXT_DAY
     assert cfg.providers.location is LocationProviderKind.NULL
     assert cfg.providers.calendar is CalendarProviderKind.GOOGLE
 
@@ -109,7 +109,55 @@ def test_env_overrides_and_invalid_values_fall_back() -> None:
     bad = Config.from_env(
         {"VFR_TARGET_WINDOW": "nonsense", "VFR_REF_LAT": "not-a-number"}
     )
-    assert bad.target_window is TargetWindow.NEXT_DAY
+    assert bad.target_window is TargetWindow.TODAY
     assert math.isclose(
         bad.reference_location.lat, default_config().reference_location.lat
     )
+
+
+def test_participation_influence_is_small_and_capped() -> None:
+    cfg = default_config()
+    # At most a 5% convenience nudge, so the food-centric factors still decide.
+    assert cfg.ranking.participation_influence == 0.05
+    assert cfg.ranking.participation_unknown_value == 0.5
+
+
+def test_routing_is_disabled_without_a_key_and_bounded_when_enabled() -> None:
+    cfg = default_config()
+    assert cfg.routing.api_key == ""
+    assert cfg.routing.enabled is False
+    assert cfg.routing.max_waypoints >= 2
+    assert cfg.routing.timeout_seconds > 0
+
+    configured = Config.from_env(
+        {"VFR_ORS_API_KEY": "  test-key  ", "VFR_ORS_TIMEOUT_SECONDS": "3"}
+    )
+    assert configured.routing.api_key == "test-key"
+    assert configured.routing.enabled is True
+    assert math.isclose(configured.routing.timeout_seconds, 3.0)
+
+    # Out-of-range timeouts clamp instead of disabling routing.
+    clamped = Config.from_env(
+        {"VFR_ORS_API_KEY": "k", "VFR_ORS_TIMEOUT_SECONDS": "900"}
+    )
+    assert clamped.routing.timeout_seconds == 30.0
+
+
+def test_retention_and_itinerary_defaults_are_overridable() -> None:
+    cfg = default_config()
+    assert cfg.retention.past_days >= 0
+    assert cfg.retention.future_days >= 6  # at least a full browsable week
+    assert cfg.itinerary.default_dwell_minutes > 0
+
+    overridden = Config.from_env(
+        {
+            "VFR_RETENTION_PAST_DAYS": "2",
+            "VFR_RETENTION_FUTURE_DAYS": "9",
+            "VFR_ITINERARY_DWELL_MINUTES": "45",
+            "VFR_CAMPUS_PLACES_PATH": "/tmp/places.json",
+        }
+    )
+    assert overridden.retention.past_days == 2
+    assert overridden.retention.future_days == 9
+    assert overridden.itinerary.default_dwell_minutes == 45
+    assert overridden.places.path == "/tmp/places.json"

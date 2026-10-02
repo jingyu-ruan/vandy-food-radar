@@ -66,7 +66,31 @@ class Repository(Protocol):
         ...
 
     def replace_day(self, day: date, identity_keys: set[str]) -> None:
-        """Keep exactly ``identity_keys`` for the newly published target day."""
+        """Keep exactly ``identity_keys`` among the rows stored for ``day``.
+
+        Scoped strictly to ``day``: rows on every other date are untouched, so a
+        refresh of one day can never erase another day's published feed.
+        """
+        ...
+
+    def prune_days(self, keep: set[date]) -> None:
+        """Delete every stored event whose date is not in ``keep``.
+
+        Called once after a complete multi-day refresh to apply the bounded
+        rolling retention window.
+        """
+        ...
+
+    def stored_days(self) -> list[date]:
+        """Return every date that currently has at least one stored event."""
+        ...
+
+    def set_metadata(self, key: str, value: str) -> None:
+        """Store one small operational value (e.g. last successful refresh)."""
+        ...
+
+    def get_metadata(self, key: str) -> str | None:
+        """Read a value written by :meth:`set_metadata`, or ``None``."""
         ...
 
     def flush(self) -> None:

@@ -1,69 +1,161 @@
-<li class="event-card {{ card.state_class }}">
-  <div class="card-head">
-    <span class="rank">{{ rank }}</span>
-    <h2 class="title">{{ card.event.title }}</h2>
-    <span class="badge {{ card.state_class }}">{{ card.state_label }}</span>
-    {% if card.change_label %}
-      <span class="change-badge change-{{ card.change_kind.value }}">
-        {{ card.change_label }}
-      </span>
-    {% endif %}
-    {% if card.event.score_total is not none %}
-      <span class="score" title="ranking score">
-        {{ '%.2f'|format(card.event.score_total) }}
-      </span>
-    {% endif %}
-  </div>
+{#
+  One event card. Dense but quiet: fine border, 8px radius, no shadow.
+  Only material warnings are rendered — routine partial-verification status is
+  intentionally absent (see viewmodel._BADGE_STATES).
+#}
+<article
+  class="card {{ card.state_class }}"
+  data-identity-key="{{ card.event.identity_key }}"
+  data-date="{{ card.event.event_date.isoformat() }}"
+  {% if card.place %}
+    data-lat="{{ card.place.lat }}"
+    data-lng="{{ card.place.lng }}"
+  {% endif %}
+>
+  <header class="card-top">
+    <h3 class="card-title">{{ card.event.title }}</h3>
+    <span
+      class="stars"
+      role="img"
+      aria-label="Recommendation {{ card.stars }} of 5"
+      title="Recommendation {{ card.stars }} of 5"
+    >{% for i in range(5) %}<i class="star {{ 'on' if i < card.stars else 'off' }}" aria-hidden="true"></i>{% endfor %}</span>
+  </header>
 
-  <dl class="facts">
-    <div><dt>Time</dt><dd>{{ card.time_range }}</dd></div>
-    <div><dt>Location</dt>
-      <dd>{{ card.event.location or "Location TBD" }}</dd></div>
-    <div class="food-fact"><dt>Food</dt>
+  <p class="card-when">
+    <span class="when-time">{{ card.time_label }}</span>
+    {% if card.badge_label %}
+      <span class="tag tag-alert">{{ card.badge_label }}</span>
+    {% endif %}
+    {% if card.change_label %}
+      <span class="tag tag-change">{{ card.change_label }}</span>
+    {% endif %}
+  </p>
+
+  <dl class="card-facts">
+    <div class="fact">
+      <dt>Food</dt>
       <dd>
-        <span class="chip">{{ card.food_confirmed_label }}</span>
-        {{ card.event.food_description or "No description provided" }}
+        <span class="chip">{{ card.food_label }}</span>
+        <span class="chip chip-quiet">{{ card.food_category_label }}</span>
+        {% if card.food_description %}
+          <span class="fact-text">{{ card.food_description }}</span>
+        {% endif %}
       </dd>
     </div>
-    <div><dt>RSVP</dt><dd>{{ card.rsvp_label }}</dd></div>
-    <div><dt>Walking</dt><dd>{{ card.walking_label }}</dd></div>
+    <div class="fact">
+      <dt>Place</dt>
+      <dd>
+        {% if card.place %}
+          <span class="fact-strong">{{ card.place.name }}</span>
+          {% if card.place.detail %}
+            <span class="fact-text">{{ card.place.detail }}</span>
+          {% endif %}
+        {% elif card.location_listed %}
+          <span class="fact-strong">{{ card.location_listed }}</span>
+          <span class="fact-muted">not matched to a campus building</span>
+        {% else %}
+          <span class="fact-muted">Not listed</span>
+        {% endif %}
+      </dd>
+    </div>
+    {% if card.place and card.location_listed %}
+      <div class="fact">
+        <dt>Listed as</dt>
+        <dd><span class="fact-text">{{ card.location_listed }}</span></dd>
+      </div>
+    {% endif %}
+    <div class="fact">
+      <dt>Walk</dt>
+      <dd><span class="fact-text" data-role="walking">{{ card.walking_label }}</span></dd>
+    </div>
+    {% if card.event.rsvp_required is not none or card.rsvp_url %}<div class="fact">
+      <dt>RSVP</dt>
+      <dd>
+        {% if card.rsvp_url %}
+          <a class="fact-link" href="{{ card.rsvp_url }}" rel="noopener noreferrer" target="_blank">{{ card.rsvp_label }}</a>
+        {% else %}
+          <span class="fact-text">{{ card.rsvp_label }}</span>
+        {% endif %}
+      </dd>
+    </div>{% endif %}
+    <div class="fact">
+      <dt>Host</dt>
+      <dd>
+        <span class="fact-text">{{ card.organizer or "Not listed" }}</span>
+      </dd>
+    </div>
+    <div class="fact fact-wide">
+      <dt>Participation</dt>
+      <dd>
+        <span class="fact-text">{{ card.participation_note }}</span>
+      </dd>
+    </div>
   </dl>
 
-  <p class="explanation">{{ card.explanation }}</p>
-
-  {% if card.event.verification_state.value != "cancelled" %}
-    <form
-      class="add-calendar"
-      method="post"
-      action="{{ url_for('calendar_add', identity_key=card.event.identity_key) }}"
-    >
-      <button type="submit" class="add-calendar-btn">Add to Calendar</button>
-    </form>
-  {% endif %}
-
-  {% if card.source_links %}
-    <p class="sources">
-      Sources:
-      {% for label, url in card.source_links %}
-        <a href="{{ url }}" rel="noreferrer">{{ label }}</a>{% if not loop.last %} · {% endif %}
+  {% if card.warnings %}
+    <ul class="card-warnings">
+      {% for warning in card.warnings %}
+        <li>{{ warning }}</li>
       {% endfor %}
-    </p>
+    </ul>
   {% endif %}
 
-  {% if card.conflicts %}
-    <details class="conflicts">
-      <summary>{{ card.conflicts|length }} conflict(s) detected</summary>
-      <ul>
+  <footer class="card-actions">
+    <button
+      type="button"
+      class="action action-save"
+      data-action="toggle-save"
+      aria-pressed="false"
+    >Save</button>
+    {% if not card.cancelled %}
+      <details class="calendar-menu"><summary class="action">Calendar</summary><div class="calendar-options">
+      {% if card.google_calendar_url %}
+        <a
+          class="action"
+          href="{{ card.google_calendar_url }}"
+          rel="noopener noreferrer"
+          target="_blank"
+        >Google Calendar</a>
+      {% endif %}
+      {% if card.ics_url %}
+        <a class="action" href="{{ card.ics_url }}">Download .ics</a>
+      {% endif %}
+      </div></details>
+    {% endif %}
+    {% if card.event_url %}
+      <a
+        class="action"
+        href="{{ card.event_url }}"
+        rel="noopener noreferrer"
+        target="_blank"
+      >Source</a>
+    {% endif %}
+    <button type="button" class="action" data-action="toggle-details">Details</button>
+  </footer>
+
+  <div class="card-details" hidden>
+    {% if card.description %}<p class="detail-description">{{ card.description }}</p>{% endif %}
+    <p class="detail-why">{{ card.explanation }}</p>
+    {% if card.source_links %}
+      <p class="detail-sources">
+        {% for label, url in card.source_links %}
+          <a href="{{ url }}" rel="noopener noreferrer" target="_blank">{{ label }}</a>{% if not loop.last %}<span class="sep">·</span>{% endif %}
+        {% endfor %}
+      </p>
+    {% endif %}
+    {% if card.conflicts %}
+      <ul class="detail-conflicts">
         {% for conflict in card.conflicts %}
           <li>
-            <strong>{{ conflict.field_name }}</strong>:
-            {{ conflict.values|join('; ') }}
+            <strong>{{ conflict.field_name }}</strong>
+            <span>{{ conflict.values | join('; ') }}</span>
             {% if conflict.resolution %}
-              <em>({{ conflict.resolution }})</em>
+              <em>{{ conflict.resolution }}</em>
             {% endif %}
           </li>
         {% endfor %}
       </ul>
-    </details>
-  {% endif %}
-</li>
+    {% endif %}
+  </div>
+</article>

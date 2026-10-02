@@ -33,6 +33,8 @@ def run_report_to_json(
     counts = tally_changes(changes if changes is not None else {})
     payload = {
         "target_date": report.target_date.isoformat(),
+        "days": [day.isoformat() for day in (report.days or [report.target_date])],
+        "retained_days": [day.isoformat() for day in report.retained_days],
         "fetched": report.fetched,
         "merged": report.merged,
         "conflicts": report.conflicts,

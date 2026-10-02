@@ -34,6 +34,13 @@ from ..models import (
     ScoreFactor,
     VerificationState,
 )
+from ..participation import (
+    ParticipationAssessment,
+    ParticipationLevel,
+    assess_participation,
+    participation_factor_value,
+    participation_input_for,
+)
 from ..providers.location import (
     LocationProvider,
     WalkingResult,
@@ -106,6 +113,7 @@ def score_event(
     *,
     config: Config,
     location_provider: LocationProvider,
+    participation: ParticipationAssessment | None = None,
 ) -> ScoredEvent:
     """Score one event into a :class:`ScoredEvent` (design.md §6.1).
 
@@ -113,10 +121,24 @@ def score_event(
     :class:`ScoreComponent` with an explanatory note, and sets
     ``event.score_total`` to the weighted sum. The event is not mutated apart
     from ``score_total``.
+
+    The design weights in ``config.ranking.weights`` keep their documented
+    values and are scaled by ``1 - participation_influence``; the remaining
+    share goes to the participation-convenience factor. The total therefore
+    still lands in ``[0, 1]`` and the participation inference is capped at the
+    configured influence (5% by default). ``participation`` is derived from the
+    event's own listed text when not supplied.
     """
 
     weights = config.ranking.weights
     walking = _walking_result(event, config=config, location_provider=location_provider)
+    assessment = (
+        participation
+        if participation is not None
+        else assess_participation(participation_input_for(event))
+    )
+    influence = min(max(config.ranking.participation_influence, 0.0), 1.0)
+    design_scale = 1.0 - influence
 
     raw_values: dict[ScoreFactor, float] = {
         ScoreFactor.FOOD_CONFIRMED: _food_confirmed_value(event),
@@ -128,6 +150,9 @@ def score_event(
             walking, unknown_value=config.ranking.walking_unknown_value
         ),
         ScoreFactor.CONFIDENCE: _confidence_value(event),
+        ScoreFactor.PARTICIPATION: participation_factor_value(
+            assessment, unknown_value=config.ranking.participation_unknown_value
+        ),
     }
     notes: dict[ScoreFactor, str] = {
         ScoreFactor.FOOD_CONFIRMED: _food_confirmed_note(event),
@@ -137,12 +162,16 @@ def score_event(
         ScoreFactor.TIMING: _timing_note(event),
         ScoreFactor.WALKING: _walking_note(walking),
         ScoreFactor.CONFIDENCE: _confidence_note(event),
+        ScoreFactor.PARTICIPATION: _participation_note(assessment),
     }
 
     components: list[ScoreComponent] = []
     total = 0.0
     for factor in ScoreFactor:
-        weight = weights.get(factor, 0.0)
+        if factor is ScoreFactor.PARTICIPATION:
+            weight = influence
+        else:
+            weight = round(weights.get(factor, 0.0) * design_scale, 6)
         raw = raw_values[factor]
         contribution = round(weight * raw, 6)
         total += contribution
@@ -160,6 +189,20 @@ def score_event(
 
     event.score_total = round(total, 6)
     return ScoredEvent(event=event, components=components)
+
+
+def recommendation_stars(score_total: float | None) -> int:
+    """Map a total score to the 0-5 recommendation stars shown on a card.
+
+    The scale is fixed and linear over ``[0, 1]`` so two events with the same
+    score always display the same number of stars, and the stars can be read
+    back to a score. ``None`` (not yet scored) shows zero stars.
+    """
+
+    if score_total is None:
+        return 0
+    clamped = min(max(score_total, 0.0), 1.0)
+    return int(round(clamped * 5))
 
 
 def order_events(scored: list[ScoredEvent]) -> list[ScoredEvent]:
@@ -311,6 +354,16 @@ def _confidence_note(event: Event) -> str:
     return f"verified with {round(event.confidence * 100)}% confidence"
 
 
+def _participation_note(assessment: ParticipationAssessment) -> str:
+    """Short factor note; the card shows the fuller assessment and warnings."""
+
+    if assessment.level is ParticipationLevel.OPEN:
+        return "listed as open to attend"
+    if assessment.level is ParticipationLevel.RESTRICTED:
+        return "the listing states an eligibility limit"
+    return "the listing does not say who may attend"
+
+
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
@@ -350,5 +403,6 @@ def _time_ordinal(value: time | None) -> float:
 __all__ = [
     "ScoredEvent",
     "order_events",
+    "recommendation_stars",
     "score_event",
 ]

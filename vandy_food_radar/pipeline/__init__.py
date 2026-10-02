@@ -18,19 +18,34 @@ from .change_detect import (
     detect_changes,
     tally_changes,
 )
-from .orchestrator import RunReport, run, seed_demo
+from .orchestrator import (
+    LAST_SUCCESS_DAYS_KEY,
+    LAST_SUCCESS_KEY,
+    REFRESH_DAY_CHOICES,
+    RunReport,
+    retention_window,
+    run,
+    run_days,
+    seed_demo,
+)
 from .runlog import log_run_report, run_report_to_json
-from .snapshot_run import run_with_snapshot
+from .snapshot_run import run_days_with_snapshot, run_with_snapshot
 
 __all__ = [
+    "LAST_SUCCESS_DAYS_KEY",
+    "LAST_SUCCESS_KEY",
+    "REFRESH_DAY_CHOICES",
     "RunReport",
+    "retention_window",
     "run",
+    "run_days",
     "seed_demo",
     "ChangeKind",
     "ChangeFlag",
     "ChangeCounts",
     "detect_changes",
     "tally_changes",
+    "run_days_with_snapshot",
     "run_with_snapshot",
     "run_report_to_json",
     "log_run_report",
