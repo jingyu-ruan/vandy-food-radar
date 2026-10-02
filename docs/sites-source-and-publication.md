@@ -31,6 +31,19 @@ The existing GitHub workflow refreshes data on the published application and
 verifies each date's durable readback. Runtime secrets and production D1 data live
 separately from both source repositories.
 
+## Workspace publication on October 2, 2026
+
+The GitHub implementation commit is
+`d125b03d4466dd46da4b930c2738306ea9121192`. It was pushed before the Sites release.
+Sites source commit `1b96f892efdac72efd6c6d2859a7326b0d0ee9cd` was packaged locally
+and deployed successfully under owner-private access. Both source trees equal
+`709dd281b1da6de5e4d69c3cf8d49cb0f314f4e5`.
+
+- Saved version: `appgprj_6abda08653248191bd4377356f3e0a33~appgver_5507dd24f75c81919f0bba676f821976`
+- Deployment: `appgdep_6ac03ee348a08191946cb31ca1d45ed3`
+- Validation: 327 Python tests, 106 Sites tests, browser itinerary checks,
+  TypeScript checking, lint with zero errors, and a successful Sites build.
+
 ## Previous publication baseline
 
 The original migration published version 1 from Sites source commit
