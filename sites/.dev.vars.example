@@ -1,0 +1,17 @@
+# Local Worker variables. Copy to `.dev.vars`, which is never committed.
+# No value here is a secret; put real secrets only in `.dev.vars` or in the
+# hosted environment.
+
+# The deployment is owner-private, so dispatch gates every request and
+# POST /api/refresh may rely on that boundary. Set to false for a public Site,
+# and then VFR_REFRESH_TOKEN becomes mandatory.
+VFR_OWNER_PRIVATE=true
+
+# Bearer token required by /cron/refresh, and by /api/refresh whenever the Site
+# is not owner-private. Leave empty locally.
+VFR_REFRESH_TOKEN=
+
+# Optional overrides, shown with their defaults.
+# VFR_TIMEZONE=America/Chicago
+# VFR_TARGET_WINDOW=next_day
+# VFR_STALE_AFTER_HOURS=2

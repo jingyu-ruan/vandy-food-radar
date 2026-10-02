@@ -1,38 +1,13 @@
-name: Refresh live AnchorLink events
-
-# Vercel Hobby cron is limited to one run per day, so GitHub Actions supplies
-# the real schedule. Two cadences cover two different needs:
-#
-#   * every 2 hours  -> days=2  (today and tomorrow; the dates people act on)
-#   * every 6 hours  -> days=7  (the whole week the schedule view browses)
-#
-# The endpoint publishes a multi-day batch in one durable write, so a wider
-# span is never partially applied. Both cadences share a concurrency group, so
-# a 2-day run and a 7-day run can never overlap.
+name: Refresh live AnchorLink events on Sites
 
 on:
   schedule:
-    # GitHub Actions cron is UTC. Off-the-hour minutes avoid the busiest slots,
-    # and the two expressions never land on the same minute.
-    - cron: "17 */2 * * *"
-    - cron: "47 */6 * * *"
+    # GitHub Actions cron is UTC; hourly minute 17 preserves the existing cadence.
+    - cron: "17 * * * *"
   workflow_dispatch:
-    inputs:
-      days:
-        description: "Day span to refresh"
-        required: false
-        default: "2"
-        type: choice
-        options:
-          - "2"
-          - "7"
 
-# The job only calls an external HTTPS endpoint and needs no GITHUB_TOKEN scope.
 permissions: {}
 
-# One group for every cadence and every manual run: refreshes are serialized,
-# never cancelled mid-flight. The server also refuses a concurrent refresh with
-# HTTP 409, so an overlap would be rejected rather than interleaved.
 concurrency:
   group: vandy-food-radar-live-refresh
   cancel-in-progress: false
@@ -40,59 +15,72 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - name: Resolve the day span for this trigger
-        id: span
+      - name: Refresh Sites and verify the persisted listing
         env:
-          SCHEDULE: ${{ github.event.schedule }}
-          REQUESTED_DAYS: ${{ inputs.days }}
+          VFR_SITES_URL: https://vandy-food-radar.rjy020128.chatgpt.site
+          VFR_SITES_SERVICE_TOKEN: ${{ secrets.VFR_SITES_SERVICE_TOKEN }}
         run: |
-          set -euo pipefail
-          if [ -n "${REQUESTED_DAYS:-}" ]; then
-            days="$REQUESTED_DAYS"
-          elif [ "${SCHEDULE:-}" = "47 */6 * * *" ]; then
-            days=7
-          else
-            days=2
-          fi
-          # Only the server-supported spans may be requested.
-          case "$days" in
-            2|7) ;;
-            *) echo "unsupported day span: $days" >&2; exit 1 ;;
-          esac
-          echo "days=$days" >> "$GITHUB_OUTPUT"
-          echo "Refreshing a $days-day span."
+          python3 - <<'PY'
+          import datetime
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          from zoneinfo import ZoneInfo
 
-      - name: Call protected Vandy Food Radar refresh
-        env:
-          VFR_REFRESH_URL: ${{ secrets.VFR_REFRESH_URL }}
-          VFR_REFRESH_TOKEN: ${{ secrets.VFR_REFRESH_TOKEN }}
-          DAYS: ${{ steps.span.outputs.days }}
-        run: |
-          set -euo pipefail
-          test -n "$VFR_REFRESH_URL"
-          test -n "$VFR_REFRESH_TOKEN"
-          # The token is only ever sent over TLS, so refuse a non-HTTPS target
-          # before any request is made.
-          case "$VFR_REFRESH_URL" in
-            https://*) ;;
-            *) echo "VFR_REFRESH_URL must be an https:// URL" >&2; exit 1 ;;
-          esac
-          # The day span is appended here, so the secret must be a bare URL.
-          case "$VFR_REFRESH_URL" in
-            *\?*) echo "VFR_REFRESH_URL must not contain a query string" >&2; exit 1 ;;
-          esac
-          curl --fail-with-body \
-            --silent \
-            --show-error \
-            --location \
-            --max-redirs 3 \
-            --proto '=https' \
-            --proto-redir '=https' \
-            --retry 3 \
-            --retry-all-errors \
-            --max-time 180 \
-            --request POST \
-            --header "Authorization: Bearer $VFR_REFRESH_TOKEN" \
-            "${VFR_REFRESH_URL}?days=${DAYS}"
+          base = os.environ['VFR_SITES_URL'].rstrip('/')
+          token = os.environ['VFR_SITES_SERVICE_TOKEN']
+          if base != 'https://vandy-food-radar.rjy020128.chatgpt.site' or not token:
+              raise SystemExit('Sites URL or service credential is missing or invalid')
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          client = urllib.request.build_opener(NoRedirect())
+
+          def request(path, method):
+              req = urllib.request.Request(
+                  base + path, data=b'' if method == 'POST' else None,
+                  method=method, headers={
+                      'OAI-Sites-Authorization': 'Bearer ' + token,
+                      'Accept': 'application/json',
+                  })
+              for attempt in range(3):
+                  try:
+                      with client.open(req, timeout=60) as response:
+                          if response.status != 200:
+                              raise SystemExit('Unexpected Sites HTTP status')
+                          return json.load(response)
+                  except urllib.error.HTTPError as exc:
+                      if exc.code in (409, 429, 500, 502, 503, 504) and attempt < 2:
+                          retry_after = exc.headers.get('Retry-After', '15')
+                          delay = min(30, max(1, int(retry_after))) if retry_after.isdigit() else 15
+                          time.sleep(delay)
+                          continue
+                      raise SystemExit(f'Sites {method} {path} returned HTTP {exc.code}')
+                  except (urllib.error.URLError, TimeoutError):
+                      if attempt < 2:
+                          time.sleep(5)
+                          continue
+                      raise SystemExit('Sites request failed after bounded retries')
+
+          result = request('/api/refresh', 'POST')
+          feed = request('/api/events', 'GET')
+          tomorrow = (datetime.datetime.now(ZoneInfo('America/Chicago')).date()
+                      + datetime.timedelta(days=1)).isoformat()
+          if not (result.get('ok') is True and feed.get('state') == 'ok'
+                  and result.get('targetDate') == feed.get('targetDate') == tomorrow
+                  and result.get('timezone') == feed.get('timezone') == 'America/Chicago'
+                  and feed.get('publishedAt') and feed.get('stale') is False
+                  and result.get('published') == feed.get('eventCount') == len(feed.get('events', []))):
+              raise SystemExit('Sites publication readback failed validation')
+          print(json.dumps({
+              'targetDate': feed['targetDate'], 'events': feed['eventCount'],
+              'publishedAt': feed['publishedAt'], 'changes': result.get('changes'),
+          }))
+          PY
