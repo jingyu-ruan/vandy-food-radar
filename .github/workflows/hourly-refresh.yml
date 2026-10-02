@@ -113,7 +113,9 @@ jobs:
                   and result.get('days') == expected
                   and result.get('timezone') == 'America/Chicago'
                   and result.get('publishedAt')):
-              raise SystemExit('Sites publication readback failed validation')
+              raise SystemExit('Sites publication readback failed validation: ' + json.dumps({
+                  key: result.get(key) for key in ('ok', 'targetDate', 'days', 'timezone', 'publishedAt', 'published')
+              }))
           total = 0
           per_day = {row['targetDate']: row for row in result.get('perDay', [])}
           for date in expected:
