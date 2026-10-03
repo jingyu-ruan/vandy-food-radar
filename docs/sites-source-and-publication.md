@@ -164,3 +164,38 @@ row. Desktop columns use a 40/60 split, the first day has no top separator,
 and the date input and outer display switch both measure 44 pixels tall.
 Desktop selection preserves the browsing date; mobile selection loads the
 event's date before showing the Map view. Location tooltips wrap long names.
+
+## Responsive settings, rating, and map browsing on October 3, 2026
+
+GitHub implementation commit `bc6c58606c37de8d6667905c53edb931e9f759b8`
+was pushed before Sites publication. Sites source commit
+`ff348e3e58edc7d46a034fcc77d05bf3430ed66e` was built, packaged, and deployed
+successfully under the existing owner-private audience. Both application source
+trees equal `643a883061f3764f0ca51168a3557194479a5e86`.
+
+- Saved version: `appgprj_6abda08653248191bd4377356f3e0a33~appgver_b52258e8b3908191ba10ff3068b86da1`
+- Deployment: `appgdep_6ac0930dde90819193e27f3154f6ae4b`
+- Validation: 125 pipeline and browser-module tests, TypeScript checking,
+  lint with zero errors, JavaScript syntax checks, and successful production
+  packaging. Local production and development browser checks covered 1366,
+  390, and 320 pixels, light/system and dark settings, fixed dialog headers,
+  independent list scrolling, selection borders, keyboard origin search,
+  mobile cross-date map selection, rating popup bounds, footer controls,
+  page and segmented transitions, preserved list focus, and walking URL endpoints.
+
+The header origin opens an independent campus picker. Long names truncate to one
+line. Settings scroll inside a fixed header and use mobile form type of at least
+16 pixels; closing restores focus and page position. The intermittent iPhone
+zoom report was addressed through input sizing and focus/scroll handling, but
+was not reproduced on a physical iPhone during this release.
+
+Day event titles link to AnchorLink. Fact labels use matching type sizes and
+functional icons; footer actions remain in one row at 320 pixels. Rating exposes
+stored component weights, normalized values, contributions, and notes without
+recalculating the published score from current preferences.
+
+The desktop Map list sits beneath its endpoint controls. Mobile controls appear
+in normal flow above the map. Week lists scroll independently of their map, and
+their markers use the same today-and-future date range. Coordinate changes pan
+the persistent map; label updates and save actions retain its camera. The walking
+action reads Open in Google Map. The page title and slogan remain pending review.
