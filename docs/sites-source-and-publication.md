@@ -118,3 +118,25 @@ camera across tab switches. The first loaded week is framed once.
 The daily brief remains deterministic. Research and a proposed once-per-local-day
 D1 cache are recorded in `docs/daily-brief-model-options.md`. No model billing,
 inference credential, or new scheduled job was enabled in this release.
+
+## Campus map colors on October 2, 2026
+
+GitHub implementation commit `78b0e00` was pushed before Sites publication.
+Sites source commit `28864c2f75c5c9862f037af994390d8ff886d173` was built,
+packaged, and deployed successfully under the existing owner-private access.
+Both application source trees equal `fab86c3548dcaf60d3a4ce3b1029da388e0194f7`.
+
+- Saved version: `appgprj_6abda08653248191bd4377356f3e0a33~appgver_fd1190497a3481918982c8c09e072bcd`
+- Deployment: `appgdep_6ac080980e6c8191b2869892319f355b`
+- Validation: 122 Sites pipeline and browser-module tests, TypeScript checking,
+  JavaScript syntax checks, a successful production build, and local visual
+  checks of map loading, activity selection, gold saved markers, attribution,
+  and 44-pixel zoom controls. Targeted runtime checks covered vector-asset,
+  WebGL, and map-request failures falling back to standard OSM tiles.
+
+The map uses an OpenFreeMap Liberty vector basemap with light neutral buildings,
+natural green parks, and fewer low-priority labels. Leaflet retains selection,
+markers, and controls; MapLibre renders the basemap. Blue activity markers, gold
+saved markers, and a selection ring remain centered on their coordinates.
+The previous grayscale filters were removed. CARTO was evaluated but required
+an API key and returned placeholder tiles, so it was excluded from the release.
