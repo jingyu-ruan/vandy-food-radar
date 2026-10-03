@@ -2,15 +2,19 @@ import { eventTime } from './preferences.js';
 /**
  * Weekly schedule.
  *
- * The schedule browses the week containing the selected date and shares one
- * map markers retain location selection. Event rows open their AnchorLink
- * source; a contextual menu saves events and opens walking directions.
+ * Event rows are semantic buttons that select the event and pan the map.
+ * A filled gold star beside the ellipsis unsaves saved events; unsaved events
+ * offer Save in the contextual menu. Source links and walking directions live
+ * inside the ellipsis menu.
  */
 
 import { el, one, replace } from './dom.js';
 import { isSaved, state, toggleSaved } from './state.js';
 import { icon } from './icons.js';
 import { destinationFor, googleWalkingUrl } from './directions.js';
+
+/** @type {((date:string, key:string)=>void)|null} */
+let _onSelect = null;
 
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const DAY_LABEL = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
@@ -22,50 +26,136 @@ function dayLabel(isoDate) {
 }
 
 function agendaRow(event) {
+  const saved = isSaved(event.date, event.identity_key);
+  const selected = state.selectedKey === event.identity_key;
+  const hasPlace = Boolean(event.place);
+
+  // --- primary row: a button that selects the event ---
   const classes = ['agenda-item'];
   if (event.cancelled) classes.push('is-cancelled');
-  if (isSaved(event.date, event.identity_key)) classes.push('is-saved');
+  if (saved) classes.push('is-saved');
+  if (selected) classes.push('is-selected');
 
-  const row = el(
-    event.event_url ? 'a' : 'div',
-    {
+  const row = el('button', {
+    type: 'button',
+    class: classes.join(' '),
+    dataset: { identityKey: event.identity_key, date: event.date },
+    'aria-pressed': String(selected),
+  }, [
+    el('span', { class: 'agenda-time', text: eventTime(event) }),
+    el('span', { class: 'agenda-title', text: event.title }),
+  ]);
+
+  // Inline feedback for unresolved locations
+  if (selected && !hasPlace) {
+    row.append(el('span', { class: 'agenda-location-note', text: event.location_listed
+      ? `${event.location_listed}. Location not mapped` : 'Location not listed' }));
+  }
+
+  // Selection handler — wired through the module-level callback
+  row.addEventListener('click', (e) => {
+    // Never trigger selection from star or menu clicks that bubble
+    if (e.target.closest('.agenda-star') || e.target.closest('.agenda-menu')) return;
+    if (_onSelect) _onSelect(event.date, event.identity_key);
+    if (state.view === 'schedule') findRow(event.date, event.identity_key)?.querySelector('.agenda-item')?.focus({preventScroll:true});
+  });
+
+  // Keyboard: Enter/Space are native for buttons. We only add Escape to
+  // deselect.
+  row.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state.selectedKey === event.identity_key) {
+      if (_onSelect) _onSelect(event.date, null);
+      e.preventDefault();
+    }
+  });
+
+  // --- gold star for saved events (unsaves on click) ---
+  let star = null;
+  if (saved) {
+    star = el('button', {
+      type: 'button',
+      class: 'icon-button agenda-star',
+      'aria-label': `Unsave ${event.title}`,
+      title: `Unsave ${event.title}`,
+    }, [icon('star')]);
+    star.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSaved(event.date, event.identity_key);
+      // Focus retention: after rerender, focus the star or summary of the same row
+      requestAnimationFrame(() => {
+        const replacement = findRow(event.date, event.identity_key);
+        const target = replacement?.querySelector('.agenda-star') || replacement?.querySelector('summary');
+        target?.focus({ preventScroll: true });
+      });
+    });
+  }
+
+  // --- ellipsis menu ---
+  const menu = el('details', { class: 'agenda-menu', 'data-action-menu': '' }, [
+    el('summary', {
+      class: 'icon-button',
+      'aria-label': `Actions for ${event.title}`,
+      title: `Actions for ${event.title}`,
+    }, [icon('ellipsis')]),
+  ]);
+  const options = el('div', { class: 'agenda-menu-options' });
+
+  // Save appears only for unsaved events
+  if (!saved) {
+    const save = el('button', {
+      type: 'button', class: 'action agenda-save',
+      'aria-label': `Save ${event.title}`,
+    }, [icon('star'), el('span', { text: 'Save event' })]);
+    save.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.open = false;
+      toggleSaved(event.date, event.identity_key);
+      requestAnimationFrame(() => {
+        const replacement = findRow(event.date, event.identity_key);
+        const target = replacement?.querySelector('.agenda-star') || replacement?.querySelector('summary');
+        target?.focus({ preventScroll: true });
+      });
+    });
+    options.append(save);
+  }
+
+  // Source link (moved from the primary row)
+  if (event.event_url) {
+    const source = el('a', {
+      class: 'action agenda-source',
       href: event.event_url,
       target: '_blank',
       rel: 'noopener noreferrer',
-      class: classes.join(' '),
-      dataset: { identityKey: event.identity_key, date: event.date },
-    },
-    [
-      el('span', { class: 'agenda-time', text: eventTime(event) }),
-      el('span', { class: 'agenda-title', text: event.title }),
-    ],
-  );
-  const saved = isSaved(event.date, event.identity_key);
-  if (saved) row.append(el('span', {class:'agenda-saved', text:'Saved'}));
-  const save = el('button', {
-    type:'button', class:'action agenda-save',
-    'aria-label':`${saved ? 'Unsave' : 'Save'} ${event.title}`,
-    'aria-pressed':String(saved),
-  }, [icon('star'), el('span', {text:saved ? 'Unsave event' : 'Save event'})]);
-  const menu = el('details', {class:'agenda-menu', 'data-action-menu':''}, [
-    el('summary', {class:'icon-button', 'aria-label':`Actions for ${event.title}`, title:`Actions for ${event.title}`}, [icon('ellipsis')]),
-  ]);
-  save.addEventListener('click', () => {
-    menu.open = false;
-    toggleSaved(event.date, event.identity_key);
-    // Saving rebuilds the week. Keep keyboard focus on this row's menu.
-    const replacement = Array.from(document.querySelectorAll('.agenda-row')).find(item => item.querySelector('.agenda-item')?.dataset.identityKey === event.identity_key && item.querySelector('.agenda-item')?.dataset.date === event.date);
-    replacement?.querySelector('summary')?.focus({preventScroll:true});
-  });
-  const options = el('div', {class:'agenda-menu-options'}, [save]);
+    }, [icon('external-link'), el('span', { text: 'Source on AnchorLink' })]);
+    source.addEventListener('click', (e) => { e.stopPropagation(); menu.open = false; });
+    options.append(source);
+  }
+
+  // Walking directions
   const url = googleWalkingUrl(state.origin, destinationFor(event));
   if (url) {
-    const directions = el('a', {class:'action agenda-directions', href:url, target:'_blank', rel:'noopener noreferrer'}, [icon('directions'), el('span', {text:'Walking directions'})]);
-    directions.addEventListener('click', () => {menu.open = false;});
+    const directions = el('a', {
+      class: 'action agenda-directions',
+      href: url, target: '_blank', rel: 'noopener noreferrer',
+    }, [icon('directions'), el('span', { text: 'Walking directions' })]);
+    directions.addEventListener('click', (e) => { e.stopPropagation(); menu.open = false; });
     options.append(directions);
   }
+
   menu.append(options);
-  return el('div', {class:'agenda-row'}, [row, menu]);
+
+  const rowContainer = el('div', { class: `agenda-row${selected ? ' is-selected' : ''}` });
+  rowContainer.append(row);
+  if (star) rowContainer.append(star);
+  rowContainer.append(menu);
+  return rowContainer;
+}
+
+function findRow(date, identityKey) {
+  return Array.from(document.querySelectorAll('.agenda-row')).find(
+    r => r.querySelector('.agenda-item')?.dataset.identityKey === identityKey &&
+         r.querySelector('.agenda-item')?.dataset.date === date
+  );
 }
 
 /** Render the agenda for the loaded week. */
@@ -92,24 +182,30 @@ export function renderAgenda(root) {
     return;
   }
 
-  const days = futureWeekDays(state.week.days, state.config.today).map((day) => {
+  const days = futureWeekDays(state.week.days, state.config.today).map((day, dayIndex) => {
     const dateClasses = ['agenda-date'];
     if (state.config && day.date === state.config.today) dateClasses.push('is-today');
     const items = el('div', { class: 'agenda-items' });
     if (!day.events.length) {
       items.append(el('p', { class: 'agenda-empty', text: 'No listings' }));
     } else {
-      for (const event of [...day.events].sort((a,b)=>(a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title))) {
+      for (const event of [...day.events].sort((a, b) => (a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title))) {
         items.append(agendaRow(event));
       }
     }
-    return el('section', { class: 'agenda-day' }, [
+    const section = el('section', { class: `agenda-day${dayIndex === 0 ? ' is-first' : ''}` }, [
       el('h3', { class: dateClasses.join(' '), text: dayLabel(day.date) }),
       items,
     ]);
+    return section;
   });
 
-  replace(container, days.length ? days : el('p', {class:'agenda-empty', text:'This week has ended. Choose today or a future date.'}));
+  replace(container, days.length ? days : el('p', { class: 'agenda-empty', text: 'This week has ended. Choose today or a future date.' }));
+}
+
+/** Set the selection callback used by agenda rows. */
+export function setAgendaSelectHandler(handler) {
+  _onSelect = handler;
 }
 
 /** Native disclosure menus work with pointer, keyboard and touch input. */
@@ -119,7 +215,7 @@ export function bindAgendaMenus(root) {
     for (const menu of root.querySelectorAll('[data-action-menu][open]')) {
       if (menu !== current) menu.open = false;
     }
-  });
+  }, true);
   root.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
     const menu = event.target.closest?.('[data-action-menu][open]');

@@ -808,7 +808,7 @@ body { background:var(--surface); }
 .date-nav { gap:6px; flex-wrap:wrap; }
 .date-nav .control-button { background:transparent; border:0; color:var(--accent); }
 .date-nav .control-date { width:160px; border:0; background:var(--surface-sunken); font-weight:550; padding:8px 10px; }
-.segmented { display:flex; align-items:center; gap:3px; border-radius:11px; padding:4px; background:var(--surface-sunken); }
+.segmented { display:flex; align-items:center; gap:3px; border-radius:11px; padding:0 4px; background:var(--surface-sunken); }
 .segmented button { flex:1; min-height:36px; padding:7px 16px; border:0; border-radius:8px; background:transparent; color:var(--ink-soft); font-size:14px; cursor:pointer; white-space:nowrap; }
 .segmented button[aria-pressed="true"] { background:var(--surface); color:var(--ink); box-shadow:0 1px 4px #00000012; font-weight:600; }
 .control, .control-button { min-height:40px; font-size:14px; }
@@ -850,7 +850,7 @@ body { background:var(--surface); }
 .schedule-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
 .schedule-head .section-heading { margin:0; }
 .schedule-toggle { display:none; }
-.schedule-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; }
+.schedule-layout { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,3fr); gap:24px; }
 .schedule-map-host { position:sticky; top:24px; min-width:0; }
 .schedule-map-host .map-split { display:block; }
 .schedule-map-host .map-list { display:none; }
@@ -1041,8 +1041,8 @@ body { font-size:17px; }
 .date-nav .control-button { min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; padding:8px; border-radius:10px; color:var(--ink-soft); }
 .date-nav .ui-icon { width:24px; height:24px; stroke-width:2; }
 .date-nav .control-date { min-height:44px; width:174px; padding:8px 10px; font-size:16px; font-weight:400; letter-spacing:0; }
-.date-nav [data-action="today"] { font-size:16px; padding-inline:12px; margin-left:7px; }
-.segmented button { min-height:40px; }
+.date-nav [data-action="today"] { font-size:16px; padding-inline:12px; margin-left:3px; }
+.segmented button { min-height:44px; }
 .control-button:active, .action:active, .origin-button:active, .agenda-save:active, .agenda-directions:active { background:var(--line); }
 @media(hover:hover) {
   .origin-button:hover, .settings-button:hover, .date-nav .control-button:hover, .agenda-directions:hover { background:var(--surface-sunken); }
@@ -1128,7 +1128,6 @@ body { font-size:17px; }
 .agenda-menu-options .action { display:flex; width:100%; gap:9px; min-height:44px; font-size:14px; border-radius:8px; }
 .agenda-menu-options .ui-icon { width:20px; height:20px; flex:none; }
 .agenda-menu-options .agenda-save[aria-pressed="true"] { background:transparent; }
-.agenda-saved { color:var(--favorite); font-size:12px; }
 @media(hover:hover) and (pointer:fine) {
   .agenda-menu > summary { opacity:0; transition:opacity 120ms ease, background 120ms ease; }
   .agenda-row:hover .agenda-menu > summary, .agenda-row:focus-within .agenda-menu > summary, .agenda-menu[open] > summary { opacity:1; }
@@ -1141,3 +1140,41 @@ body { font-size:17px; }
 .map-transition-snapshot { pointer-events:none; }
 
 .map-basemap-notice { position:absolute; top:10px; right:10px; left:70px; z-index:800; margin:0; padding:8px 10px; border-radius:6px; background:#fff; color:#475569; font-size:12px; line-height:1.4; }
+.map-canvas .leaflet-tooltip { width:max-content; max-width:280px; white-space:normal; overflow-wrap:anywhere; }
+
+/* ---- Week UI: shared row hover, star, separator, selection ---- */
+
+/* Shared hover/focus background across entire row including star and ellipsis */
+.agenda-row { border-radius:var(--radius-sm); transition:background 120ms ease; }
+@media(hover:hover) {
+  .agenda-row:hover { background:var(--surface-sunken); }
+}
+.agenda-row:focus-within { background:var(--surface-sunken); }
+/* Keep open-menu row highlighted */
+.agenda-row:has(.agenda-menu[open]) { background:var(--surface-sunken); }
+
+/* Selected row accent */
+.agenda-row.is-selected { background:var(--accent-soft); }
+.agenda-row .agenda-item, .agenda-row .agenda-item:hover, .agenda-row .agenda-item.is-selected { background:transparent; }
+
+/* Gold star for saved events, positioned left of ellipsis */
+.agenda-star { flex:none; color:var(--favorite); background:transparent; cursor:pointer; }
+.agenda-star .ui-icon { fill:var(--favorite-fill); width:20px; height:20px; }
+@media(hover:hover) {
+  .agenda-star:hover { color:var(--favorite); background:var(--favorite-soft); border-radius:8px; }
+}
+
+/* Readable wrapping in the 40% agenda column */
+.agenda-item .agenda-title { overflow-wrap:anywhere; word-break:break-word; }
+
+/* Inline feedback for unresolved locations */
+.agenda-location-note { display:block; grid-column:1 / -1; font-size:14px; color:var(--ink-faint); }
+
+/* Remove only the first agenda day top border (the separator under the Week heading) */
+.agenda-day.is-first { border-top:0; }
+
+/* Source link in menu */
+.agenda-source { color:var(--ink-soft); }
+@media(hover:hover) {
+  .agenda-source:hover { color:var(--ink); background:var(--surface-sunken); }
+}

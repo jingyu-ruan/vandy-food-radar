@@ -78,9 +78,20 @@ on a private Site. The existing native Sites automation remains paused.
 The activity workspace places date controls next to the event content. Day, Week,
 and Map are display modes with directional horizontal transitions, respecting
 reduced motion. Saving uses yellow star buttons and never opens another panel.
-Week lists today and future dates only; event titles open AnchorLink, and route
-icons open Google Maps walking directions from the saved origin. Settings provide
-light, dark, and system appearance, plus
+Week lists today and future dates only; event rows are buttons that select the
+event and pan the adjacent map to its resolved building, opening the map tooltip
+so the location name is visible. On narrow screens where the Week map is hidden,
+selecting a mapped event switches to the Map view for its date. Source links, walking directions,
+and the save action live inside each row's ellipsis menu. Saved events display a
+filled gold star beside the ellipsis that unsaves on click; unsaved events offer
+Save inside the menu. The entire row including star and ellipsis shares a hover
+and focus background; the ellipsis appears on hover for pointer devices and stays
+visible on touch. Selecting an event whose location did not resolve to a campus building shows
+concise inline feedback. The desktop schedule layout is
+roughly 40 percent event list and 60 percent map. The first day's top border is
+removed to avoid a redundant separator under the heading; day separators between
+dates are preserved. The segmented Day/Week/Map control matches the 44-pixel
+date-input height. Settings provide light, dark, and system appearance, plus
 12-hour and 24-hour clocks, retained in device-local storage. Display copy uses
 spacing and complete phrases instead of middle-dot separators. Settings sit in
 the event toolbar, save immediately, and close using an icon or Escape. Event cards

@@ -170,7 +170,7 @@ function markerFor(L, event) {
     alt: event.title,
   });
   // Leaflet interprets string tooltip content as HTML, so use a text node.
-  marker.bindTooltip(el('span', { text: `${event.title}  ${eventTime(event)}` }));
+  marker.bindTooltip(el('span', { text: `${event.title}. ${event.place.name}${event.place.detail ? ', ' + event.place.detail : ''}. ${eventTime(event)}` }), {direction:'top', offset:[0,-10]});
   marker.on('add', () => marker.getElement()?.setAttribute('aria-label', `${event.title}, ${event.date}, ${eventTime(event)}`));
   if (state.selectedKey === event.identity_key) marker.setZIndexOffset(1000);
   return marker;
@@ -344,6 +344,20 @@ export function panTo(identityKey) {
   const event = mappable().find((item) => item.identity_key === identityKey);
   if (!event || !event.place) return;
   map.panTo([event.place.lat, event.place.lng], { animate: !prefersReducedMotion() });
+}
+
+/** Open the tooltip on a marker so the location name is visible after panning. */
+export function openTooltip(identityKey) {
+  if (!map || !markerLayer) return;
+  for (const entry of markers.values()) {
+    entry.marker.closeTooltip();
+  }
+  for (const [key, entry] of markers) {
+    if (key.endsWith(`:${identityKey}`)) {
+      entry.marker.openTooltip();
+      return;
+    }
+  }
 }
 
 function prefersReducedMotion() {

@@ -9,11 +9,11 @@
 
 import { bindPreferences, displayText, formatTimesInText } from './preferences.js';
 import { fetchDay, fetchWeek } from './api.js';
-import { bindAgendaMenus, renderAgenda } from './agenda.js';
+import { bindAgendaMenus, renderAgenda, setAgendaSelectHandler } from './agenda.js';
 import { bindCardEvents, renderCards, syncCardChrome } from './cards.js';
 import { all, one } from './dom.js';
 import { slideViews } from './view-motion.js';
-import { armPinMode, cancelPinMode, clearRoute, panTo, prepareMap, showMap, syncMarkers } from './map.js';
+import { armPinMode, cancelPinMode, clearRoute, openTooltip, panTo, prepareMap, showMap, syncMarkers } from './map.js';
 import { bindDirections, destinationFor, setDestination } from './directions.js';
 import { refreshWalking } from './walking.js';
 import { bindOrigin, coordinateLabel, labelForPoint, loadPlaces, originFromPin, refreshOriginStatus } from './origin.js';
@@ -31,6 +31,7 @@ const VIEWS = new Set(['cards', 'schedule', 'map']);
 const root = document;
 let dayRequest = 0;
 let weekRequest = 0;
+let agendaSelectionRequest = 0;
 const usesMap = () => ['map', 'schedule'].includes(state.view);
 
 function readConfig() {
@@ -156,15 +157,66 @@ function selectEvent(identityKey) {
   renderAgenda(root);
   if (usesMap()) {
     syncMarkers(root, selectFromMap);
-    if (state.selectedKey) panTo(state.selectedKey);
+    if (state.selectedKey) {
+      panTo(state.selectedKey);
+      // Open the tooltip so the location name is visible
+      openTooltip(state.selectedKey);
+    }
   }
 }
 
+/**
+ * Handle agenda row selection. The week data already contains the event, so
+ * we use it directly without a day load when the event's date differs from
+ * the card view date — this avoids async races between day loads and
+ * selection. The mobile Map view needs the selected day's event data.
+ */
 async function selectFromAgenda(date, identityKey) {
-  if (date !== state.selectedDate) {
-    await loadDay(date);
+  const generation = ++agendaSelectionRequest;
+  if (identityKey === null) {
+    // Deselect
+    state.selectedKey = null;
+    syncCardChrome(root);
+    renderAgenda(root);
+    if (usesMap()) syncMarkers(root, selectFromMap);
+    return;
   }
-  selectEvent(identityKey);
+
+  // On narrow screens the schedule map host is hidden. Selecting an event
+  // should switch to the Map view so the user can see the location.
+  const isMobile = window.matchMedia('(max-width: 800px)').matches;
+  if (isMobile && state.view === 'schedule') {
+    const event = state.week?.days?.flatMap(day => day.events).find(item => item.identity_key === identityKey);
+    if (!event?.place || event.cancelled) {
+      state.selectedKey = identityKey;
+      renderAgenda(root);
+      return;
+    }
+    if (date !== state.selectedDate) await loadDay(date);
+    if (generation !== agendaSelectionRequest || state.view !== 'schedule') return;
+    setDestination(destinationFor(event));
+    state.selectedKey = identityKey;
+    setView('map');
+    await showMap(root, {onSelect:selectFromMap, onPinned:handlePin});
+    if (generation !== agendaSelectionRequest || state.view !== 'map') return;
+    panTo(identityKey);
+    openTooltip(identityKey);
+    one('[data-view="map"]', root)?.focus({preventScroll:true});
+    renderAgenda(root);
+    return;
+  }
+
+  // Select within the week view — use week data directly
+  state.selectedKey = identityKey;
+  syncCardChrome(root);
+  renderAgenda(root);
+  if (usesMap()) {
+    syncMarkers(root, selectFromMap);
+    if (state.selectedKey) {
+      panTo(state.selectedKey);
+      openTooltip(state.selectedKey);
+    }
+  }
 }
 
 function setView(view) {
@@ -310,6 +362,8 @@ function start() {
   });
   bindNavigation();
   bindAgendaMenus(root);
+  // Wire the agenda selection handler through the module API
+  setAgendaSelectHandler(selectFromAgenda);
   bindCardEvents(root, { onSelect: selectEvent });
   bindOrigin(root, {
     onPinRequest: beginPicking,
