@@ -63,3 +63,25 @@ paused; the GitHub workflow provides the active schedule.
 when preparing a Sites-owned checkout and preserve the current audience.
 Local secrets, captured live data, logs, dependencies, build artifacts, runtime
 state, and Git metadata are excluded from source synchronization.
+
+## Frontend browsing refinements on October 2, 2026
+
+GitHub implementation commit `0a3c2b7` was pushed before Sites publication.
+Sites source commit `2f8ab6764cd2ea58911aa7d9855ae908845357cc` was built and
+packaged locally, then deployed successfully with owner-private access. Its tree
+matches GitHub's `sites/` tree: `dc22df453aa9e12343bb2991440ddffd70fbb85b`.
+
+- Saved version: `appgprj_6abda08653248191bd4377356f3e0a33~appgver_2a828ebdd2308191880f255a6723dc40`
+- Deployment: `appgdep_6ac0598b42708191a2de311c6d7a87ea`
+- Validation: 110 Sites pipeline tests and 10 browser-module tests, TypeScript
+  checking, successful production build, and local browser checks at 1366,
+  390, and 320 pixels. Checked light and dark appearances, keyboard campus
+  search, location settings focus, saved-state feedback, event and walking links,
+  map selection mode, and repeated view switches.
+
+The header location opens the origin settings and focuses campus search. Settings
+uses a gear in the event toolbar, and My day has been removed. The week shows only
+today and future dates; event rows open AnchorLink, with separate yellow save
+stars and walking links. The map uses a desktop sidebar and a mobile overlay,
+local campus searches, an event dropdown, and concise From/To labels. View
+transitions slide horizontally and respect reduced motion.
