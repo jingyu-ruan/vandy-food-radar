@@ -23,9 +23,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* The workspace stylesheet is shared verbatim with the Python reference. */}
+        <script dangerouslySetInnerHTML={{ __html: `try{const p=JSON.parse(localStorage.getItem('vfr:preferences')||'{}');if(p.theme==='light'||p.theme==='dark')document.documentElement.dataset.theme=p.theme;}catch{}` }} />
+        {/* eslint-disable-next-line @next/next/no-css-tags -- shared stylesheet for server and browser-rendered events */}
         <link rel="stylesheet" href="/static/app.css" />
       </head>
       <body data-offline="false">{children}</body>

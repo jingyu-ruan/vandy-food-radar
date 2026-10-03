@@ -1,3 +1,6 @@
+import { icon } from './icons.js';
+import { foodPresentation } from './food-presentation.js';
+import { eventTime } from './preferences.js';
 /**
  * Card rendering and card-level interactions.
  *
@@ -56,11 +59,12 @@ function actionsFor(event) {
   const actions = el('footer', { class: 'card-actions' }, [
     el('button', {
       type: 'button',
-      class: 'action action-save',
+      class: 'action action-save icon-button',
+      'aria-label': `${isSaved(event.date, event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
+      title: `${isSaved(event.date, event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
       'data-action': 'toggle-save',
       'aria-pressed': String(isSaved(event.date, event.identity_key)),
-      text: isSaved(event.date, event.identity_key) ? 'Saved' : 'Save',
-    }),
+    }, [icon('star')]),
   ]);
   if (!event.cancelled) {
     const options = el('div',{class:'calendar-options'});
@@ -80,7 +84,7 @@ function actionsFor(event) {
         el('a', { class: 'action', href: event.calendar.ics, text: 'Download .ics' }),
       );
     }
-    actions.append(el('details',{class:'calendar-menu'},[el('summary',{class:'action',text:'Calendar'}),options]));
+    actions.append(el('details',{class:'calendar-menu'},[el('summary',{class:'action'},[icon('calendar'),el('span',{text:'Calendar'})]),options]));
   }
   if (event.event_url) {
     actions.append(
@@ -89,8 +93,7 @@ function actionsFor(event) {
         href: event.event_url,
         rel: 'noopener noreferrer',
         target: '_blank',
-        text: 'Source',
-      }),
+      }, [icon('external-link'), el('span', {text:'Source'})]),
     );
   }
   actions.append(
@@ -98,8 +101,8 @@ function actionsFor(event) {
       type: 'button',
       class: 'action',
       'data-action': 'toggle-details',
-      text: 'Details',
-    }),
+      'aria-expanded': 'false',
+    }, [icon('info'), el('span', {dataset:{role:'action-label'}, text:'Details'})]),
   );
   return actions;
 }
@@ -121,7 +124,7 @@ function detailsFor(event) {
         }),
       );
       if (index < event.sources.length - 1) {
-        sources.append(el('span', { class: 'sep', text: '\u00b7' }));
+        sources.append(el('span', { class: 'sep', text: ' ' }));
       }
     });
     details.append(sources);
@@ -164,16 +167,15 @@ export function renderCard(event) {
   );
 
   const when = el('p', { class: 'card-when' }, [
-    el('span', { class: 'when-time', text: event.time_label }),
+    el('span', { class: 'when-time', text: eventTime(event) }),
   ]);
   if (event.badge) when.append(el('span', { class: 'tag tag-alert', text: event.badge }));
   if (event.change) when.append(el('span', { class: 'tag tag-change', text: event.change }));
   card.append(when);
 
-  const foodChildren = [
-    el('span', { class: 'chip', text: event.food_label }),
-    el('span', { class: 'chip chip-quiet', text: event.food_category }),
-  ];
+  const food = foodPresentation(event);
+  const foodChildren = [el('span', {class:`chip chip-${food.tone}`}, [food.label])];
+  if (food.detail) foodChildren.push(el('span', {class:'food-note',text:food.detail}));
   if (event.food_description) {
     foodChildren.push(el('span', { class: 'fact-text', text: event.food_description }));
   }
@@ -244,7 +246,8 @@ export function syncCardChrome(root) {
     if (button) {
       const saved = isSaved(date, key);
       button.setAttribute('aria-pressed', String(saved));
-      button.textContent = saved ? 'Saved' : 'Save';
+      button.setAttribute('aria-label', `${saved ? 'Unsave' : 'Save'} ${one('.card-title', card).textContent}`);
+      button.title = button.getAttribute('aria-label');
     }
     card.classList.toggle('is-selected', state.selectedKey === key);
   }
@@ -275,7 +278,8 @@ export function bindCardEvents(root, { onSelect } = {}) {
         const open = panel.hasAttribute('hidden');
         if (open) panel.removeAttribute('hidden');
         else panel.setAttribute('hidden', '');
-        detailsButton.textContent = open ? 'Hide details' : 'Details';
+        one('[data-role="action-label"]', detailsButton).textContent = open ? 'Hide details' : 'Details';
+        detailsButton.setAttribute('aria-expanded', String(open));
       }
       return;
     }

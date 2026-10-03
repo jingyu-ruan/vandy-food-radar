@@ -9,6 +9,8 @@
  */
 
 import { Fragment } from "react";
+import { ActionIcon } from "./action-icon";
+import { foodPresentation } from "@/public/static/js/food-presentation.js";
 
 import type { CardJson } from "@/lib/vfr/viewmodel.ts";
 
@@ -59,6 +61,7 @@ function PlaceFact({ card }: { card: CardJson }) {
 }
 
 export function WorkspaceCard({ card }: { card: CardJson }) {
+  const food = foodPresentation(card);
   const stars = Math.max(0, Math.min(5, card.stars));
   return (
     <article
@@ -89,8 +92,8 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
 
       <dl className="card-facts">
         <Fact label="Food">
-          <span className="chip">{card.food_label}</span>
-          <span className="chip chip-quiet">{card.food_category}</span>
+          <span className={`chip chip-${food.tone}`}>{food.label}</span>
+          {food.detail ? <span className="food-note">{food.detail}</span> : null}
           {card.food_description ? (
             <span className="fact-text">{card.food_description}</span>
           ) : null}
@@ -141,15 +144,17 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
       <footer className="card-actions">
         <button
           type="button"
-          className="action action-save"
+          className="action action-save icon-button"
+          aria-label={`Save ${card.title}`}
+          title={`Save ${card.title}`}
           data-action="toggle-save"
           aria-pressed="false"
         >
-          Save
+          <ActionIcon name="star" />
         </button>
         {!card.cancelled ? (
           <details className="calendar-menu">
-            <summary className="action">Calendar</summary>
+            <summary className="action"><ActionIcon name="calendar" /><span>Calendar</span></summary>
             <div className="calendar-options">
               {card.calendar.google ? (
                 <a
@@ -171,11 +176,11 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
         ) : null}
         {card.event_url ? (
           <a className="action" href={card.event_url} rel="noopener noreferrer" target="_blank">
-            Source
+            <ActionIcon name="external-link" /><span>Source</span>
           </a>
         ) : null}
-        <button type="button" className="action" data-action="toggle-details">
-          Details
+        <button type="button" className="action" data-action="toggle-details" aria-expanded="false">
+          <ActionIcon name="info" /><span data-role="action-label">Details</span>
         </button>
       </footer>
 
@@ -189,7 +194,7 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
                 <a href={source.url} rel="noopener noreferrer" target="_blank">
                   {source.label}
                 </a>
-                {index < card.sources.length - 1 ? <span className="sep">·</span> : null}
+                {index < card.sources.length - 1 ? <span className="sep"> </span> : null}
               </Fragment>
             ))}
           </p>

@@ -1,3 +1,4 @@
+import { displayText, eventTime } from './preferences.js';
 /**
  * Campus map, loaded only when the map view is first opened.
  *
@@ -26,9 +27,11 @@ let leafletPromise = null;
 let map = null;
 let markerLayer = null;
 let originMarker = null;
+let destinationMarker = null;
+let campusLayer = null;
 let routeLine = null;
 let routeGeneration = 0;
-let pinMode = false;
+let pinMode = null;
 let onPin = null;
 
 function loadStylesheet() {
@@ -92,8 +95,8 @@ function markerFor(L, event) {
     alt: event.title,
   });
   // Leaflet interprets string tooltip content as HTML, so use a text node.
-  marker.bindTooltip(el('span', { text: `${event.title} \u00b7 ${event.time_label}` }));
-  marker.on('add', () => marker.getElement()?.setAttribute('aria-label', `${event.title}, ${event.date}, ${event.time_label}`));
+  marker.bindTooltip(el('span', { text: `${event.title}  ${eventTime(event)}` }));
+  marker.on('add', () => marker.getElement()?.setAttribute('aria-label', `${event.title}, ${event.date}, ${eventTime(event)}`));
   if (state.selectedKey === event.identity_key) marker.setZIndexOffset(1000);
   return marker;
 }
@@ -106,9 +109,9 @@ function renderList(root, onSelect) {
   const selected = events.find(event=>event.identity_key===state.selectedKey);
   const selection = one('[data-role="map-selection"]', root);
   if (selection) {
-    selection.textContent = selected
-      ? `${selected.title} — ${selected.date}, ${selected.time_label}. ${selected.place.name}${selected.place.detail ? ', '+selected.place.detail : ''}`
-      : 'Select an event to find its location. Saved events have gold markers.';
+    selection.textContent = displayText(selected
+      ? `${selected.title} — ${selected.date}, ${eventTime(selected)}. ${selected.place.name}${selected.place.detail ? ', '+selected.place.detail : ''}`
+      : 'Choose a map marker to see its location. Saved events have yellow markers.');
   }
   if (!events.length) {
     replace(
@@ -131,9 +134,9 @@ function renderList(root, onSelect) {
         dataset: { identityKey: event.identity_key },
       }, [
         el('span', { text: event.title }),
-        el('span', { class: 'map-list-sub', text: `${event.time_label} \u00b7 ${event.place.name}` }),
+        el('span', { class: 'map-list-sub', text: `${eventTime(event)}  ${event.place.name}` }),
       ]);
-      button.addEventListener('click', () => onSelect(event.identity_key));
+      button.addEventListener('click', () => {if(pinMode)pickPoint({lat:event.place.lat,lng:event.place.lng,label:event.place.name});else onSelect(event.identity_key);});
       return el('li', {}, button);
     }),
   );
@@ -180,8 +183,7 @@ export async function showMap(root, { onSelect, onPinned }) {
   markerLayer = L.layerGroup().addTo(map);
   map.on('click', (clickEvent) => {
     if (!pinMode || !onPin) return;
-    pinMode = false;
-    onPin({ lat: clickEvent.latlng.lat, lng: clickEvent.latlng.lng });
+    pickPoint({lat:clickEvent.latlng.lat,lng:clickEvent.latlng.lng});
   });
   syncMarkers(root, onSelect);
 }
@@ -196,7 +198,7 @@ export function syncMarkers(root, onSelect) {
   const events = mappable();
   for (const event of events) {
     const marker = markerFor(L, event);
-    marker.on('click', () => onSelect(event.identity_key));
+    marker.on('click', () => {if(pinMode)pickPoint({lat:event.place.lat,lng:event.place.lng,label:event.place.name});else onSelect(event.identity_key);});
     marker.addTo(markerLayer);
   }
 
@@ -220,12 +222,21 @@ export function syncMarkers(root, onSelect) {
     originMarker.addTo(map);
   }
 
+  if(destinationMarker) {destinationMarker.remove();destinationMarker=null;}
+  const destination=state.destination;
+  if(Number.isFinite(destination?.lat) && Number.isFinite(destination?.lng)) {
+    destinationMarker=L.marker([destination.lat,destination.lng],{icon:L.divIcon({className:'vfr-pin-wrap',html:'<span class="vfr-pin is-destination"></span>',iconSize:[16,16],iconAnchor:[8,8]}),title:`Destination: ${destination.label}`,alt:`Destination: ${destination.label}`}).addTo(map);
+    destinationMarker.bindTooltip(el('span',{text:`Destination: ${destination.label}`}));
+  }
+  if(pinMode) drawCampusChoices();
+
   // A mobile agenda hides the canvas. Fitting a zero-sized map would choose
   // a world-level zoom; fit only once the map panel has a measurable size.
   const canvas = map.getContainer();
   if (events.length && canvas.clientWidth > 0 && canvas.clientHeight > 0) {
     const bounds = L.latLngBounds(events.map((event) => [event.place.lat, event.place.lng]));
-    if (origin) bounds.extend([origin.lat, origin.lng]);
+    if (origin && Math.abs(origin.lat-events[0].place.lat)<0.1 && Math.abs(origin.lng-events[0].place.lng)<0.1) bounds.extend([origin.lat, origin.lng]);
+    if(destinationMarker && Math.abs(destination.lat-events[0].place.lat)<0.1 && Math.abs(destination.lng-events[0].place.lng)<0.1) bounds.extend([destination.lat,destination.lng]);
     map.fitBounds(bounds.pad(0.25), { animate: false, maxZoom: 17 });
     if (state.selectedKey) panTo(state.selectedKey);
   }
@@ -273,10 +284,49 @@ export async function drawPlan(points) {
     : 'Walking route from OpenRouteService.';
 }
 
-/** Arm map-click origin selection; the next map click reports a coordinate. */
-export function armPinMode() {
-  pinMode = true;
-  return Boolean(map);
+function pickPoint(point) {
+  if(!pinMode || !onPin)return;
+  const mode=pinMode;
+  cancelPinMode();
+  onPin(point,mode);
+}
+function drawCampusChoices() {
+  if(!map || !window.L)return;
+  if(!campusLayer)campusLayer=window.L.layerGroup().addTo(map);
+  campusLayer.clearLayers();
+  for(const place of state.places || []) {
+    const label=`Choose ${place.name} as ${pinMode==='origin' ? 'starting point' : 'destination'}`;
+    const marker=window.L.marker([place.lat,place.lng],{keyboard:true,title:label,alt:label,icon:window.L.divIcon({className:'vfr-campus-wrap',html:'<span class="vfr-campus-pin"></span>',iconSize:[24,24],iconAnchor:[12,12]})});
+    marker.bindTooltip(el('span',{text:place.name}));
+    marker.on('add',()=>{
+      const element=marker.getElement();
+      element?.setAttribute('aria-label',label);
+      element?.addEventListener('keydown',event=>{
+        if(event.key==='Enter' || event.key===' ') {event.preventDefault();event.stopPropagation();pickPoint({lat:place.lat,lng:place.lng,label:place.name});}
+      });
+    });
+    marker.on('click',()=>pickPoint({lat:place.lat,lng:place.lng,label:place.name}));
+    marker.addTo(campusLayer);
+  }
+}
+/** Named campus markers and arbitrary map coordinates use the same selection flow. */
+export function armPinMode(mode='origin') {
+  if(!map)return false;
+  pinMode=mode==='destination' ? 'destination' : 'origin';
+  one('[data-role="map-instructions"]').hidden=false;
+  one('[data-role="pin-instructions"]').textContent=`Choose your ${pinMode==='origin' ? 'starting point' : 'destination'}: select a campus marker or click anywhere on the map.`;
+  map.getContainer().classList.add('is-picking');
+  drawCampusChoices();
+  if(state.places?.length) map.fitBounds(window.L.latLngBounds(state.places.map(place=>[place.lat,place.lng])).pad(.12),{animate:false,maxZoom:16});
+  map.getContainer().scrollIntoView({block:'nearest',behavior:'instant'});
+  return true;
+}
+export function cancelPinMode() {
+  pinMode=null;
+  const instructions=one('[data-role="map-instructions"]');
+  if(instructions)instructions.hidden=true;
+  if(map)map.getContainer().classList.remove('is-picking');
+  if(campusLayer)campusLayer.clearLayers();
 }
 
 /** Whether the map instance exists (i.e. Leaflet loaded successfully). */

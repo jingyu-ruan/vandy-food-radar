@@ -9,11 +9,11 @@ Worker, and Sites D1 stores feeds, source records, scoring, change history, and
 refresh leases. The production application operates on real AnchorLink data.
 
 The campus workspace includes date-specific cards, a source-derived daily brief,
-a weekly schedule, a map, saved events, calendar actions, and a walking itinerary.
+a weekly schedule, a map, saved events, and calendar actions.
 The Sites implementation follows the retained Python application's current
 behavior, including a curated campus-place dataset, participation warnings,
 ended events on the selected date, and atomic publication across multiple days.
-Saved events, the selected walking origin, and itineraries are stored on the device.
+Saved events and the selected walking origin are stored on the device.
 
 The existing GitHub Actions workflow refreshes today and tomorrow every two hours
 at minute 17, and seven days every six hours at minute 47. It reads every published

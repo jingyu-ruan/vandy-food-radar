@@ -13,6 +13,8 @@
  * value can terminate the script element; it carries no secret.
  */
 
+import { displayText } from "@/lib/vfr/display.ts";
+import { ActionIcon } from "@/components/vfr/action-icon";
 import type { Metadata } from "next";
 
 import { RefreshButton } from "@/components/vfr/refresh-button";
@@ -74,7 +76,6 @@ export default async function Home({ searchParams }: PageProps) {
   const reference = config.referenceLocation;
   const lastAt = lastSuccess ? Date.parse(lastSuccess.at) : NaN;
   const stale = Number.isFinite(lastAt) && nowMs - lastAt > config.staleAfterMs;
-  const scope = `${longDate(selected, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}${selected === today ? " \u00b7 today" : ""} \u00b7 walking from `;
   const briefText = feed
     ? feed.brief.text
     : "Event data is temporarily unavailable. The last published listing could not be read.";
@@ -90,31 +91,25 @@ export default async function Home({ searchParams }: PageProps) {
         Skip to events
       </a>
       <div className="shell">
-        <aside className="sidebar" id="workspace-sidebar" aria-label="Workspace navigation">
-          <button
-            type="button"
-            className="mobile-sidebar-close control-button"
-            data-action="toggle-sidebar"
-          >
-            Close settings
-          </button>
-          <div className="brand">
-            <span className="brand-mark" aria-hidden="true" />
-            <span className="brand-name">Vandy Food Radar</span>
-          </div>
-
-          <nav className="nav" aria-label="Views">
-            <button type="button" className="nav-item is-current" data-view="cards" aria-current="page">
-              Cards
-            </button>
-            <button type="button" className="nav-item" data-view="schedule">
-              Schedule
-            </button>
-            <button type="button" className="nav-item" data-view="itinerary">
-              Itinerary
-            </button>
-          </nav>
-
+        <dialog className="sidebar" id="workspace-sidebar" aria-labelledby="settings-heading">
+          <div className="settings-head"><h2 id="settings-heading">Settings</h2>
+          <button type="button" className="control-button" data-action="toggle-sidebar" aria-label="Close settings"><ActionIcon name="close" /></button></div>
+          <section className="side-block" aria-labelledby="appearance-heading">
+            <h3 className="side-heading" id="appearance-heading">Appearance</h3>
+            <div className="segmented" role="group" aria-label="Appearance">
+              <button type="button" data-theme="system" aria-pressed="true">System</button>
+              <button type="button" data-theme="light" aria-pressed="false">Light</button>
+              <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+            </div>
+          </section>
+          <section className="side-block" aria-labelledby="clock-heading">
+            <h3 className="side-heading" id="clock-heading">Time format</h3>
+            <div className="segmented" role="group" aria-label="Time format">
+              <button type="button" data-clock="12" aria-pressed="true">12-hour</button>
+              <button type="button" data-clock="24" aria-pressed="false">24-hour</button>
+            </div>
+            <p className="side-status" data-role="preferences-status" aria-live="polite">Changes save automatically on this device.</p>
+          </section>
           <section className="side-block" aria-labelledby="origin-heading">
             <h2 className="side-heading" id="origin-heading">
               Walking origin
@@ -146,8 +141,9 @@ export default async function Home({ searchParams }: PageProps) {
                   Reset
                 </button>
               </div>
+              <p className="location-attribution">Location names: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> / Photon</p>
               <p className="side-status" data-role="origin-status" aria-live="polite">
-                Origin: {reference.label}
+                Origin: {displayText(reference.label)}
               </p>
             </div>
           </section>
@@ -172,33 +168,29 @@ export default async function Home({ searchParams }: PageProps) {
               {lastSuccess
                 ? `Last refresh ${lastSuccess.at.slice(0, 16).replace("T", " ")} UTC`
                 : "No recorded refresh yet"}
-              {stale ? " \u00b7 may be out of date" : ""}
+              {stale ? ". May be out of date." : ""}
             </p>
             <RefreshButton />
           </section>
-        </aside>
+        </dialog>
 
         <main className="workspace" id="workspace">
           <header className="work-head">
             <div className="work-head-row">
-              <button
-                type="button"
-                className="mobile-settings control-button"
-                data-action="toggle-sidebar"
-                aria-expanded="false"
-                aria-controls="workspace-sidebar"
-              >
-                Location &amp; saved
-              </button>
               <h1 className="work-title">Free food on campus</h1>
+            </div>
+            <div className="work-sub"><span>Walking from</span><button type="button" className="origin-button" data-action="edit-origin" aria-haspopup="dialog" aria-controls="workspace-sidebar" title="Change walking location"><ActionIcon name="location" /><span data-role="origin-label">{displayText(reference.label)}</span><ActionIcon name="chevron-down" /></button></div>
+          </header>
+          <div className="event-toolbar">
               <div className="date-nav" data-module="date-nav">
                 <button
                   type="button"
                   className="control-button"
                   data-action="prev-day"
                   aria-label="Previous day"
+                  title="Previous day"
                 >
-                  ‹
+                  <ActionIcon name="chevron-left" />
                 </button>
                 <label className="visually-hidden" htmlFor="date-input">
                   Selected date
@@ -214,40 +206,38 @@ export default async function Home({ searchParams }: PageProps) {
                   className="control-button"
                   data-action="next-day"
                   aria-label="Next day"
+                  title="Next day"
                 >
-                  ›
+                  <ActionIcon name="chevron-right" />
                 </button>
                 <button type="button" className="control-button" data-action="today">
                   Today
                 </button>
               </div>
-            </div>
-            <p className="work-sub" data-role="scope">
-              {scope}
-              <span data-role="origin-label">{reference.label}</span>
-            </p>
-          </header>
-
-          <section className="brief" aria-labelledby="brief-heading" data-role="brief">
-            <h2 className="section-heading" id="brief-heading">
-              Daily brief
-            </h2>
-            <p className="brief-text" data-role="brief-text">
-              {briefText}
-            </p>
-          </section>
-
+              <div className="toolbar-display">
+                <div className="segmented view-switch" role="group" aria-label="Event display">
+                  <button type="button" data-view="cards" className="is-current" aria-pressed="true">Day</button>
+                  <button type="button" data-view="schedule" aria-pressed="false">Week</button>
+                  <button type="button" data-view="map" aria-pressed="false">Map</button>
+                </div>
+                <button type="button" className="control-button settings-button icon-button" data-action="toggle-sidebar" aria-label="Settings" title="Settings" aria-haspopup="dialog" aria-controls="workspace-sidebar"><ActionIcon name="settings" /></button>
+              </div>
+          </div>
+          <div className="workspace-layout" data-role="workspace-layout">
+          <div className="event-content">
           <section
             className="view view-cards is-active"
             data-view-panel="cards"
             aria-labelledby="cards-heading"
           >
-            <h2 className="section-heading" id="cards-heading">
-              Listings{" "}
+            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily brief</h2><p className="brief-text" data-role="brief-text">{displayText(briefText)}</p></section>
+            <div className="events-heading"><h2 className="section-heading" id="cards-heading">
+              Events{" "}
               <span className="count" data-role="card-count">
                 {cards.length}
               </span>
             </h2>
+            <p className="selected-date-label" data-role="selected-date-label">{longDate(selected, { weekday: "long", month: "long", day: "numeric" })}</p></div>
             <div className="card-grid" data-role="card-grid">
               {cards.length ? (
                 cards.map((card) => <WorkspaceCard key={card.identity_key} card={card} />)
@@ -267,24 +257,6 @@ export default async function Home({ searchParams }: PageProps) {
               <h2 className="section-heading" id="schedule-heading">
                 Week of <span data-role="week-label" />
               </h2>
-              <div className="schedule-toggle" aria-label="Schedule display">
-                <button
-                  type="button"
-                  className="control-button is-current"
-                  data-schedule-mode="agenda"
-                  aria-pressed="true"
-                >
-                  Agenda
-                </button>
-                <button
-                  type="button"
-                  className="control-button"
-                  data-schedule-mode="map"
-                  aria-pressed="false"
-                >
-                  Map
-                </button>
-              </div>
             </div>
             <div className="schedule-layout" data-schedule-display="agenda">
               <div className="agenda" data-role="agenda" aria-live="polite" />
@@ -301,6 +273,22 @@ export default async function Home({ searchParams }: PageProps) {
             <h2 className="section-heading" id="map-heading">
               Map
             </h2>
+            <div className="map-workspace">
+            <section className="directions-controls" aria-label="Walking directions">
+              <div className="directions-fields">
+                <div className="field"><label htmlFor="map-origin">From</label><div className="combobox"><input className="control" id="map-origin" type="search" role="combobox" aria-expanded="false" aria-controls="map-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" defaultValue={displayText(reference.label)} /><ul className="combobox-list" id="map-origin-options" role="listbox" hidden /></div></div>
+                <div className="field"><label htmlFor="map-place-search">To</label><div className="combobox"><input className="control" id="map-place-search" type="search" role="combobox" aria-expanded="false" aria-controls="map-place-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" /><ul className="combobox-list" id="map-place-options" role="listbox" hidden /></div><select className="control" id="map-destination" aria-label="Choose an event destination" defaultValue=""><option value="">Choose an event</option></select></div>
+              </div>
+              <div className="directions-actions">
+                <button type="button" className="control-button icon-button" data-action="origin-gps" aria-label="Use my location" title="Use my location"><ActionIcon name="location" /></button>
+                <button type="button" className="control-button" data-action="origin-pin">Set From on map</button>
+                <button type="button" className="control-button" data-action="pin-destination">Set To on map</button>
+                <a className="control-button directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer"><ActionIcon name="directions" />Google Maps</a>
+              </div>
+              <p className="side-status" data-role="map-location-status" aria-live="polite" />
+              <p className="location-attribution">Location names: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> / <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></p>
+            </section>
+            <div className="map-instructions" data-role="map-instructions" hidden><span data-role="pin-instructions" /><button type="button" className="control-button" data-action="cancel-pin">Cancel selection</button></div>
             <div data-role="map-home">
               <div className="map-split" data-role="map-split">
                 <div className="map-canvas" data-role="map" role="application" aria-label="Campus map">
@@ -312,57 +300,13 @@ export default async function Home({ searchParams }: PageProps) {
                 <ol className="map-list" data-role="map-list" aria-label="Mapped listings" />
               </div>
             </div>
+            </div>
           </section>
 
-          <section
-            className="view view-itinerary"
-            data-view-panel="itinerary"
-            aria-labelledby="itinerary-heading"
-            hidden
-          >
-            <h2 className="section-heading" id="itinerary-heading">
-              Itinerary
-            </h2>
-            <div className="itinerary-controls">
-              <label className="field">
-                <span>Leave at</span>
-                <input className="control" type="time" data-role="depart-at" defaultValue="17:00" />
-              </label>
-              <label className="field">
-                <span>Minutes per stop</span>
-                <input
-                  className="control"
-                  type="number"
-                  min="0"
-                  max="240"
-                  step="5"
-                  data-role="dwell"
-                />
-              </label>
-              <button type="button" className="control-button" data-action="optimize">
-                Order by feasibility
-              </button>
-            </div>
-            <p className="side-status" data-role="itinerary-status" aria-live="polite" />
-            <div className="plan-layout">
-              <ol className="itinerary-list" data-role="itinerary" />
-              <div className="plan-map-host" data-role="plan-map-host" />
-            </div>
-          </section>
+          </div>
+          </div>
         </main>
       </div>
-
-      <nav className="mobile-nav" aria-label="Views">
-        <button type="button" className="mobile-nav-item is-current" data-view="cards">
-          Cards
-        </button>
-        <button type="button" className="mobile-nav-item" data-view="schedule">
-          Schedule
-        </button>
-        <button type="button" className="mobile-nav-item" data-view="itinerary">
-          Plan
-        </button>
-      </nav>
 
       <script
         type="application/json"

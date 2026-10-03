@@ -75,18 +75,42 @@ on a private Site. The existing native Sites automation remains paused.
 
 ## Campus workspace
 
-The sidebar and mobile navigation switch between the selected day's cards, a
-seven-day schedule, a Leaflet map, a saved list, and a walking itinerary. Cards
+The activity workspace places date controls next to the event content. Day, Week,
+and Map are display modes with directional horizontal transitions, respecting
+reduced motion. Saving uses yellow star buttons and never opens another panel.
+Week lists today and future dates only; event titles open AnchorLink, and route
+icons open Google Maps walking directions from the saved origin. Settings provide
+light, dark, and system appearance, plus
+12-hour and 24-hour clocks, retained in device-local storage. Display copy uses
+spacing and complete phrases instead of middle-dot separators. Settings sit in
+the event toolbar, save immediately, and close using an icon or Escape. Event cards
+use a single column so expanded details never stretch a neighboring card. Food
+certainty and category are combined in a semantic colored badge; unspecified
+food remains explicitly unspecified, without implying quality. Cards
 show source-derived food excerpts, participation restrictions, change warnings,
 calendar actions, and resolved campus buildings with room details. The daily
 brief is deterministic and cached by a hash of its source-derived inputs.
 The checked-in dataset contains 58 curated campus places; unknown names remain
 unresolved. Participation contributes at most five percent to ranking.
 
-Saved events, the selected walking origin, and the itinerary stay in device-local
-storage. Optional OpenRouteService routing uses a fixed HTTPS endpoint with bounded
+Saved events and the selected walking origin stay in device-local storage. Optional OpenRouteService routing uses a fixed HTTPS endpoint with bounded
 waypoints and a cache. Missing or failed routing is labelled as a distance-based
 estimate. Routing keys remain server-side.
+
+The Map view uses a desktop sidebar and a mobile overlay above the map.
+From and To search the verified campus dataset locally, with keyboard selection;
+events remain available in a destination dropdown. Current-location selection
+and explicit map selection modes remain available. In selection mode, campus markers,
+event markers, and arbitrary map clicks set the requested endpoint. Google Maps
+walking links prefill both endpoints with the exact coordinates, or a listed
+address for unresolved events. Selecting a nearby address never snaps the
+coordinates to that address. GPS and unnamed pins request a bounded nearest
+address from Photon through `POST /api/location`; this user-triggered request
+has a six-second upstream timeout and preserves coordinates on failure. Labels
+say "Near" because the result describes a nearby address, not verified GPS
+accuracy. No background geocoding or autocomplete is performed. OSM/Photon
+attribution appears with the location controls. A denied browser location
+permission leaves all campus and map selection methods available.
 
 Date-specific reads never ingest events:
 

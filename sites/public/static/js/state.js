@@ -25,6 +25,7 @@ export const state = {
   selectedKey: null,
   saved: [],
   origin: null,
+  destination: null,
   itinerary: { date: null, keys: [], dwell: null, departAt: null },
   places: null,
   storageWarning: null,

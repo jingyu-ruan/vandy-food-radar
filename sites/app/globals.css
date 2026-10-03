@@ -1,6 +1,6 @@
 /*
- * The workspace is styled by public/static/app.css, which is shared verbatim
- * with the Python reference and linked from app/layout.tsx. It deliberately
+ * The workspace is styled by public/static/app.css, which is used by server and browser-rendered events
+ * in the Sites workspace and linked from app/layout.tsx. It deliberately
  * does not load a CSS reset or utility framework: a reset would change the
  * reference look (buttons, lists, headings) the browser modules render into.
  */

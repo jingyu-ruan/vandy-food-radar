@@ -1,3 +1,4 @@
+import { displayText, formatMinutes } from './preferences.js';
 /**
  * Itinerary planning for saved events on one date.
  *
@@ -37,12 +38,7 @@ function parseClock(value) {
 }
 
 function formatClock(minutes) {
-  const wrapped = ((minutes % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
-  const hour24 = Math.floor(wrapped / 60);
-  const minute = wrapped % 60;
-  const hour = hour24 % 12 || 12;
-  const suffix = hour24 < 12 ? 'AM' : 'PM';
-  return `${hour}:${String(minute).padStart(2, '0')} ${suffix}`;
+  return formatMinutes(minutes);
 }
 
 /** Saved, plannable events for the selected date. */
@@ -113,8 +109,7 @@ async function buildMatrix(origin, events) {
     for (const to of nodes) {
       if (from.id === to.id) continue;
       if (from.id !== '@origin' && to.id === '@origin') continue;
-      // eslint-disable-next-line no-await-in-loop -- sequential keeps the
-      // request count visible and respects the server-side route cache.
+      // Sequential requests respect the server-side route cache.
       const leg = await legMinutes(from.point, to.point, cache);
       matrix.set(`${from.id}|${to.id}`, leg);
     }
@@ -327,7 +322,7 @@ function renderPlan(root, plan, { exhaustive, dwell, onMove }) {
       parts.push(`${item.event.title} is excluded because it is ${item.reason}.`);
     }
     if (state.storageWarning) parts.push(state.storageWarning);
-    status.textContent = parts.join(' ');
+    status.textContent = displayText(parts.join(' '));
   }
 }
 

@@ -1,3 +1,4 @@
+import { displayFields } from "./display.ts";
 /**
  * View model shared by the server-rendered page and the JSON API.
  *
@@ -271,7 +272,7 @@ export function buildCard(stored: StoredEvent, context: ViewContext): CardJson {
   }
 
   const calendarLocation = resolved ? placeDisplayName(resolved) : event.location;
-  return {
+  return displayFields({
     identity_key: event.identityKey,
     title: event.title,
     date: event.eventDate,
@@ -312,16 +313,16 @@ export function buildCard(stored: StoredEvent, context: ViewContext): CardJson {
       }),
       ics: icsPath(event),
     },
-  };
+  });
 }
 
 function briefJson(brief: DailyBrief): DayFeedJson["brief"] {
-  return {
+  return displayFields({
     headline: brief.headline,
     sentences: [...brief.sentences],
     text: brief.text,
     content_hash: brief.contentHash,
-  };
+  });
 }
 
 /**

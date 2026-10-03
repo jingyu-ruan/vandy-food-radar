@@ -3,36 +3,35 @@
  *
  * The server already rendered the card view for the selected date, so startup
  * only attaches behavior. Changing the date fetches one day and re-renders;
- * switching views never refetches what is already loaded. Selection is shared,
- * so highlighting an event in the agenda, the map list, or a card is one state
- * change that every view observes.
+ * switching views never refetches what is already loaded. The map and cards
+ * share selection; the agenda opens event sources and walking directions.
  */
 
+import { bindPreferences, displayText, formatTimesInText } from './preferences.js';
 import { fetchDay, fetchWeek } from './api.js';
 import { renderAgenda } from './agenda.js';
 import { bindCardEvents, renderCards, syncCardChrome } from './cards.js';
 import { all, one } from './dom.js';
-import { optimizeItinerary, renderItinerary } from './itinerary.js';
-import { armPinMode, clearRoute, panTo, showMap, syncMarkers } from './map.js';
+import { armPinMode, cancelPinMode, clearRoute, panTo, showMap, syncMarkers } from './map.js';
+import { bindDirections, destinationFor, setDestination } from './directions.js';
 import { refreshWalking } from './walking.js';
-import { bindOrigin, loadPlaces, originFromPin, refreshOriginStatus } from './origin.js';
+import { bindOrigin, coordinateLabel, labelForPoint, loadPlaces, originFromPin, refreshOriginStatus } from './origin.js';
 import {
   emit,
   initState,
-  setItinerary,
   shiftIso,
   state,
   subscribe,
-  toggleSaved,
   weekStartFor,
   clearSaved,
 } from './state.js';
 
-const VIEWS = new Set(['cards', 'schedule', 'map', 'itinerary']);
+const VIEWS = new Set(['cards', 'schedule', 'map']);
+let finishTransition = null;
 const root = document;
 let dayRequest = 0;
 let weekRequest = 0;
-const usesMap = () => ['map', 'schedule', 'itinerary'].includes(state.view);
+const usesMap = () => ['map', 'schedule'].includes(state.view);
 
 function readConfig() {
   const node = document.getElementById('vfr-config');
@@ -54,7 +53,7 @@ function hydrateFromDom() {
 
 function setScope() {
   const label = one('[data-role="origin-label"]', root);
-  if (label && state.origin) label.textContent = state.origin.label;
+  if (label && state.origin) label.textContent = displayText(state.origin.label);
 }
 
 async function loadDay(isoDate, { pushHistory = true } = {}) {
@@ -86,12 +85,13 @@ async function loadDay(isoDate, { pushHistory = true } = {}) {
   }
 
   state.selectedKey = null;
+  emit('day');
+  renderSavedCount();
   renderBrief();
   renderScope();
   renderCards(root);
   refreshWalking(root);
   if (usesMap()) syncMarkers(root, selectFromMap);
-  if (state.view === 'itinerary') renderItinerary(root);
 
   const newWeek = weekStartFor(isoDate);
   if (newWeek !== state.weekStart) {
@@ -108,30 +108,29 @@ function renderBrief() {
     node.textContent = `The feed could not be loaded: ${state.error}`;
     return;
   }
-  if (state.brief) node.textContent = state.brief.text;
+  if (state.brief) node.textContent = formatTimesInText(displayText(state.brief.text));
 }
 
 function renderScope() {
-  const node = one('[data-role="scope"]', root);
-  if (!node || !state.config) return;
-  const date = new Date(`${state.selectedDate}T00:00:00`);
-  const label = Number.isNaN(date.getTime())
-    ? state.selectedDate
-    : new Intl.DateTimeFormat(undefined, {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      }).format(date);
-  const today = state.selectedDate === state.config.today ? ' \u00b7 today' : '';
-  const originLabel = state.origin ? state.origin.label : state.config.reference.label;
-  node.textContent = `${label}${today} \u00b7 walking from ${originLabel}`;
+  if (!state.config) return;
+  setScope();
+  const today = one('[data-action="today"]', root);
+  if (today) {
+    today.setAttribute('aria-label', 'Go to today');
+    if (state.selectedDate === state.config.today) today.setAttribute('aria-current', 'date');
+    else today.removeAttribute('aria-current');
+  }
+  const label = one('[data-role="selected-date-label"]', root);
+  if (label) {
+    const date = new Date(`${state.selectedDate}T12:00:00Z`);
+    label.textContent = new Intl.DateTimeFormat('en-US', {timeZone:'UTC', weekday:'long', month:'long', day:'numeric'}).format(date);
+  }
 }
 
 async function loadWeek() {
   const generation = ++weekRequest;
   state.week = null;
-  renderAgenda(root, { onSelect: selectFromAgenda });
+  renderAgenda(root);
   try {
     const payload = await fetchWeek(state.weekStart);
     if (generation !== weekRequest) return;
@@ -140,20 +139,21 @@ async function loadWeek() {
     if (generation !== weekRequest) return;
     state.week = { days: [], error: error.message };
   }
-  renderAgenda(root, { onSelect: selectFromAgenda });
+  emit('week');
+  renderAgenda(root);
   if (usesMap()) syncMarkers(root, selectFromMap);
 }
 
 function selectFromMap(identityKey) {
   const event = state.week?.days?.flatMap(day => day.events).find(item => item.identity_key === identityKey)
     || state.events.find(item => item.identity_key === identityKey);
-  if (event) selectFromAgenda(event.date, identityKey);
+  if (event) {setDestination(destinationFor(event));selectFromAgenda(event.date, identityKey);}
 }
 
 function selectEvent(identityKey) {
   state.selectedKey = state.selectedKey === identityKey ? null : identityKey;
   syncCardChrome(root);
-  renderAgenda(root, { onSelect: selectFromAgenda });
+  renderAgenda(root);
   if (usesMap()) {
     syncMarkers(root, selectFromMap);
     if (state.selectedKey) panTo(state.selectedKey);
@@ -168,14 +168,20 @@ async function selectFromAgenda(date, identityKey) {
 }
 
 function setView(view) {
-  if (!VIEWS.has(view)) return;
+  if (!VIEWS.has(view) || view === state.view) return;
+  if (finishTransition) finishTransition();
+  const previousView = state.view;
+  const previousPanel = one(`[data-view-panel="${previousView}"]`, root);
+  const nextPanel = one(`[data-view-panel="${view}"]`, root);
+  const viewport = one('.event-content', root);
+  const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches && !!nextPanel?.animate;
+  const direction = [...VIEWS].indexOf(view) > [...VIEWS].indexOf(previousView) ? 1 : -1;
+  cancelPinMode();
   state.view = view;
-  if (view !== 'itinerary') clearRoute();
+  clearRoute();
   const split = one('[data-role="map-split"]', root);
-  const host = one(view === 'schedule' ? '[data-role="schedule-map-host"]' : view === 'itinerary' ? '[data-role="plan-map-host"]' : '[data-role="map-home"]', root);
+  const host = one(view === 'schedule' ? '[data-role="schedule-map-host"]' : '[data-role="map-home"]', root);
   if (split && host && split.parentNode !== host) host.append(split);
-  const brief = one('[data-role="brief"]', root);
-  if (brief) brief.hidden = view !== 'cards';
   for (const panel of all('[data-view-panel]', root)) {
     const active = panel.dataset.viewPanel === view;
     panel.classList.toggle('is-active', active);
@@ -185,45 +191,77 @@ function setView(view) {
   for (const button of all('[data-view]', root)) {
     const current = button.dataset.view === view;
     button.classList.toggle('is-current', current);
-    if (button.classList.contains('nav-item')) {
-      if (current) button.setAttribute('aria-current', 'page');
-      else button.removeAttribute('aria-current');
-    }
+    button.setAttribute('aria-pressed', String(current));
+  }
+  if (animate) {
+    viewport.classList.add('is-transitioning');
+    viewport.style.minHeight = `${nextPanel.getBoundingClientRect().height}px`;
+    previousPanel.hidden = false;
+    previousPanel.classList.add('is-leaving');
+    previousPanel.inert = true;
+    const options = {duration: 340, easing: 'cubic-bezier(.22,.68,0,1)', fill: 'both'};
+    const outgoing = previousPanel.animate([{transform:'translateX(0)'},{transform:`translateX(${-direction * 100}%)`}], options);
+    const incoming = nextPanel.animate([{transform:`translateX(${direction * 100}%)`},{transform:'translateX(0)'}], options);
+    const finish = () => {
+      outgoing.cancel(); incoming.cancel();
+      previousPanel.hidden = true;
+      previousPanel.inert = false;
+      previousPanel.classList.remove('is-leaving');
+      viewport.classList.remove('is-transitioning');
+      viewport.style.minHeight = '';
+      finishTransition = null;
+    };
+    finishTransition = finish;
+    incoming.finished.then(finish, () => {});
   }
   if (view === 'schedule' && !state.week) loadWeek();
-  if (usesMap()) showMap(root, { onSelect: selectFromMap, onPinned: handlePin }).then(() => {
-    if (state.view === 'itinerary') renderItinerary(root);
-  });
+  if (usesMap()) showMap(root, { onSelect: selectFromMap, onPinned: handlePin });
 }
 
-function handlePin(point) {
-  originFromPin(root, point, () => {
-    renderScope();
-    refreshWalking(root);
-    if (usesMap()) syncMarkers(root, selectFromMap);
+function originChanged() {
+  refreshOriginStatus(root);
+  renderScope();
+  refreshWalking(root);
+  renderAgenda(root);
+  if (usesMap()) syncMarkers(root, selectFromMap);
+}
+async function handlePin(point, mode) {
+  if (mode !== 'destination') {originFromPin(root, point, originChanged);return;}
+  const destination={...point,label:point.label || coordinateLabel(point)};
+  setDestination(destination);
+  syncMarkers(root, selectFromMap);
+  if (point.label) return;
+  const label=await labelForPoint(point);
+  if (state.destination !== destination || !label) return;
+  setDestination({...destination,label:`Near ${label}`});
+  syncMarkers(root, selectFromMap);
+}
+function beginPicking(mode='origin') {
+  setView('map');
+  one('.sidebar',root).close();
+  showMap(root,{onSelect:selectFromMap,onPinned:handlePin}).then(()=>{
+    if (!armPinMode(mode)) one('[data-role="map-location-status"]',root).textContent='The map is unavailable. Search for a campus building in From or To.';
   });
+  return true;
 }
 
 function bindNavigation() {
-  for (const button of all('[data-schedule-mode]', root)) {
-    button.addEventListener('click', () => {
-      setScheduleMode(button.dataset.scheduleMode);
-      if (usesMap()) showMap(root, { onSelect: selectFromMap, onPinned: handlePin });
-    });
-  }
+  one('[data-action="cancel-pin"]',root).addEventListener('click',cancelPinMode);
+  const settings = one('.sidebar', root);
   for (const button of all('[data-action="toggle-sidebar"]', root)) {
     button.addEventListener('click', () => {
-      const open = one('.sidebar', root).classList.toggle('is-open');
-      one('.mobile-settings', root)?.setAttribute('aria-expanded', String(open));
-      if (open) one('#origin-input', root)?.focus();
-      else one('.mobile-settings', root)?.focus();
+      if (settings.open) settings.close();
+      else settings.showModal();
     });
   }
-  document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') {
-      one('.sidebar', root).classList.remove('is-open');
-      one('.mobile-settings', root)?.setAttribute('aria-expanded', 'false');
-    }
+  one('[data-action="edit-origin"]', root).addEventListener('click', () => {
+    settings.showModal();
+    one('#origin-input', root).focus();
+  });
+  settings.addEventListener('click', event => {
+    if (event.target !== settings) return;
+    const box = settings.getBoundingClientRect();
+    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) settings.close();
   });
   for (const button of all('[data-view]', root)) {
     button.addEventListener('click', () => setView(button.dataset.view));
@@ -231,6 +269,9 @@ function bindNavigation() {
 
   const input = one('#date-input', root);
   if (input) {
+    input.addEventListener('click', () => {
+      try { input.showPicker?.(); } catch { /* The native input remains usable. */ }
+    });
     input.addEventListener('change', () => {
       if (input.value) loadDay(input.value);
     });
@@ -245,41 +286,7 @@ function bindNavigation() {
   const clear = one('[data-action="clear-saved"]', root);
   if (clear) clear.addEventListener('click', () => clearSaved());
 
-  const dwell = one('[data-role="dwell"]', root);
-  if (dwell) {
-    dwell.value = String(state.itinerary.dwell ?? state.config.dwell_minutes);
-    dwell.addEventListener('change', () => {
-      const value = Number(dwell.value);
-      if (!Number.isFinite(value) || value < 0 || value > 240) {
-        dwell.value = String(state.itinerary.dwell ?? state.config.dwell_minutes);
-        return;
-      }
-      setItinerary({ ...state.itinerary, dwell: value });
-      if (state.view === 'itinerary') renderItinerary(root);
-    });
-  }
 
-  const depart = one('[data-role="depart-at"]', root);
-  if (depart) {
-    if (state.itinerary.departAt) depart.value = state.itinerary.departAt;
-    else state.itinerary.departAt = depart.value;
-    depart.addEventListener('change', () => {
-      setItinerary({ ...state.itinerary, departAt: depart.value });
-      if (state.view === 'itinerary') renderItinerary(root);
-    });
-  }
-
-  const optimize = one('[data-action="optimize"]', root);
-  if (optimize) optimize.addEventListener('click', () => optimizeItinerary(root));
-}
-
-function setScheduleMode(mode) {
-  one('.schedule-layout', root).dataset.scheduleDisplay = mode;
-  for (const button of all('[data-schedule-mode]', root)) {
-    const active = button.dataset.scheduleMode === mode;
-    button.classList.toggle('is-current', active);
-    button.setAttribute('aria-pressed', String(active));
-  }
 }
 
 function renderSavedCount() {
@@ -292,7 +299,7 @@ function renderSavedCount() {
     return;
   }
   const suffix = state.storageWarning ? ` ${state.storageWarning}` : '';
-  node.textContent = `${total} saved \u00b7 ${onDay} on this date.${suffix}`;
+  node.textContent = `${total} saved. ${onDay} on this date.${suffix}`;
 }
 
 function start() {
@@ -300,36 +307,32 @@ function start() {
   if (!config) return;
   initState(config);
   hydrateFromDom();
+  bindPreferences(root, () => {
+    renderBrief();
+    renderCards(root);
+    renderAgenda(root);
+    refreshWalking(root);
+    if (usesMap()) syncMarkers(root, selectFromMap);
+  });
   bindNavigation();
   bindCardEvents(root, { onSelect: selectEvent });
   bindOrigin(root, {
-    onPinRequest: () => {
-      setView('schedule');
-      setScheduleMode('map');
-      one('.sidebar', root).classList.remove('is-open');
-      one('.mobile-settings', root)?.setAttribute('aria-expanded', 'false');
-      showMap(root, {onSelect: selectFromMap, onPinned: handlePin}).then(() => armPinMode());
-      return true;
-    },
-    onChange: () => {
-      renderScope();
-      refreshWalking(root);
-      if (usesMap()) syncMarkers(root, selectFromMap);
-      if (state.view === 'itinerary') renderItinerary(root);
-    },
+    onPinRequest: beginPicking,
+    onChange: originChanged,
   });
+  bindDirections(root,{onOriginChange:originChanged,onPinRequest:beginPicking,onDestinationChange:()=>{if(usesMap())syncMarkers(root,selectFromMap);}});
   refreshOriginStatus(root);
   setScope();
   renderScope();
   renderSavedCount();
 
   subscribe((_, reason) => {
+    if(reason==='places' && usesMap()) syncMarkers(root,selectFromMap);
     if (reason === 'saved') {
       renderSavedCount();
       syncCardChrome(root);
-      renderAgenda(root, { onSelect: selectFromAgenda });
+      renderAgenda(root);
       if (usesMap()) syncMarkers(root, selectFromMap);
-      if (state.view === 'itinerary') renderItinerary(root);
     }
   });
 

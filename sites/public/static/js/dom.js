@@ -1,3 +1,4 @@
+import { displayText } from './preferences.js';
 /**
  * Minimal DOM helpers.
  *
@@ -21,7 +22,7 @@ export function el(tag, attrs = {}, children = []) {
   for (const [key, value] of Object.entries(attrs)) {
     if (value === null || value === undefined || value === false) continue;
     if (key === 'text') {
-      node.textContent = String(value);
+      node.textContent = displayText(value);
     } else if (key === 'class') {
       node.className = String(value);
     } else if (key === 'dataset') {
@@ -46,7 +47,7 @@ export function el(tag, attrs = {}, children = []) {
 export function append(node, children) {
   for (const child of [].concat(children)) {
     if (child === null || child === undefined || child === false) continue;
-    node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+    node.append(child instanceof Node ? child : document.createTextNode(displayText(child)));
   }
 }
 

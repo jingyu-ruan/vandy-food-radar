@@ -1,3 +1,4 @@
+import { displayText } from './preferences.js';
 /**
  * Walking origin selection.
  *
@@ -16,8 +17,8 @@
  */
 
 import { fetchPlaces } from './api.js';
-import { el, one, replace } from './dom.js';
-import { setOrigin, state } from './state.js';
+import { all, el, one, replace } from './dom.js';
+import { emit, setOrigin, state } from './state.js';
 
 const MAX_OPTIONS = 8;
 
@@ -55,6 +56,7 @@ export async function loadPlaces() {
     places = [];
   }
   state.places = places;
+  emit('places');
   return places;
 }
 
@@ -85,10 +87,10 @@ function renderStatus(root) {
   const node = one('[data-role="origin-status"]', root);
   if (node && state.origin) {
     const suffix = state.origin.kind === 'default' ? ' (default)' : '';
-    node.textContent = `Origin: ${state.origin.label}${suffix}`;
+    node.textContent = displayText(`Origin: ${state.origin.label}${suffix}`);
   }
   const label = one('[data-role="origin-label"]', root);
-  if (label && state.origin) label.textContent = state.origin.label;
+  if (label && state.origin) label.textContent = displayText(state.origin.label);
 }
 
 function closeList(input, list) {
@@ -179,45 +181,41 @@ export function bindOrigin(root, { onPinRequest, onChange }) {
     window.setTimeout(() => closeList(input, list), 120);
   });
 
-  const gpsButton = one('[data-action="origin-gps"]', container);
-  if (gpsButton) {
+  let requestGeneration = 0;
+  const locationStatus = (message) => {
+    for (const node of all('[data-role="origin-status"], [data-role="map-location-status"]',root)) node.textContent = displayText(message);
+  };
+  for (const gpsButton of all('[data-action="origin-gps"]',root)) {
     gpsButton.addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        if (status) status.textContent = 'This browser does not offer location access.';
-        return;
-      }
-      if (status) status.textContent = 'Requesting your location\u2026';
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-            if (status) status.textContent = 'Your browser returned an unusable location.';
-            return;
-          }
-          apply({
-            label: 'My location',
-            lat: latitude,
-            lng: longitude,
-            kind: 'gps',
-          });
-        },
-        (error) => {
-          if (status) status.textContent = `Location unavailable: ${error.message}`;
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
-      );
+      const generation = ++requestGeneration;
+      const startingOrigin=state.origin;
+      if (!navigator.geolocation) { locationStatus('This browser does not offer location access.'); return; }
+      for (const button of all('[data-action="origin-gps"]',root)) button.disabled = true;
+      locationStatus('Finding your location…');
+      const finish = () => {
+        if (generation !== requestGeneration) return;
+        for (const button of all('[data-action="origin-gps"]',root)) button.disabled = false;
+      };
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        if(generation!==requestGeneration || state.origin!==startingOrigin){finish();return;}
+        const point = {lat:position.coords.latitude,lng:position.coords.longitude};
+        if (!validPoint(point)) {locationStatus('The browser returned an unusable location.');finish();return;}
+        const fallback = coordinateLabel(point);
+        apply({...point,label:fallback,kind:'gps'});
+        locationStatus('Finding the nearby address…');
+        const label = await labelForPoint(point);
+        if (generation !== requestGeneration || state.origin.kind !== 'gps' || state.origin.lat !== point.lat || state.origin.lng !== point.lng) {finish();return;}
+        apply({...point,label:label ? `Near ${label}` : fallback,kind:'gps'});
+        locationStatus(label ? `Starting point: near ${label}` : `Address lookup is unavailable. Starting point: ${fallback}`);
+        finish();
+      }, error => {if(generation===requestGeneration)locationStatus(`Location unavailable: ${error.message}`);finish();}, {enableHighAccuracy:true,timeout:10000,maximumAge:60000});
     });
   }
-
-  const pinButton = one('[data-action="origin-pin"]', container);
-  if (pinButton && onPinRequest) {
-    pinButton.addEventListener('click', () => {
-      const armed = onPinRequest();
-      if (status) {
-        status.textContent = armed
-          ? 'Click the map to place your origin.'
-          : 'Open the Map view first, then pick a point.';
-      }
+  for (const pinButton of all('[data-action="origin-pin"]',root)) {
+    pinButton.addEventListener('click',()=>{
+      ++requestGeneration;
+      for (const button of all('[data-action="origin-gps"]',root)) button.disabled=false;
+      if(onPinRequest)onPinRequest('origin');
     });
   }
 
@@ -237,14 +235,34 @@ export function bindOrigin(root, { onPinRequest, onChange }) {
   renderStatus(root);
 }
 
-/** Accept a coordinate picked on the map as the new origin. */
-export function originFromPin(root, point, onChange) {
-  if (!Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return;
-  if (point.lat < -90 || point.lat > 90 || point.lng < -180 || point.lng > 180) return;
-  const label = `Pinned point (${point.lat.toFixed(4)}, ${point.lng.toFixed(4)})`;
-  setOrigin({ label, lat: point.lat, lng: point.lng, kind: 'pin' });
-  renderStatus(root);
-  if (onChange) onChange(state.origin);
+function validPoint(point) {
+  return Number.isFinite(point?.lat) && Math.abs(point.lat) <= 90 && Number.isFinite(point?.lng) && Math.abs(point.lng) <= 180;
+}
+export function coordinateLabel(point) {
+  return `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
+}
+const labels = new Map();
+export async function labelForPoint(point) {
+  if (!validPoint(point)) return null;
+  const key = `${point.lat.toFixed(5)},${point.lng.toFixed(5)}`;
+  if (!labels.has(key)) {
+    const request=fetch('/api/location',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({lat:point.lat,lng:point.lng}),signal:AbortSignal.timeout(8000)})
+      .then(response=>response.ok ? response.json() : null).then(value=>typeof value?.label==='string' ? value.label : null).catch(()=>null).then(label=>{if(!label)labels.delete(key);return label;});
+    labels.set(key,request);
+    if(labels.size>32)labels.delete(labels.keys().next().value);
+  }
+  return labels.get(key);
+}
+
+/** Accept a named building or a map point, retaining the exact selected coordinates. */
+export async function originFromPin(root, point, onChange) {
+  if (!validPoint(point)) return;
+  const origin={lat:point.lat,lng:point.lng,label:point.label || coordinateLabel(point),kind:'pin'};
+  setOrigin(origin);renderStatus(root);if(onChange)onChange(state.origin);
+  if(point.label)return;
+  const label=await labelForPoint(point);
+  if(!label || state.origin.kind!=='pin' || state.origin.lat!==point.lat || state.origin.lng!==point.lng)return;
+  setOrigin({...origin,label:`Near ${label}`});renderStatus(root);if(onChange)onChange(state.origin);
 }
 
 /** Re-render the origin status text. */

@@ -1,14 +1,16 @@
+import { eventTime } from './preferences.js';
 /**
  * Weekly schedule.
  *
  * The schedule browses the week containing the selected date and shares one
- * selection with the map: clicking a row selects the event everywhere. Picking
- * a row from another day also moves the selected date, because a card view
- * showing a mixture of days would break the single-date contract.
+ * map markers retain location selection. Event rows open their AnchorLink
+ * source; separate buttons save events and open walking directions.
  */
 
 import { el, one, replace } from './dom.js';
 import { isSaved, state, toggleSaved } from './state.js';
+import { icon } from './icons.js';
+import { destinationFor, googleWalkingUrl } from './directions.js';
 
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
 const DAY_LABEL = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
@@ -19,37 +21,43 @@ function dayLabel(isoDate) {
   return `${WEEKDAY.format(date)} ${DAY_LABEL.format(date)}`;
 }
 
-function agendaRow(event, onSelect) {
+function agendaRow(event) {
   const classes = ['agenda-item'];
   if (event.cancelled) classes.push('is-cancelled');
-  if (state.selectedKey === event.identity_key) classes.push('is-selected');
   if (isSaved(event.date, event.identity_key)) classes.push('is-saved');
 
   const row = el(
-    'button',
+    event.event_url ? 'a' : 'div',
     {
-      type: 'button',
+      href: event.event_url,
+      target: '_blank',
+      rel: 'noopener noreferrer',
       class: classes.join(' '),
       dataset: { identityKey: event.identity_key, date: event.date },
     },
     [
-      el('span', { class: 'agenda-time', text: event.time_label }),
+      el('span', { class: 'agenda-time', text: eventTime(event) }),
       el('span', { class: 'agenda-title', text: event.title }),
     ],
   );
-  row.addEventListener('click', () => onSelect(event.date, event.identity_key));
   const save = el('button', {
-    type:'button', class:'agenda-save',
+    type:'button', class:'agenda-save icon-button',
     'aria-label':`${isSaved(event.date,event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
     'aria-pressed':String(isSaved(event.date,event.identity_key)),
-    text:isSaved(event.date,event.identity_key) ? 'Saved' : 'Save',
-  });
+    title:`${isSaved(event.date,event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
+  }, [icon('star')]);
   save.addEventListener('click', () => toggleSaved(event.date,event.identity_key));
-  return el('div',{class:'agenda-row'},[row,save]);
+  const url = googleWalkingUrl(state.origin, destinationFor(event));
+  const directions = url ? el('a', {class:'agenda-directions icon-button', href:url, target:'_blank', rel:'noopener noreferrer', 'aria-label':`Walking directions to ${event.title}`, title:`Walking directions to ${event.title}`}, [icon('directions')]) : null;
+  return el('div',{class:'agenda-row'},[row,save,directions]);
 }
 
 /** Render the agenda for the loaded week. */
-export function renderAgenda(root, { onSelect }) {
+export function futureWeekDays(days, today) {
+  return days.filter(day => day.date >= today);
+}
+
+export function renderAgenda(root) {
   const container = one('[data-role="agenda"]', root);
   if (!container) return;
 
@@ -68,7 +76,7 @@ export function renderAgenda(root, { onSelect }) {
     return;
   }
 
-  const days = state.week.days.map((day) => {
+  const days = futureWeekDays(state.week.days, state.config.today).map((day) => {
     const dateClasses = ['agenda-date'];
     if (state.config && day.date === state.config.today) dateClasses.push('is-today');
     const items = el('div', { class: 'agenda-items' });
@@ -76,7 +84,7 @@ export function renderAgenda(root, { onSelect }) {
       items.append(el('p', { class: 'agenda-empty', text: 'No listings' }));
     } else {
       for (const event of [...day.events].sort((a,b)=>(a.start || '99:99').localeCompare(b.start || '99:99') || a.title.localeCompare(b.title))) {
-        items.append(agendaRow(event, onSelect));
+        items.append(agendaRow(event));
       }
     }
     return el('section', { class: 'agenda-day' }, [
@@ -85,5 +93,5 @@ export function renderAgenda(root, { onSelect }) {
     ]);
   });
 
-  replace(container, days);
+  replace(container, days.length ? days : el('p', {class:'agenda-empty', text:'This week has ended. Choose today or a future date.'}));
 }
