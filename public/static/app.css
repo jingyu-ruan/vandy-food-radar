@@ -582,16 +582,48 @@ button { font: inherit; color: inherit; }
 .map-list button.is-selected { border-color: var(--accent); background: var(--accent-soft); }
 .map-list .map-list-sub { display: block; font-size: 12px; color: var(--ink-faint); }
 
-/* Leaflet marker styling kept minimal and non-decorative. */
+/* High-contrast activity markers over the naturally colored vector basemap. */
 .vfr-pin {
-  width: 11px;
-  height: 11px;
+  display: block;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid var(--surface);
+  background: #2563eb;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(30, 64, 175, .24);
 }
-.vfr-pin.is-saved { background: var(--ink); }
-.vfr-pin.is-origin { background: var(--focus); }
+.vfr-pin.is-saved { background: #e5ac20; box-shadow: 0 0 0 1px rgba(133, 88, 5, .35); }
+.vfr-pin.is-selected { outline: 3px solid #1d4ed8; outline-offset: 3px; }
+.vfr-pin.is-saved.is-selected { outline-color: #a66b08; }
+.vfr-pin.is-origin {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+  background: #3b82f6;
+  box-shadow: 0 0 0 5px rgba(59, 130, 246, .22);
+}
+.map-canvas .vfr-pin-wrap:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 5px; border-radius: 50%; }
+.map-canvas.leaflet-container .leaflet-control-zoom {
+  border: 1px solid #d2d2d7;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .12);
+  overflow: hidden;
+}
+.map-canvas.leaflet-container .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  background: #fff;
+  color: #334155;
+  border-color: #e4e4e7;
+  border-radius: 0;
+  font-size: 24px;
+}
+.map-canvas.leaflet-container .leaflet-control-zoom a:hover { background: #f1f5f9; }
+.map-canvas.leaflet-container .leaflet-control-zoom a:focus-visible { outline: 2px solid #2563eb; outline-offset: -3px; }
+.map-canvas.leaflet-container .leaflet-control-zoom a.leaflet-disabled { color: #94a3b8; }
+.map-canvas.leaflet-container .leaflet-control-attribution { background: rgba(255, 255, 255, .92); color: #475569; font-size: 11px; }
+.map-canvas.leaflet-container .leaflet-control-attribution a { color: #0066cc; }
 
 /* ----------------------------------------------------------- itinerary */
 
@@ -794,7 +826,6 @@ body, .workspace { background: var(--surface); }
   .schedule-map-host .map-canvas { height: calc(100dvh - 285px); min-height: 350px; }
 }
 .map-selection { margin:12px 0 0; font-size:12px; color:var(--ink-soft); }
-.vfr-pin.is-selected { width:15px; height:15px; outline:2px solid var(--ink); outline-offset:3px; }
 .agenda-day:has(.agenda-empty) { display:flex; align-items:baseline; gap:16px; padding:10px 0; }
 .agenda-day:has(.agenda-empty) .agenda-empty { margin:0; }
 .plan-layout { display:grid; grid-template-columns:minmax(300px,.9fr) minmax(300px,1.1fr); align-items:start; gap:24px; }
@@ -811,9 +842,6 @@ body, .workspace { background: var(--surface); }
   .plan-map-host { position:static; margin-top:20px; }
   .plan-map-host .map-canvas { min-height:300px; height:350px; }
 }
-.vfr-pin { display:block; background:var(--ink-soft); }
-.vfr-pin.is-saved { background:var(--accent); }
-.leaflet-tile-pane { filter:grayscale(.75) contrast(.97); }
 @media(min-width:801px) { .schedule-layout .agenda { max-height:calc(100vh - 210px); overflow-y:auto; padding-right:8px; } }
 :root { --ink-faint:#737379; }
 @media(prefers-color-scheme:dark) { :root { --ink-faint:#95959e; } }
@@ -824,3 +852,5 @@ body, .workspace { background: var(--surface); }
 .calendar-menu summary::after { content:'⌄'; font-size:12px; }
 .calendar-options { position:absolute; z-index:20; top:100%; left:0; width:170px; padding:6px; background:var(--surface); border:1px solid var(--line-strong); border-radius:8px; }
 .calendar-options .action { display:flex; align-items:center; min-height:44px; width:100%; white-space:nowrap; }
+
+.map-basemap-notice { position:absolute; top:10px; right:10px; left:70px; z-index:800; margin:0; padding:8px 10px; border-radius:6px; background:#fff; color:#475569; font-size:12px; line-height:1.4; }

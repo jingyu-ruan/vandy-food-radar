@@ -98,6 +98,13 @@ waypoints and a cache. Missing or failed routing is labelled as a distance-based
 estimate. Routing keys remain server-side.
 
 The Map view uses a desktop sidebar and a mobile overlay above the map.
+The basemap uses OpenFreeMap Liberty vector tiles rendered through MapLibre and
+Leaflet. Buildings use light neutral fills, parks retain natural green, and
+low-priority place labels appear only at closer zoom levels. Activity markers
+are blue; saved activities are gold, with an outer ring for selection. The
+public service requires no API key. If vector assets, WebGL, or map requests
+fail, standard OSM raster tiles appear with a notice. Visible attribution
+credits OpenFreeMap, OpenMapTiles, and OpenStreetMap.
 From and To search the verified campus dataset locally, with keyboard selection;
 events remain available in a destination dropdown. Current-location selection
 and explicit map selection modes remain available. In selection mode, campus markers,

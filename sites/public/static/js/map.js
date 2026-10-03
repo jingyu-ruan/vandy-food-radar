@@ -20,8 +20,10 @@ const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 const LEAFLET_CSS_SRI = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
 const LEAFLET_JS_SRI = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
-const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
+const BASEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
+const FALLBACK_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
+const BASEMAP_ATTRIBUTION = '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://openmaptiles.org">OpenMapTiles</a> ' + OSM_ATTRIBUTION;
 
 let leafletPromise = null;
 let map = null;
@@ -38,6 +40,69 @@ let routeLine = null;
 let routeGeneration = 0;
 let pinMode = null;
 let onPin = null;
+
+let vectorAssetsPromise = null;
+
+function loadMapAsset(tag, url, integrity) {
+  return new Promise((resolve, reject) => {
+    const asset = el(tag, {
+      ...(tag === 'link' ? {rel: 'stylesheet', href: url} : {src: url}),
+      integrity, crossorigin: 'anonymous',
+    });
+    asset.addEventListener('load', resolve, {once: true});
+    asset.addEventListener('error', () => reject(new Error('could not load the vector basemap')), {once: true});
+    document.head.append(asset);
+  });
+}
+
+function loadVectorAssets() {
+  if (!vectorAssetsPromise) {
+    vectorAssetsPromise = Promise.all([
+      loadMapAsset('link', 'https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css', 'sha256-eSrJl9z2rm9kPrTi3uRjDIXnBWUmvY+4X/6Dxn1sQbQ='),
+      loadMapAsset('script', 'https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js', 'sha256-taNOaTD/k327ue7IiSz/uAukc8zoiuXKjEZUQy9fDrw='),
+    ]).then(() => loadMapAsset('script', 'https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js', 'sha256-Hmz4yz61/ZCYeaob82o4P7UGyaWy27+rq85lopTdH8s='));
+  }
+  return vectorAssetsPromise;
+}
+
+async function addBasemap(L, canvas) {
+  let vectorLayer;
+  let fallbackActive = false;
+  const fallback = () => {
+    if (fallbackActive) return;
+    fallbackActive = true;
+    vectorLayer?.remove();
+    map.attributionControl.removeAttribution(BASEMAP_ATTRIBUTION);
+    L.tileLayer(FALLBACK_TILE_URL, {maxZoom: 19, attribution: OSM_ATTRIBUTION}).addTo(map);
+    canvas.append(el('p', {class: 'map-basemap-notice', text: 'Simplified basemap unavailable. Showing the standard map.'}));
+  };
+  try {
+    await loadVectorAssets();
+    vectorLayer = L.maplibreGL({style: BASEMAP_STYLE, attribution: BASEMAP_ATTRIBUTION, attributionControl: false}).addTo(map);
+    map.attributionControl.addAttribution(BASEMAP_ATTRIBUTION);
+    const renderer = vectorLayer.getMaplibreMap();
+    renderer.once('style.load', () => {
+      // A flat, light campus background leaves activity markers prominent.
+      renderer.setLayerZoomRange('building', 13, 24);
+      renderer.setPaintProperty('background', 'background-color', '#fafbf9');
+      renderer.setPaintProperty('landuse_residential', 'fill-color', '#f3f4f1');
+      renderer.setPaintProperty('building', 'fill-color', '#e4e7e6');
+      renderer.setPaintProperty('building', 'fill-outline-color', '#d9dde2');
+      renderer.setPaintProperty('park', 'fill-color', '#cfe5c4');
+      renderer.setPaintProperty('park', 'fill-opacity', 1);
+      renderer.setPaintProperty('landcover_grass', 'fill-opacity', .55);
+      renderer.setPaintProperty('park', 'fill-outline-color', '#cfe5c4');
+      renderer.removeLayer('building-3d');
+      for (const [id, zoom] of [['poi_r1', 17], ['poi_r7', 18], ['poi_r20', 19]]) {
+        renderer.setLayerZoomRange(id, zoom, 24);
+      }
+    });
+    // Recover from blocked style/tile requests instead of leaving a blank map.
+    renderer.once('error', fallback);
+  } catch {
+    fallback();
+  }
+}
 
 function loadStylesheet() {
   if (document.querySelector('link[data-leaflet]')) return;
@@ -95,8 +160,8 @@ function markerFor(L, event) {
   const icon = L.divIcon({
     className: 'vfr-pin-wrap',
     html: `<span class="vfr-pin${saved ? ' is-saved' : ''}${state.selectedKey === event.identity_key ? ' is-selected' : ''}"></span>`,
-    iconSize: [11, 11],
-    iconAnchor: [6, 6],
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
   });
   const marker = L.marker([event.place.lat, event.place.lng], {
     icon,
@@ -121,7 +186,7 @@ function renderList(root, onSelect) {
   if (selection) {
     selection.textContent = displayText(selected
       ? `${selected.title} — ${selected.date}, ${eventTime(selected)}. ${selected.place.name}${selected.place.detail ? ', '+selected.place.detail : ''}`
-      : 'Choose a map marker to see its location. Saved events have yellow markers.');
+      : 'Choose a map marker to see its location. Saved events have gold markers.');
   }
   if (!events.length) {
     replace(
@@ -185,11 +250,11 @@ export async function showMap(root, { onSelect, onPinned }) {
 
   replace(canvas, []);
   const reference = state.origin || state.config.reference;
-  map = L.map(canvas, { zoomControl: true, attributionControl: true }).setView(
+  map = L.map(canvas, { zoomControl: true, attributionControl: true, minZoom: 2, maxZoom: 20 }).setView(
     [reference.lat, reference.lng],
     16,
   );
-  L.tileLayer(TILE_URL, {maxZoom:19, keepBuffer:4, attribution:TILE_ATTRIBUTION}).addTo(map);
+  await addBasemap(L, canvas);
   markerLayer = L.layerGroup().addTo(map);
   map.on('click', (clickEvent) => {
     if (!pinMode || !onPin) return;
@@ -233,7 +298,7 @@ export function syncMarkers(root, onSelect) {
       icon: L.divIcon({
         className: 'vfr-pin-wrap',
         html: '<span class="vfr-pin is-origin"></span>',
-        iconSize: [11, 11],
+        iconSize: [12, 12],
         iconAnchor: [6, 6],
       }),
       title: origin.label,

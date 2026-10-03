@@ -151,8 +151,13 @@ rather than trusted.
 
 ### Map
 
-The map view is **free-first**: Leaflet and OpenStreetMap tiles, no API key and
-no billing account. Leaflet is loaded on demand the first time the map opens,
+The map uses Leaflet with an OpenFreeMap Liberty vector basemap, rendered by
+MapLibre. Light building fills, natural park colors, and fewer low-priority
+place labels keep blue activity markers and gold saved markers legible.
+OpenFreeMap, OpenMapTiles, and OpenStreetMap attribution remains visible.
+No API key is required by the public OpenFreeMap service. If vector assets,
+WebGL, or basemap requests fail, the map falls back to standard OSM raster tiles
+and displays a notice. Leaflet is loaded on demand the first time the map opens,
 from a CDN with Subresource Integrity hashes; if that fetch fails the panel
 says the map is unavailable and keeps the adjacent list of mapped listings
 usable. Markers are drawn only for events whose location matched the curated
