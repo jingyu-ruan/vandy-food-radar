@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+<title>Vandy Food Radar — serif mark</title>
+  <path d="M55.5 37A24 24 0 1 1 41.5 9.95" stroke="#F5F5F7" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M16.5 24H27.7V25.1C25.8 25.1 25.4 25.8 26.2 27.3L32.2 39.8L38.4 27.2C39.2 25.6 38.7 25.1 36.7 25.1V24H47V25.1C45.2 25.2 44.4 26 43.5 27.7L32.2 49L20.6 27.7C19.7 26 18.8 25.2 16.5 25.1Z" fill="#F5F5F7"/>
+  <path d="M-4-10v6a4 4 0 0 0 8 0v-6M0-10v7" transform="translate(21 25) rotate(-28)" stroke="#F5F5F7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse cx="0" cy="-4" rx="4.3" ry="7.3" transform="translate(43 24) rotate(28)" fill="#F5F5F7"/>
+  <circle cx="53" cy="11" r="3.3" fill="#CFAE70"/>
+</svg>

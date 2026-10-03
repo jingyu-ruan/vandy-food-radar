@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Bites at Vandy — Logo &amp; Favicon Design</title>
+<style>
+  :root{
+    --surface:#ffffff;
+    --surface-sunken:#f5f5f7;
+    --surface-raised:#ffffff;
+    --ink:#1d1d1f;
+    --ink-soft:#55555b;
+    --ink-faint:#6e6e73;
+    --line:#e5e5e9;
+    --line-strong:#c5c5cc;
+    --accent:#0066cc;
+    --accent-soft:#eaf3ff;
+    --vandy-black:#000000;
+    --vandy-gold:#866D4B;
+    --vandy-gold-bright:#CFB991; /* kept for reference, not primary */
+    --radius:16px;
+    --radius-sm:9px;
+    --font:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--font);
+    background:var(--surface-sunken);
+    color:var(--ink);
+    line-height:1.5;
+    padding:0 0 80px;
+  }
+  header.page-head{
+    padding:56px max(28px,calc((100vw - 1200px)/2)) 36px;
+    background:var(--surface);
+    border-bottom:1px solid var(--line);
+  }
+  .page-head h1{
+    font-size:34px;
+    font-weight:650;
+    letter-spacing:-0.03em;
+    margin:0 0 10px;
+  }
+  .page-head p{
+    margin:0;
+    max-width:720px;
+    color:var(--ink-soft);
+    font-size:16px;
+  }
+  main{
+    max-width:1200px;
+    margin:0 auto;
+    padding:0 28px;
+  }
+  section{
+    margin-top:56px;
+  }
+  h2.section-title{
+    font-size:13px;
+    font-weight:650;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0 0 20px;
+  }
+
+  /* ---------- Hero mark showcase ---------- */
+  .hero-grid{
+    display:grid;
+    grid-template-columns: 340px minmax(0,1fr);
+    gap:40px;
+    align-items:center;
+  }
+  .hero-mark-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:24px;
+    padding:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .hero-mark-card svg{ width:220px; height:220px; }
+  .hero-copy h3{
+    font-size:24px;
+    letter-spacing:-0.02em;
+    margin:0 0 12px;
+  }
+  .hero-copy p{
+    color:var(--ink-soft);
+    font-size:15px;
+    max-width:620px;
+    margin:0 0 10px;
+  }
+  .rationale-list{
+    margin:18px 0 0;
+    padding:0;
+    list-style:none;
+    display:grid;
+    gap:10px;
+    max-width:640px;
+  }
+  .rationale-list li{
+    display:flex;
+    gap:10px;
+    font-size:14px;
+    color:var(--ink-soft);
+  }
+  .rationale-list li::before{
+    content:"";
+    flex:none;
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:var(--accent);
+    margin-top:7px;
+  }
+  .rationale-list b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Lockup variants ---------- */
+  .lockup-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:20px;
+  }
+  .swatch{
+    flex:1 1 260px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:28px 24px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    min-height:160px;
+  }
+  .swatch.on-dark{ background:#111113; }
+  .swatch.on-gold{ background:#13110c; }
+  .swatch .caption{
+    font-size:12px;
+    color:var(--ink-faint);
+    text-align:center;
+  }
+  .swatch.on-dark .caption, .swatch.on-gold .caption{ color:#9a9aa2; }
+
+  .wordmark{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .wordmark svg{ width:40px; height:40px; flex:none; }
+  .wordmark .word{
+    font-size:21px;
+    font-weight:650;
+    letter-spacing:-0.03em;
+    color:var(--ink);
+  }
+  .swatch.on-dark .wordmark .word, .swatch.on-gold .wordmark .word{ color:#f5f5f7; }
+  .word .accent-dot{ color:var(--accent); }
+
+  /* ---------- Favicon / app icon grid ---------- */
+  .icon-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:20px;
+  }
+  .icon-cell{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius-sm);
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+  }
+  .icon-cell .size-label{
+    font-size:12px;
+    color:var(--ink-faint);
+    font-variant-numeric:tabular-nums;
+  }
+  .tile-16{ width:16px; height:16px; }
+  .tile-32{ width:32px; height:32px; }
+  .tile-48{ width:48px; height:48px; }
+  .tile-64{ width:64px; height:64px; }
+  .tile-120{ width:120px; height:120px; }
+
+  .app-icon-shape{
+    border-radius:22.5%;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(160deg,#15151a 0%, #000000 62%);
+  }
+  .app-icon-shape svg{ width:68%; height:68%; }
+
+  /* browser tab mock */
+  .tab-mock{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:#e9e9ec;
+    border-radius:10px 10px 0 0;
+    padding:9px 16px 9px 12px;
+    font-size:13px;
+    color:#3c3c43;
+    box-shadow: inset 0 1px 0 #fff;
+  }
+  .tab-mock svg{ width:16px; height:16px; flex:none; }
+  .browser-chrome{
+    background:#d6d6da;
+    border-radius:12px 12px 0 0;
+    padding:10px 10px 0;
+    display:inline-block;
+  }
+  .browser-body{
+    background:#fff;
+    border-radius:0 0 10px 10px;
+    padding:26px 30px;
+    min-width:360px;
+  }
+  .browser-body h4{ margin:0 0 6px; font-size:18px; letter-spacing:-0.02em; }
+  .browser-body p{ margin:0; color:var(--ink-faint); font-size:13px; }
+
+  /* ---------- Construction / grid explainer ---------- */
+  .construction{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:36px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:36px;
+    align-items:center;
+  }
+  .construction svg{ width:100%; max-width:320px; height:auto; justify-self:center; }
+  .construction .notes p{
+    font-size:14px;
+    color:var(--ink-soft);
+    margin:0 0 12px;
+  }
+  .construction .notes b{ color:var(--ink); }
+
+  /* ---------- color palette ---------- */
+  .palette{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .pal-item{
+    width:150px;
+    border-radius:var(--radius-sm);
+    overflow:hidden;
+    border:1px solid var(--line);
+    background:var(--surface);
+  }
+  .pal-swatch{ height:70px; }
+  .pal-meta{ padding:10px 12px; }
+  .pal-meta .name{ font-size:13px; font-weight:600; }
+  .pal-meta .hex{ font-size:12px; color:var(--ink-faint); font-variant-numeric:tabular-nums; }
+
+  footer.page-foot{
+    max-width:1200px;
+    margin:72px auto 0;
+    padding:28px;
+    color:var(--ink-faint);
+    font-size:13px;
+    border-top:1px solid var(--line);
+  }
+
+  @media(max-width:860px){
+    .hero-grid{ grid-template-columns:1fr; }
+    .construction{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <h1>Free Bites at Vandy — 图标与 Logo 设计</h1>
+  <p>一枚雷达脉冲与叉子相融合的符号标记：以苹果开发者工具（SF Symbols / App Store）惯用的单线条、几何对称语言绘制，中心叉齿替代雷达扫描的指针，暗示“扫描校园、发现免费餐食”。黑色为主、范德堡金色点缀扫描弧线，与网站自身蓝色强调色（#0066cc）共同呼应产品实际配色，矢量图与 Logo 共用同一基础符号，仅排版与配色场景不同。</p>
+</header>
+
+<main>
+
+  <!-- HERO -->
+  <section>
+    <h2 class="section-title">核心符号 · Primary Mark</h2>
+    <div class="hero-grid">
+      <div class="hero-mark-card">
+        <!-- PRIMARY MARK: radar-fork glyph -->
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Free Bites at Vandy mark">
+          <defs>
+            <radialGradient id="sweepGrad" cx="50%" cy="50%" r="60%">
+              <stop offset="0%" stop-color="#866D4B" stop-opacity="0.55"/>
+              <stop offset="100%" stop-color="#866D4B" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <!-- outer radar rings, SF-symbol monoline weight -->
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#000000" stroke-width="4"/>
+          <circle cx="50" cy="50" r="33" fill="none" stroke="#000000" stroke-width="3" opacity="0.55"/>
+          <circle cx="50" cy="50" r="20" fill="none" stroke="#000000" stroke-width="3" opacity="0.3"/>
+          <!-- sweep wedge in Vanderbilt gold -->
+          <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="url(#sweepGrad)"/>
+          <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="none" stroke="#866D4B" stroke-width="2" stroke-linejoin="round" opacity="0.9"/>
+          <!-- fork as radar needle: tines point to 12 o'clock -->
+          <g transform="translate(50,50)">
+            <!-- handle -->
+            <rect x="-2.6" y="-2" width="5.2" height="34" rx="2.6" fill="#000000"/>
+            <!-- neck -->
+            <path d="M-2.6 -2 L-2.6 -14 Q-2.6 -20 0 -20 Q2.6 -20 2.6 -14 L2.6 -2 Z" fill="#000000"/>
+            <!-- three tines -->
+            <rect x="-9" y="-40" width="4.2" height="22" rx="2.1" fill="#000000"/>
+            <rect x="-2.1" y="-44" width="4.2" height="26" rx="2.1" fill="#000000"/>
+            <rect x="4.8" y="-40" width="4.2" height="22" rx="2.1" fill="#000000"/>
+            <!-- tine bridge -->
+            <path d="M-9 -20 Q0 -14 8.9 -20 L8.9 -17 Q0 -11.5 -9 -17 Z" fill="#000000"/>
+            <!-- center hub / blip -->
+            <circle cx="0" cy="0" r="4.4" fill="#0066cc"/>
+          </g>
+          <!-- blips: campus locations detected by radar -->
+          <circle cx="74" cy="30" r="2.6" fill="#0066cc"/>
+          <circle cx="24" cy="66" r="2" fill="#0066cc" opacity="0.6"/>
+          <circle cx="68" cy="70" r="1.6" fill="#0066cc" opacity="0.4"/>
+        </svg>
+      </div>
+      <div class="hero-copy">
+        <h3>雷达扫描 × 餐叉指针</h3>
+        <p>整体外形是一枚标准的雷达符号：三道同心圆环代表扫描范围，一道扇形扫描光束（范德堡金色 #866D4B）如同雷达正在扫过校园。扫描指针不是普通箭头，而是一把三齿餐叉——叉齿指向 12 点方向，叉柄即是雷达的"针"，直接把"雷达"和"美食"两个产品核心概念叠合成一个符号，而不是把两个图形并排堆砌。</p>
+        <p>蓝色圆点（#0066cc，与站内 <code>--accent</code> 完全一致）散布在扫描范围内，像雷达探测到的几个事件信号，呼应产品"发现免费餐食活动"的核心功能；中心叉柄基座的蓝点则是"你所在的位置"。</p>
+        <ul class="rationale-list">
+          <li><b>苹果开发者气质：</b>采用 SF Symbols 式单色线性图形规则——等粗描边、正圆几何、44° 倍数对称切角，避免渐变插画感；整体可在 16–1024px 任意缩放不失真，符合 App Store / Human Interface Guidelines 的图标构建逻辑。</li>
+          <li><b>范德堡元素：</b>主色取黑与范德堡金（Vanderbilt Black &amp; Gold 官方配色里偏克制的金棕色 #866D4B，而非荧光金色），克制地出现在扫描扇形与描边细节上，不喧宾夺主。</li>
+          <li><b>与站内视觉一致：</b>蓝色强调色直接取自网站 CSS 变量 <code>--accent:#0066cc</code>，让图标在应用内外保持同一套色彩语言。</li>
+          <li><b>矢量图与 Logo 关系：</b>两者共用同一符号主体；favicon/标签图标裁切为纯符号在深色圆角方块容器中呈现（贴近 App Store 图标规范），而完整 Logo 版本在符号右侧加入 wordmark，用于页头、分享卡片等更大场景。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORDMARK LOCKUPS -->
+  <section>
+    <h2 class="section-title">完整 Logo · Wordmark Lockup</h2>
+    <div class="lockup-row">
+      <div class="swatch">
+        <div class="wordmark">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#000000" stroke-width="4"/>
+            <circle cx="50" cy="50" r="33" fill="none" stroke="#000000" stroke-width="3" opacity="0.55"/>
+            <circle cx="50" cy="50" r="20" fill="none" stroke="#000000" stroke-width="3" opacity="0.3"/>
+            <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="#866D4B" opacity="0.5"/>
+            <g transform="translate(50,50)">
+              <rect x="-2.6" y="-2" width="5.2" height="34" rx="2.6" fill="#000000"/>
+              <path d="M-2.6 -2 L-2.6 -14 Q-2.6 -20 0 -20 Q2.6 -20 2.6 -14 L2.6 -2 Z" fill="#000000"/>
+              <rect x="-9" y="-40" width="4.2" height="22" rx="2.1" fill="#000000"/>
+              <rect x="-2.1" y="-44" width="4.2" height="26" rx="2.1" fill="#000000"/>
+              <rect x="4.8" y="-40" width="4.2" height="22" rx="2.1" fill="#000000"/>
+              <path d="M-9 -20 Q0 -14 8.9 -20 L8.9 -17 Q0 -11.5 -9 -17 Z" fill="#000000"/>
+              <circle cx="0" cy="0" r="4.4" fill="#0066cc"/>
+            </g>
+            <circle cx="74" cy="30" r="2.6" fill="#0066cc"/>
+          </svg>
+          <span class="word">Free Bites <span class="accent-dot">at Vandy</span></span>
+        </div>
+        <div class="caption">浅色界面 · 页头主用</div>
+      </div>
+
+      <div class="swatch on-dark">
+        <div class="wordmark">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#f5f5f7" stroke-width="4"/>
+            <circle cx="50" cy="50" r="33" fill="none" stroke="#f5f5f7" stroke-width="3" opacity="0.5"/>
+            <circle cx="50" cy="50" r="20" fill="none" stroke="#f5f5f7" stroke-width="3" opacity="0.28"/>
+            <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="#CFB991" opacity="0.55"/>
+            <g transform="translate(50,50)">
+              <rect x="-2.6" y="-2" width="5.2" height="34" rx="2.6" fill="#f5f5f7"/>
+              <path d="M-2.6 -2 L-2.6 -14 Q-2.6 -20 0 -20 Q2.6 -20 2.6 -14 L2.6 -2 Z" fill="#f5f5f7"/>
+              <rect x="-9" y="-40" width="4.2" height="22" rx="2.1" fill="#f5f5f7"/>
+              <rect x="-2.1" y="-44" width="4.2" height="26" rx="2.1" fill="#f5f5f7"/>
+              <rect x="4.8" y="-40" width="4.2" height="22" rx="2.1" fill="#f5f5f7"/>
+              <path d="M-9 -20 Q0 -14 8.9 -20 L8.9 -17 Q0 -11.5 -9 -17 Z" fill="#f5f5f7"/>
+              <circle cx="0" cy="0" r="4.4" fill="#64aaff"/>
+            </g>
+            <circle cx="74" cy="30" r="2.6" fill="#64aaff"/>
+          </svg>
+          <span class="word">Free Bites <span style="color:#64aaff">at Vandy</span></span>
+        </div>
+        <div class="caption">暗色模式 · 对应站内 dark theme 变量</div>
+      </div>
+
+      <div class="swatch">
+        <svg viewBox="0 0 100 100" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#000000" stroke-width="4"/>
+          <circle cx="50" cy="50" r="33" fill="none" stroke="#000000" stroke-width="3" opacity="0.55"/>
+          <circle cx="50" cy="50" r="20" fill="none" stroke="#000000" stroke-width="3" opacity="0.3"/>
+          <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="#866D4B" opacity="0.5"/>
+          <g transform="translate(50,50)">
+            <rect x="-2.6" y="-2" width="5.2" height="34" rx="2.6" fill="#000000"/>
+            <path d="M-2.6 -2 L-2.6 -14 Q-2.6 -20 0 -20 Q2.6 -20 2.6 -14 L2.6 -2 Z" fill="#000000"/>
+            <rect x="-9" y="-40" width="4.2" height="22" rx="2.1" fill="#000000"/>
+            <rect x="-2.1" y="-44" width="4.2" height="26" rx="2.1" fill="#000000"/>
+            <rect x="4.8" y="-40" width="4.2" height="22" rx="2.1" fill="#000000"/>
+            <path d="M-9 -20 Q0 -14 8.9 -20 L8.9 -17 Q0 -11.5 -9 -17 Z" fill="#000000"/>
+            <circle cx="0" cy="0" r="4.4" fill="#0066cc"/>
+          </g>
+          <circle cx="74" cy="30" r="2.6" fill="#0066cc"/>
+        </svg>
+        <div class="caption">纯符号 · 无文字<br>适用于极小尺寸场景</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAVICON / APP ICON -->
+  <section>
+    <h2 class="section-title">标签页图标 · Favicon &amp; App Icon</h2>
+    <div class="icon-grid">
+      <div class="icon-cell">
+        <div class="app-icon-shape tile-16">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#f5f5f7" stroke-width="7"/>
+            <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="#CFB991" opacity="0.6"/>
+            <g transform="translate(50,50)">
+              <rect x="-4" y="-2" width="8" height="36" rx="4" fill="#f5f5f7"/>
+              <rect x="-13" y="-42" width="7" height="24" rx="3.5" fill="#f5f5f7"/>
+              <rect x="-3.5" y="-46" width="7" height="28" rx="3.5" fill="#f5f5f7"/>
+              <rect x="6" y="-42" width="7" height="24" rx="3.5" fill="#f5f5f7"/>
+              <path d="M-13 -20 Q0 -12 13 -20 L13 -16 Q0 -8 -13 -16 Z" fill="#f5f5f7"/>
+              <circle cx="0" cy="0" r="7" fill="#64aaff"/>
+            </g>
+          </svg>
+        </div>
+        <div class="size-label">16 × 16</div>
+      </div>
+      <div class="icon-cell">
+        <div class="app-icon-shape tile-32">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#f5f5f7" stroke-width="6"/>
+            <circle cx="50" cy="50" r="30" fill="none" stroke="#f5f5f7" stroke-width="3" opacity="0.4"/>
+            <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="#CFB991" opacity="0.6"/>
+            <g transform="translate(50,50)">
+              <rect x="-3.4" y="-2" width="6.8" height="35" rx="3.4" fill="#f5f5f7"/>
+              <rect x="-11.5" y="-42" width="6" height="23" rx="3" fill="#f5f5f7"/>
+              <rect x="-3" y="-46" width="6" height="27" rx="3" fill="#f5f5f7"/>
+              <rect x="5.5" y="-42" width="6" height="23" rx="3" fill="#f5f5f7"/>
+              <path d="M-11.5 -20 Q0 -13 11.5 -20 L11.5 -16.5 Q0 -9.5 -11.5 -16.5 Z" fill="#f5f5f7"/>
+              <circle cx="0" cy="0" r="6" fill="#64aaff"/>
+            </g>
+          </svg>
+        </div>
+        <div class="size-label">32 × 32</div>
+      </div>
+      <div class="icon-cell">
+        <div class="app-icon-shape tile-48">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#f5f5f7" stroke-width="5"/>
+            <circle cx="50" cy="50" r="30" fill="none" stroke="#f5f5f7" stroke-width="3" opacity="0.4"/>
+            <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="#CFB991" opacity="0.6"/>
+            <g transform="translate(50,50)">
+              <rect x="-3" y="-2" width="6" height="34" rx="3" fill="#f5f5f7"/>
+              <rect x="-10" y="-42" width="5.4" height="22" rx="2.7" fill="#f5f5f7"/>
+              <rect x="-2.7" y="-46" width="5.4" height="26" rx="2.7" fill="#f5f5f7"/>
+              <rect x="4.6" y="-42" width="5.4" height="22" rx="2.7" fill="#f5f5f7"/>
+              <path d="M-10 -20 Q0 -13.5 10 -20 L10 -17 Q0 -10.5 -10 -17 Z" fill="#f5f5f7"/>
+              <circle cx="0" cy="0" r="5.4" fill="#64aaff"/>
+            </g>
+            <circle cx="74" cy="30" r="3" fill="#64aaff"/>
+          </svg>
+        </div>
+        <div class="size-label">48 × 48</div>
+      </div>
+      <div class="icon-cell">
+        <div class="app-icon-shape tile-64">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#f5f5f7" stroke-width="4.5"/>
+            <circle cx="50" cy="50" r="33" fill="none" stroke="#f5f5f7" stroke-width="3" opacity="0.5"/>
+            <circle cx="50" cy="50" r="20" fill="none" stroke="#f5f5f7" stroke-width="3" opacity="0.28"/>
+            <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="#CFB991" opacity="0.55"/>
+            <g transform="translate(50,50)">
+              <rect x="-2.6" y="-2" width="5.2" height="34" rx="2.6" fill="#f5f5f7"/>
+              <path d="M-2.6 -2 L-2.6 -14 Q-2.6 -20 0 -20 Q2.6 -20 2.6 -14 L2.6 -2 Z" fill="#f5f5f7"/>
+              <rect x="-9" y="-40" width="4.2" height="22" rx="2.1" fill="#f5f5f7"/>
+              <rect x="-2.1" y="-44" width="4.2" height="26" rx="2.1" fill="#f5f5f7"/>
+              <rect x="4.8" y="-40" width="4.2" height="22" rx="2.1" fill="#f5f5f7"/>
+              <path d="M-9 -20 Q0 -14 8.9 -20 L8.9 -17 Q0 -11.5 -9 -17 Z" fill="#f5f5f7"/>
+              <circle cx="0" cy="0" r="4.4" fill="#64aaff"/>
+            </g>
+            <circle cx="74" cy="30" r="2.6" fill="#64aaff"/>
+          </svg>
+        </div>
+        <div class="size-label">64 × 64</div>
+      </div>
+      <div class="icon-cell">
+        <div class="app-icon-shape tile-120">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#f5f5f7" stroke-width="4"/>
+            <circle cx="50" cy="50" r="33" fill="none" stroke="#f5f5f7" stroke-width="3" opacity="0.55"/>
+            <circle cx="50" cy="50" r="20" fill="none" stroke="#f5f5f7" stroke-width="3" opacity="0.3"/>
+            <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="#CFB991" opacity="0.55"/>
+            <g transform="translate(50,50)">
+              <rect x="-2.6" y="-2" width="5.2" height="34" rx="2.6" fill="#f5f5f7"/>
+              <path d="M-2.6 -2 L-2.6 -14 Q-2.6 -20 0 -20 Q2.6 -20 2.6 -14 L2.6 -2 Z" fill="#f5f5f7"/>
+              <rect x="-9" y="-40" width="4.2" height="22" rx="2.1" fill="#f5f5f7"/>
+              <rect x="-2.1" y="-44" width="4.2" height="26" rx="2.1" fill="#f5f5f7"/>
+              <rect x="4.8" y="-40" width="4.2" height="22" rx="2.1" fill="#f5f5f7"/>
+              <path d="M-9 -20 Q0 -14 8.9 -20 L8.9 -17 Q0 -11.5 -9 -17 Z" fill="#f5f5f7"/>
+              <circle cx="0" cy="0" r="4.4" fill="#64aaff"/>
+            </g>
+            <circle cx="74" cy="30" r="2.6" fill="#64aaff"/>
+            <circle cx="24" cy="66" r="2" fill="#64aaff" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="size-label">120 × 120 (iOS)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BROWSER TAB MOCK -->
+  <section>
+    <h2 class="section-title">浏览器标签页实景预览</h2>
+    <div class="browser-chrome">
+      <span class="tab-mock">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="46" fill="none" stroke="#000000" stroke-width="6"/>
+          <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="#866D4B" opacity="0.55"/>
+          <g transform="translate(50,50)">
+            <rect x="-3.4" y="-2" width="6.8" height="35" rx="3.4" fill="#000000"/>
+            <rect x="-11.5" y="-42" width="6" height="23" rx="3" fill="#000000"/>
+            <rect x="-3" y="-46" width="6" height="27" rx="3" fill="#000000"/>
+            <rect x="5.5" y="-42" width="6" height="23" rx="3" fill="#000000"/>
+            <path d="M-11.5 -20 Q0 -13 11.5 -20 L11.5 -16.5 Q0 -9.5 -11.5 -16.5 Z" fill="#000000"/>
+            <circle cx="0" cy="0" r="6" fill="#0066cc"/>
+          </g>
+        </svg>
+        Free Bites at Vandy — Thu, Oct 3
+      </span>
+      <div class="browser-body">
+        <h4>Free Bites at Vandy</h4>
+        <p>May the fork be with you.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONSTRUCTION -->
+  <section>
+    <h2 class="section-title">构成逻辑 · Construction</h2>
+    <div class="construction">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#c5c5cc" stroke-width="1"/>
+        <circle cx="50" cy="50" r="33" fill="none" stroke="#c5c5cc" stroke-width="1"/>
+        <circle cx="50" cy="50" r="20" fill="none" stroke="#c5c5cc" stroke-width="1"/>
+        <line x1="50" y1="0" x2="50" y2="100" stroke="#c5c5cc" stroke-width="0.5"/>
+        <line x1="0" y1="50" x2="100" y2="50" stroke="#c5c5cc" stroke-width="0.5"/>
+        <line x1="8.6" y1="8.6" x2="91.4" y2="91.4" stroke="#c5c5cc" stroke-width="0.5"/>
+        <line x1="8.6" y1="91.4" x2="91.4" y2="8.6" stroke="#c5c5cc" stroke-width="0.5"/>
+        <path d="M50 50 L50 4 A46 46 0 0 1 92.5 36 Z" fill="#866D4B" opacity="0.25" stroke="#866D4B" stroke-width="0.75"/>
+        <g transform="translate(50,50)" stroke="#0066cc" stroke-width="0.5" fill="none">
+          <rect x="-2.6" y="-2" width="5.2" height="34" rx="2.6"/>
+          <rect x="-9" y="-40" width="4.2" height="22" rx="2.1"/>
+          <rect x="-2.1" y="-44" width="4.2" height="26" rx="2.1"/>
+          <rect x="4.8" y="-40" width="4.2" height="22" rx="2.1"/>
+        </g>
+        <circle cx="50" cy="50" r="1" fill="#0066cc"/>
+      </svg>
+      <div class="notes">
+        <p><b>圆环节奏：</b>r=20 / 33 / 46，以 13px 等差排布，和 SF Symbols 的同心圆规则一致，确保在任意尺寸缩放时线宽关系不被破坏。</p>
+        <p><b>45° 对角网格：</b>扫描扇形精确跨越 90°（12 点到 2 点方向），符合雷达扫描惯用的象限切法，并留出右上角空间放置"信号点"。</p>
+        <p><b>叉齿比例：</b>三齿等宽 4.2 单位、齿缝 2.8 单位，与叉柄宽度 5.2 单位形成视觉主次，确保在 16px 极小尺寸仍可辨认为餐具。</p>
+        <p><b>中心基准点：</b>蓝色圆点同时是"雷达原点"与"叉柄下端"，一个图形元素承担两层语义，是整套符号最核心的双关设计。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PALETTE -->
+  <section>
+    <h2 class="section-title">色彩来源 · Palette</h2>
+    <div class="palette">
+      <div class="pal-item">
+        <div class="pal-swatch" style="background:#000000"></div>
+        <div class="pal-meta"><div class="name">主线 / Ink</div><div class="hex">#000000</div></div>
+      </div>
+      <div class="pal-item">
+        <div class="pal-swatch" style="background:#866D4B"></div>
+        <div class="pal-meta"><div class="name">范德堡金（克制版）</div><div class="hex">#866D4B</div></div>
+      </div>
+      <div class="pal-item">
+        <div class="pal-swatch" style="background:#CFB991"></div>
+        <div class="pal-meta"><div class="name">暗色场景提亮金</div><div class="hex">#CFB991</div></div>
+      </div>
+      <div class="pal-item">
+        <div class="pal-swatch" style="background:#0066cc"></div>
+        <div class="pal-meta"><div class="name">站内 Accent（亮色）</div><div class="hex">#0066cc</div></div>
+      </div>
+      <div class="pal-item">
+        <div class="pal-swatch" style="background:#64aaff"></div>
+        <div class="pal-meta"><div class="name">站内 Accent（暗色）</div><div class="hex">#64aaff</div></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="page-foot">
+  Free Bites at Vandy · Brand mark exploration — radar + fork glyph, SF Symbols–style construction, Vanderbilt black &amp; gold with site-native accent blue.
+</footer>
+
+</body>
+</html>

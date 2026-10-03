@@ -8,6 +8,7 @@
  * `safeUrl` accepted them as absolute http(s) URLs in the view model.
  */
 
+import {eventAnchor, participationText} from "@/public/static/js/brief.js";
 import { Fragment } from "react";
 import { ActionIcon } from "./action-icon";
 import { foodPresentation } from "@/public/static/js/food-presentation.js";
@@ -68,6 +69,8 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
   return (
     <article
       className={`card is-${card.state}`}
+      id={eventAnchor(card.identity_key)}
+      tabIndex={-1}
       data-identity-key={card.identity_key}
       data-date={card.date}
       {...(card.place ? { "data-lat": card.place.lat, "data-lng": card.place.lng } : {})}
@@ -100,7 +103,7 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
         </Fact>
         <PlaceFact card={card} />
         {card.place && card.location_listed ? (
-          <Fact label="Listed as">
+          <Fact label="Listed As">
             <span className="fact-text">{card.location_listed}</span>
           </Fact>
         ) : null}
@@ -129,7 +132,7 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
           <span className="fact-text">{card.organizer || "Not listed"}</span>
         </Fact>
         <Fact label="Participation" wide>
-          <span className="fact-text">{card.participation.note}</span>
+          <span className="fact-text" title={card.participation.ai_evidence ? `Source: ${card.participation.ai_evidence}` : undefined}>{participationText(card.participation)}</span>
         </Fact>
       </dl>
 

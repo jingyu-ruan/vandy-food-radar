@@ -74,7 +74,10 @@
     <header class="work-head">
       <div class="work-head-row">
         <button type="button" class="mobile-settings control-button" data-action="toggle-sidebar" aria-expanded="false" aria-controls="workspace-sidebar">Location & saved</button>
-        <h1 class="work-title">Free food on campus</h1>
+        <div class="work-brand">
+          <a class="brand-home" href="/" aria-label="Vandy Food Radar home"><img class="brand-icon" src="{{ url_for('static', filename='brand/vfr-icon.svg') }}" width="44" height="44" alt="" aria-hidden="true" /></a>
+          <h1 class="work-title">Free food on campus</h1>
+        </div>
         <div class="date-nav" data-module="date-nav">
           <button type="button" class="control-button" data-action="prev-day" aria-label="Previous day">‹</button>
           <label class="visually-hidden" for="date-input">Selected date</label>

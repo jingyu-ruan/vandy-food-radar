@@ -13,7 +13,7 @@ export function estimateMinutes(from, to) {
 }
 
 export async function walkingLeg(from, to) {
-  if (!state.config.routing_available) return {minutes:estimateMinutes(from,to),mode:'estimate'};
+  if (!state.config.card_routing_available) return {minutes:estimateMinutes(from,to),mode:'estimate'};
   const key = [from.lat,from.lng,to.lat,to.lng].map(value=>value.toFixed(5)).join(',');
   if (!routeCache.has(key)) {
     const promise = fetchWalking([from,to]).catch(() => ({minutes:estimateMinutes(from,to),mode:'estimate'}));

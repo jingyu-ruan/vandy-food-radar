@@ -76,6 +76,7 @@ export type RetentionConfig = { pastDays: number; futureDays: number };
 export type ItineraryConfig = { dwellMinutes: number; maxExactStops: number };
 
 export type Config = {
+  gemini: { apiKey: string; model: string; timeoutMs: number };
   timezone: string;
   referenceLocation: ReferenceLocation;
   anchorLink: AnchorLinkConfig;
@@ -126,8 +127,9 @@ function defaultWeights(): Record<DesignScoreFactor, number> {
 
 export function defaultConfig(): Config {
   return {
+    gemini: { apiKey: "", model: "gemini-3.5-flash-lite", timeoutMs: 15000 },
     timezone: "America/Chicago",
-    referenceLocation: { label: "Kirkland Hall", lat: 36.1487, lng: -86.8027 },
+    referenceLocation: { label: "2320 West End Avenue", lat: 36.1486936, lng: -86.8050803 },
     anchorLink: {
       enabled: true,
       baseUrl: "https://anchorlink.vanderbilt.edu",
@@ -209,6 +211,9 @@ function parseIntIn(
 /** Build a config from defaults plus a curated set of environment overrides. */
 export function configFromEnv(env: EnvLike): Config {
   const config = defaultConfig();
+  config.gemini.apiKey = readString(env, "GEMINI_API_KEY")?.trim() ?? "";
+  const geminiModel = readString(env, "VFR_GEMINI_MODEL")?.trim();
+  if (geminiModel && /^gemini-[a-z0-9.-]*flash[a-z0-9.-]*$/.test(geminiModel)) config.gemini.model = geminiModel;
 
   const timezone = readString(env, `${ENV_PREFIX}TIMEZONE`);
   if (timezone && timezone.trim()) config.timezone = timezone.trim();

@@ -98,14 +98,38 @@ function agendaRow(event) {
       title: `Actions for ${event.title}`,
     }, [icon('ellipsis')]),
   ]);
-  const options = el('div', { class: 'agenda-menu-options' });
+  const options = el('div', { class: 'agenda-menu-options', popover:'auto', 'aria-label':`Actions for ${event.title}` });
+  const positionMenu = () => {
+    const anchor = menu.querySelector('summary').getBoundingClientRect();
+    const width = Math.min(260, window.innerWidth - 24);
+    options.style.width = `${width}px`;
+    const height = options.getBoundingClientRect().height;
+    options.style.left = `${Math.max(12, Math.min(anchor.right-width, window.innerWidth-width-12))}px`;
+    options.style.top = `${Math.max(12, anchor.bottom+height+8 > window.innerHeight ? anchor.top-height-4 : anchor.bottom+4)}px`;
+  };
+  menu.addEventListener('toggle', () => {
+    if (menu.open && !options.matches(':popover-open')) {options.showPopover();positionMenu();}
+    else if (!menu.open && options.matches(':popover-open')) options.hidePopover();
+  });
+  options.addEventListener('toggle', () => {if (!options.matches(':popover-open')) menu.open=false;});
+  // Scroll/resize can move the trigger; close rather than leave a detached menu.
+  options.addEventListener('beforetoggle', event => {
+    if (event.newState === 'open') {
+      window.addEventListener('resize', closeMenu);
+      document.addEventListener('scroll', closeMenu, true);
+    } else {
+      window.removeEventListener('resize', closeMenu);
+      document.removeEventListener('scroll', closeMenu, true);
+    }
+  });
+  function closeMenu(event) {if (event.type === 'resize' || !options.contains(event.target)) menu.open=false;}
 
   // Save appears only for unsaved events
   if (!saved) {
     const save = el('button', {
       type: 'button', class: 'action agenda-save',
       'aria-label': `Save ${event.title}`,
-    }, [icon('star'), el('span', { text: 'Save event' })]);
+    }, [icon('star'), el('span', { text: 'Save Event' })]);
     save.addEventListener('click', (e) => {
       e.stopPropagation();
       menu.open = false;
@@ -131,13 +155,13 @@ function agendaRow(event) {
     options.append(source);
   }
 
-  // Walking directions
+  // Walking Directions
   const url = googleWalkingUrl(state.origin, destinationFor(event));
   if (url) {
     const directions = el('a', {
       class: 'action agenda-directions',
       href: url, target: '_blank', rel: 'noopener noreferrer',
-    }, [icon('directions'), el('span', { text: 'Walking directions' })]);
+    }, [icon('directions'), el('span', { text: 'Walking Directions' })]);
     directions.addEventListener('click', (e) => { e.stopPropagation(); menu.open = false; });
     options.append(directions);
   }

@@ -1,3 +1,4 @@
+import {eventAnchor, participationText} from './brief.js';
 import { icon } from './icons.js';
 import { foodPresentation } from './food-presentation.js';
 import { eventTime } from './preferences.js';
@@ -156,6 +157,7 @@ function detailsFor(event) {
 export function renderCard(event) {
   const card = el('article', {
     class: `card is-${event.state}`,
+    id: eventAnchor(event.identity_key), tabindex:'-1',
     dataset: {
       identityKey: event.identity_key,
       date: event.date,
@@ -187,7 +189,7 @@ export function renderCard(event) {
   const facts = el('dl', { class: 'card-facts' }, [fact('Food', foodChildren), placeFact(event)]);
   if (event.place && event.location_listed) {
     facts.append(
-      fact('Listed as', [el('span', { class: 'fact-text', text: event.location_listed })]),
+      fact('Listed As', [el('span', { class: 'fact-text', text: event.location_listed })]),
     );
   }
   facts.append(fact('Walk', [el('span', { class: 'fact-text', 'data-role':'walking', text: event.walking_label })]));
@@ -207,7 +209,7 @@ export function renderCard(event) {
   facts.append(
     fact('Host', [el('span', { class: 'fact-text', text: event.organizer || 'Not listed' })]),
   );
-  const accessChildren = [el('span', { class: 'fact-text', text: event.participation.note })];
+  const accessChildren = [el('span', {class:'fact-text',text:participationText(event.participation),title:event.participation.ai_evidence ? `Source: ${event.participation.ai_evidence}` : null})];
   facts.append(fact('Participation', accessChildren, true));
   card.append(facts);
 

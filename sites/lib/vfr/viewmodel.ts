@@ -1,4 +1,6 @@
 import { displayFields } from "./display.ts";
+import { intelligenceHash, intelligenceInputs, specificFoodItems } from "./intelligence.ts";
+import type { AiState } from "./intelligence.ts";
 /**
  * View model shared by the server-rendered page and the JSON API.
  *
@@ -22,7 +24,7 @@ import { displayFields } from "./display.ts";
 import { isLiveMaterialChange } from "./changes.ts";
 import type { ChangeRecord } from "./changes.ts";
 import type { Config } from "./config.ts";
-import { foodExcerpt } from "./excerpts.ts";
+import { foodExcerpt, namedFoodItems } from "./excerpts.ts";
 import { googleCalendarUrl } from "./ics.ts";
 import { ChangeKind, FoodCategory, FoodConfirmed, VerificationState } from "./models.ts";
 import type { Conflict, Event } from "./models.ts";
@@ -93,13 +95,14 @@ export type CardJson = {
   food_label: string;
   food_category: string;
   food_description: string | null;
+  food_items?: string[];
   description: string | null;
   location_listed: string | null;
   place: PlaceJson | null;
   rsvp_label: string;
   rsvp_url: string | null;
   organizer: string | null;
-  participation: { level: string; note: string; certain: boolean; warnings: string[] };
+  participation: { level: string; note: string; certain: boolean; warnings: string[]; ai_note?: string; ai_evidence?: string };
   walking_label: string;
   sources: { label: string; url: string }[];
   event_url: string | null;
@@ -113,6 +116,12 @@ export type CardJson = {
   calendar: { google: string | null; ics: string | null };
 };
 
+export type BriefItemJson = {
+  identity_key:string; title:string; url:string|null; time:string; food:string; location:string;
+  address:string; walk:string; route_url:string|null; rsvp:string; participation:string;
+  sources:string; conflicts:string; reason:string;
+};
+
 export type DayState = "ok" | "empty" | "uninitialized";
 
 export type DayFeedJson = {
@@ -120,11 +129,12 @@ export type DayFeedJson = {
   state: DayState;
   published_at: string | null;
   event_count: number;
-  brief: { headline: string; sentences: string[]; text: string; content_hash: string };
+  brief: { headline: string; sentences: string[]; text: string; content_hash: string; source?: string; generated_at?: string; model?:string; origin?:string; items?:BriefItemJson[] };
   events: CardJson[];
 };
 
 export type ViewContext = {
+  aiState?: AiState | null;
   config: Config;
   places: PlaceDataset;
   nowMs: number;
@@ -353,6 +363,26 @@ export async function buildDayFeed(
     };
   } else {
     brief = briefJson(await buildBrief(date, events.map((stored) => stored.event)));
+    const ai = context.aiState?.result;
+    if (ai && ai.date === date && ai.model === context.config.gemini.model &&
+      ai.hash === await intelligenceHash(date,intelligenceInputs(events))) {
+      brief = {...brief,text:ai.brief,sentences:[ai.brief],content_hash:ai.hash,source:"gemini",generated_at:ai.generatedAt,model:ai.model};
+      for (const card of cards) {
+        const food = ai.foods?.find(f=>f.identityKey===card.identity_key);
+        if (food) {card.food_items=specificFoodItems(food.items);if (card.food_items.length) card.food_description=card.food_items.join(", ");}
+        const trait = ai.traits.find(t=>t.identityKey===card.identity_key);
+        if (trait) {card.participation.ai_note = trait.note; card.participation.ai_evidence = trait.evidence;}
+      }
+    }
+  }
+  if (snapshot && cards.length) {
+    const ai=context.aiState?.result;
+    brief.origin=context.config.referenceLocation.label;
+    brief.items=cards.map(card=>briefItem(card,cards,context,brief.source==='gemini' ? ai?.recommendations?.find(item=>item.identityKey===card.identity_key)?.reason : undefined));
+    if (brief.source!=='gemini') {
+      brief.text=`${cards.length} free-food events are listed for ${date}, ranked by food value, attendance certainty and walking convenience. Select an event name in the brief to see its details.`;
+      brief.sentences=[brief.text];
+    }
   }
   return {
     date,
@@ -383,6 +413,7 @@ export function clientConfig(
       lng: config.referenceLocation.lng,
     },
     routing_available: routingAvailable,
+    card_routing_available: Boolean(config.routing.apiKey),
     dwell_minutes: config.itinerary.dwellMinutes,
     max_exact_stops: config.itinerary.maxExactStops,
     max_waypoints: config.routing.maxWaypoints,
@@ -402,4 +433,33 @@ export function scriptJson(value: unknown): string {
     .replace(/&/g, "\\u0026")
     .replace(/\u2028/g, "\\u2028")
     .replace(/\u2029/g, "\\u2029");
+}
+
+function briefItem(card:CardJson, cards:CardJson[], context:ViewContext, aiReason?:string):BriefItemJson {
+  const reference=context.config.referenceLocation;
+  const walk=card.place ? minutesForMetres(haversineMetres(reference,card.place)) : null;
+  const named=card.food_items?.length ? card.food_items : namedFoodItems(card.description);
+  const menu=named.length ? named.join(", ") : "Food/Menu Not Specified";
+  const location=card.location_listed || card.place?.name || "Location Not Listed";
+  const address=/\b\d{2,5}\s+.+\b(?:avenue|ave|street|st|road|rd|drive|dr|boulevard|blvd)\b/i.test(location) ? location : "Full Street Address Unverified";
+  const destination=card.place ? `${card.place.lat},${card.place.lng}` : card.location_listed ? `${location}, Vanderbilt University, Nashville, TN` : null;
+  const params=destination ? new URLSearchParams({api:"1",origin:reference.label==="2320 West End Avenue" ? "2320 West End Avenue, Nashville, TN 37203" : `${reference.lat},${reference.lng}`,destination,travelmode:"walking"}) : null;
+  const peers=card.start && card.end && !card.cancelled ? cards.filter(other=>other.identity_key!==card.identity_key && !other.cancelled && other.start && other.end && card.start!<other.end && other.start<card.end!) : [];
+  const hasCalendar=card.sources.some(source=>source.label==="Calendar");
+  const sourceStatus=card.sources.length>1 && new Set(card.sources.map(source=>source.label)).size>1 ? (card.conflicts.length ? "Multiple Sources Have Conflicting Details" : "Multiple Sources; No Recorded Field Conflicts") : "AnchorLink Only; Second-Source Match Unverified";
+  const category=card.food_category==="Full meal" ? "The advertised meal gives this stronger food value" : card.food_category==="Snacks" ? "This is a promising stop for light refreshments" : "Food is advertised, although the menu and portions are unclear";
+  const restricted=card.rsvp_label==="RSVP required" || /\b(?:spaces? (?:are |is )?limited|limited spaces?|registration is required|rsvp is required)\b/i.test(card.description || "");
+  const fallback=card.cancelled ? "This event is cancelled" : `${category}${restricted ? "; plan ahead because attendance has limited availability or requires registration" : card.participation.level==="structured" ? "; the program suggests a visit that includes participation" : card.participation.level==="unknown" ? "; confirm the participation requirements" : ""}`;
+  const assessment=(aiReason || fallback).replace(/[.;\s]+$/,"");
+  const convenience=walk===null ? "Walking convenience remains unverified." : walk<=10 ? "The published location has a short estimated walk from the reference origin." : "The longer estimated walk makes this a less convenient stop.";
+  return {identity_key:card.identity_key,title:card.title,url:card.event_url,
+    time:`${card.start?.slice(0,5) || "Start Time Not Listed"}–${card.end?.slice(0,5) || "End Time Not Listed"} (Nashville Local Time)${card.cancelled ? "; Cancelled" : ""}`,
+    food:menu,location,address,walk:walk===null ? "Walking Time Unverified" : `~${walk} min straight-line estimate; actual pedestrian route/time unverified`,
+    route_url:params ? `https://www.google.com/maps/dir/?${params}` : null,
+    rsvp:card.rsvp_label==="RSVP not stated" ? (/\b(?:rsvp|register|registration|sign[- ]?up)\b/i.test(card.description || "") ? "The source mentions RSVP/registration; check requirements, eligibility and remaining availability" : "RSVP/Registration Not Stated") : card.rsvp_label==="No RSVP needed" ? "The source explicitly states no RSVP is needed" : "RSVP Required; Check Availability and Eligibility",
+    participation:card.participation.ai_note ? card.participation.ai_note : ({open:"Open attendance is explicitly stated; suitability for a food-only visit remains unverified",structured:"The activity has a planned format; suitability for a brief food-only visit remains unverified",restricted:"The source lists participation restrictions; verify eligibility",unknown:"Eligibility and participation format are unstated or unverified"}[card.participation.level] || "Consult the official participation requirements; suitability for a brief food-only visit is unverified"),
+    sources:sourceStatus+(hasCalendar ? "; See event links for the calendar source" : "; Personal calendar is not connected; calendar time/location differences unverified"),
+    conflicts:[...card.conflicts.map(c=>`${c.field}: ${c.values.join(" / ")}`),...(peers.length ? [`Overlaps ${peers.map(p=>p.title).join("; ")}; all events retained`] : ["No overlap found among listed event times"])].join("; "),
+    reason:`${assessment}. ${convenience}`,
+  };
 }

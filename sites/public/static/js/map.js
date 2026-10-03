@@ -39,6 +39,8 @@ let destinationMarker = null;
 let campusLayer = null;
 let routeLine = null;
 let routeGeneration = 0;
+let autoRouteKey = null;
+let autoRouteTimer = null;
 let pinMode = null;
 let onPin = null;
 
@@ -185,12 +187,14 @@ function renderList(root, onSelect) {
   const scroll = list.dataset.scope === scope ? list.scrollTop : 0;
   const focused = list.contains(document.activeElement) ? document.activeElement.closest('button')?.dataset.identityKey : null;
   list.dataset.scope = scope;
-  const events = mappable();
+  const events = (state.view === 'schedule' ? state.week?.days?.filter(day=>day.date>=state.config.today).flatMap(day=>day.events) || [] : state.events).filter(event=>!event.cancelled);
+  const count = one('[data-role="map-event-count"]', root);
+  if (count) count.textContent=String(events.length);
   const selected = events.find(event=>event.identity_key===state.selectedKey);
   const selection = one('[data-role="map-selection"]', root);
   if (selection) {
     selection.textContent = displayText(selected
-      ? `${selected.title} — ${selected.date}, ${eventTime(selected)}. ${selected.place.name}${selected.place.detail ? ', '+selected.place.detail : ''}`
+      ? `${selected.title} — ${selected.date}, ${eventTime(selected)}. ${selected.place?.name || selected.location_listed || 'Location not listed'}${selected.place?.detail ? ', '+selected.place.detail : ''}`
       : 'Choose a map marker to see its location. Saved events have gold markers.');
   }
   if (!events.length) {
@@ -199,7 +203,7 @@ function renderList(root, onSelect) {
       el('li', {}, [
         el('span', {
           class: 'map-list-sub',
-          text: 'No listing for this date resolved to a campus building.',
+          text: 'No events are listed for this date.',
         }),
       ]),
     );
@@ -215,9 +219,9 @@ function renderList(root, onSelect) {
         dataset: { identityKey: event.identity_key },
       }, [
         el('span', { text: event.title }),
-        el('span', { class: 'map-list-sub', text: `${eventTime(event)}  ${event.place.name}` }),
+        el('span', { class: 'map-list-sub', text: `${eventTime(event)}  ${event.place?.name || event.location_listed || 'Location not listed'}${event.place ? '' : ' (Not Mapped)'}` }),
       ]);
-      button.addEventListener('click', () => {if(pinMode)pickPoint({lat:event.place.lat,lng:event.place.lng,label:event.place.name});else onSelect(event.identity_key);});
+      button.addEventListener('click', () => {if(pinMode && event.place)pickPoint({lat:event.place.lat,lng:event.place.lng,label:event.place.name});else onSelect(event.identity_key);});
       return el('li', {}, button);
     }),
   );
@@ -351,6 +355,7 @@ export function syncMarkers(root, onSelect) {
       map.fitBounds(bounds.pad(0.25), { animate: change !== 'initial' && !prefersReducedMotion(), duration:0.55, maxZoom:17 });
     }
   }
+  syncWalkingRoute(root);
 }
 
 function moveCamera(point) {
@@ -385,6 +390,9 @@ function prefersReducedMotion() {
 }
 
 export function clearRoute() {
+  window.clearTimeout(autoRouteTimer);
+  autoRouteTimer = null;
+  autoRouteKey = null;
   routeGeneration += 1;
   if (routeLine) { routeLine.remove(); routeLine = null; }
 }
@@ -462,4 +470,48 @@ export function cancelPinMode() {
 /** Whether the map instance exists (i.e. Leaflet loaded successfully). */
 export function mapReady() {
   return Boolean(map);
+}
+
+/** Coalesce endpoint changes and draw each coordinate pair once in Map. */
+export function syncWalkingRoute(root) {
+  if (!map || state.view !== 'map') return;
+  const origin=state.origin, destination=state.destination;
+  const label=one('[data-role="walking-route-status"]',root);
+  if (!Number.isFinite(origin?.lat) || !Number.isFinite(origin?.lng) || !Number.isFinite(destination?.lat) || !Number.isFinite(destination?.lng)) {
+    clearRoute();
+    if (label) label.textContent=destination ? 'This destination has no verified map coordinates. Open Google Maps to check walking directions.' : '';
+    return;
+  }
+  const key=JSON.stringify([origin.lat,origin.lng,destination.lat,destination.lng]);
+  if (key===autoRouteKey) return;
+  clearRoute();
+  autoRouteKey=key;
+  if (label) label.textContent='Finding a walking route…';
+  autoRouteTimer=window.setTimeout(()=>{autoRouteTimer=null;showWalkingRoute(root);},180);
+}
+
+/** Draw a selected two-point pedestrian route; stale requests never replace a new selection. */
+export async function showWalkingRoute(root) {
+  clearRoute();
+  const generation = routeGeneration;
+  const origin = state.origin, destination = state.destination;
+  autoRouteKey=JSON.stringify([origin?.lat,origin?.lng,destination?.lat,destination?.lng]);
+  const label = one('[data-role="walking-route-status"]', root);
+  if (!map || !Number.isFinite(origin?.lat) || !Number.isFinite(destination?.lat)) {
+    if (label) label.textContent='Choose mapped From and To locations to draw a walking route.';
+    return;
+  }
+  if (label) label.textContent='Finding a walking route…';
+  try {
+    const {fetchWalking} = await import('./api.js');
+    const route = await fetchWalking([origin,destination]);
+    if (generation !== routeGeneration || origin !== state.origin || destination !== state.destination || state.view !== 'map') return;
+    const estimated = route.mode !== 'routed' || route.geometry?.length < 2;
+    const geometry = estimated ? [[origin.lat,origin.lng],[destination.lat,destination.lng]] : route.geometry;
+    routeLine = window.L.polyline(geometry,{color:'#007aff',weight:4,opacity:0.85,dashArray:estimated?'6 8':null}).addTo(map);
+    map.fitBounds(routeLine.getBounds().pad(0.18),{animate:!prefersReducedMotion(),maxZoom:18});
+    if (label) label.textContent=estimated ? `~${route.minutes} min straight-line estimate; actual walking route unverified.` : `${route.minutes} min walking · ${(route.distance_m/1000).toFixed(2)} km`;
+  } catch {
+    if (generation === routeGeneration && label) label.textContent='Walking route unavailable. Try again or open Google Maps.';
+  }
 }

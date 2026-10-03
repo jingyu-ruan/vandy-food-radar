@@ -1,0 +1,40 @@
+{
+  "generation_tool": "Kiro CLI",
+  "successful_model": "claude-sonnet-5",
+  "effort": "medium",
+  "directed_version": {
+    "brief": "kiro/brief-sonnet.md",
+    "qa_brief": "kiro/revision-brief.md",
+    "generation_status": "completed",
+    "revision_status": "completed"
+  },
+  "original_prompt_version": {
+    "prompt": "claude-original-prompt/user-prompt.txt",
+    "delivery_brief": "claude-original-prompt/generation-brief.txt",
+    "generation_status": "completed",
+    "repository": "https://github.com/jingyu-ruan/vandy-food-radar",
+    "context_files": [
+      "README.md",
+      "sites/app/page.tsx",
+      "sites/public/static/app.css"
+    ]
+  },
+  "initial_attempt": {
+    "model": "claude-opus-5",
+    "status": "stopped after more than eight minutes without SVG output"
+  },
+  "asset_sha256": {
+    "vfr-icon.svg": "8a410bf8fab8883686a824426cc6c91d75933ca01f02d9298a2b5e5f7bdc5aee",
+    "favicon.svg": "303cb5343acc3a04d7b742cfba37d73a35dfc38d8a4b175cdad4932315652b3f",
+    "vfr-logo.svg": "a53f951db407ced152bbf7e4b494471bb2a527eee66c0f176c49d28ab1715f5e",
+    "vfr-logo-dark.svg": "375f857a0290b42db9b76f74171777dce50eb9a88a76599dd9ee46d97a92cb07",
+    "gemini-icon.svg": "79875bad65f9f41d77b13312ecfefd0659ae0f4d28f8ad16066df72f9c9ac7c7",
+    "gemini-favicon.svg": "b4437d9b48714dad3a3dd26c07e55d439627480ea65a019f3242837952abdcc1",
+    "kiro/kiro-icon.svg": "ba9e775d2d26d681a25bcf9b80c48545f49d0f97a877950602a69367119f2536",
+    "kiro/kiro-favicon.svg": "9aaa79a7d67ea62577c576bb4ffd4c03d9f3d3a23b1d6399f124436d0a458421",
+    "kiro/kiro-mark.svg": "f42e46eb717f5eb09fe77cffc3f52bd83180412d14ec3b2e2a2fbfaacb6ecc39",
+    "claude-original-prompt/icon.svg": "6ce25f04172d59efb03a55c5e5b49eedbd47cb6e2d8b3f955b5a79f6faa3b45f",
+    "claude-original-prompt/favicon.svg": "a161bb81b6ca9ef0668db239d75805bf4d0b7426196942cfce1494f5393b326b",
+    "claude-original-prompt/mark.svg": "bd7b3bfdd8a330ac7ee74e0c1ad19bd23dccc96da7fd46284894fbfdcaa04c9c"
+  }
+}

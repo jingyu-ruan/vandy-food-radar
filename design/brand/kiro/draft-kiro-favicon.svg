@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <title>Vandy Food Radar — small-size mark</title>
+  <desc>Simplified heavy V with radar arc and discovery point, optimized for 16-32px.</desc>
+  <rect width="32" height="32" rx="8" fill="#1C1C1C"/>
+
+  <!-- Open radar arc, thin so it stays legible at small sizes -->
+  <path d="M28 19A12 12 0 1 1 20 4.7" stroke="#CFAE70" stroke-width="1.7"
+        stroke-linecap="round" fill="none" opacity=".8"/>
+
+  <!-- Filled, heavier V — the dominant shape at this size -->
+  <path d="
+    M 8.6 11.4
+    L 12.6 11.4
+    L 16 20.3
+    L 19.4 11.4
+    L 23.4 11.4
+    L 18.0 23.6
+    C 17.6 24.4 16.9 24.8 16 24.8
+    C 15.1 24.8 14.4 24.4 14.0 23.6
+    Z"
+    fill="#CFAE70"/>
+
+  <!-- Spoon bowl, simplified to a single rounded form clear of the arc -->
+  <ellipse cx="21.6" cy="7.6" rx="2.2" ry="3.3" fill="#CFAE70"/>
+
+  <!-- Discovery point -->
+  <circle cx="25.5" cy="8" r="2.3" fill="#CFAE70"/>
+</svg>

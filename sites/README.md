@@ -62,7 +62,7 @@ Concurrency is handled by a persistent lease with an expiry:
   finish, so a slow-but-uncontested run is not thrown away.
 
 The GitHub workflow in the enclosing repository calls the fixed Site origin with
-its existing `VFR_SITES_SERVICE_TOKEN`. It refreshes today and tomorrow every two
+the `VFR_SITES_SERVICE_TOKEN` and `VFR_REFRESH_TOKEN` repository secrets. It refreshes today and tomorrow every two
 hours at minute 17, and seven days every six hours at minute 47. A manual run can
 select either span. After publication it reads `/api/events?date=YYYY-MM-DD` for
 each date and checks the date, event count, timezone, publication timestamp, and
@@ -112,15 +112,20 @@ type sizes; mobile footer controls remain on one line with 44-pixel heights.
 Rating opens on hover, focus, or click and shows each stored factor's weight,
 value, contribution, and explanation. Scores remain the published snapshot:
 changing walking origin or display preferences never changes the rating.
-The daily brief is deterministic and cached by a hash of its source-derived inputs.
+The daily brief uses optional server-side Gemini generation, cached durably in D1
+by local date and source-content hash. Without a key or when inference fails,
+the source-derived rule summary remains available.
 The checked-in dataset contains 58 curated campus places; unknown names remain
 unresolved. Participation contributes at most five percent to ranking.
 
-Saved events and the selected walking origin stay in device-local storage. Optional OpenRouteService routing uses a fixed HTTPS endpoint with bounded
-waypoints and a cache. Missing or failed routing is labelled as a distance-based
+Saved events and the selected walking origin stay in device-local storage. Walking routes use the fixed FOSSGIS OpenStreetMap pedestrian endpoint, on explicit route requests, with bounded waypoints, a cache, and serialized requests. An optional OpenRouteService key selects that provider instead. Map attribution links to FOSSGIS and Fix the Map; automatic card estimates avoid requesting public pedestrian routes. Missing or failed routing is labelled as a distance-based
 estimate. Routing keys remain server-side.
 
 The Map view puts the scrolling event list beneath From/To in the desktop sidebar.
+The list retains at least 180 pixels of height even when the endpoint controls
+grow. Endpoint controls have no enclosing panel border, and location/pin actions
+share the blue accent. Week has a bottom fade with a clickable More events arrow
+when its independent desktop list overflows; the cue disappears at the bottom.
 On mobile, compact endpoint controls appear in normal flow above the map, with
 the event list beneath it. Changing coordinates pans the persistent map smoothly;
 label-only updates and save actions preserve its camera. A new selection can
@@ -158,9 +163,25 @@ Date-specific reads never ingest events:
 | `POST /api/walking` | Validated pedestrian route or labelled estimate. |
 | `/api/calendar/<AnchorLink id>` | Download a published event's ICS file. |
 
-## Owner-private assumptions
+## Public access and refresh authorization
 
-The deployment is owner-private: the hosting platform's dispatch layer authorizes
+The public deployment uses `VFR_OWNER_PRIVATE=false`. Anonymous visitors can read
+published listings. Mutating refresh requests require the application bearer
+token stored as `VFR_REFRESH_TOKEN` in both Sites and GitHub Actions secrets.
+The owner-only refresh button is omitted from the public page. Secrets are never
+embedded in the browser or its workspace configuration.
+
+The original Codex mark appears once, to the left of the main heading, and links
+home. The image is decorative for assistive technology because the adjacent
+heading and link label provide its meaning. A dedicated simplified favicon and
+Apple touch icon share the same design. This placement applies Apple's guidance
+on discreet branding, aligned related content and responsive layout:
+https://developer.apple.com/design/human-interface-guidelines/branding
+https://developer.apple.com/design/human-interface-guidelines/layout
+
+### Private deployment support
+
+For an owner-private deployment, the hosting platform's dispatch layer authorizes
 every inbound request before the Worker runs. `VFR_OWNER_PRIVATE=true` lets
 `POST /api/refresh` rely on that boundary, narrowly:
 
@@ -228,3 +249,37 @@ unknown walks represented neutrally by default.
 Calendar actions include a Google Calendar prefill link and download one `.ics` file from `/api/calendar/<AnchorLink id>`.
 The file contains the source URL and absolute event times. Importing the file is
 an explicit action in the user's calendar app.
+
+## Gemini daily briefs and participation estimates
+
+Configure `GEMINI_API_KEY` as a secret in the Site's server environment.
+`VFR_GEMINI_MODEL` optionally selects a Gemini Flash model; the default is
+`gemini-3.5-flash-lite`. Google AI Studio showed the new project on Free tier on
+October 3, 2026. Availability and quotas are controlled by Google; selecting a
+model does not impose a billing cap on a paid Google project.
+
+Each protected source refresh can issue one combined request for each nonempty
+requested date, up to 40 events per date. Unchanged inputs reuse a durable D1
+result across visitors and Worker restarts. Visitor GET requests only read data.
+Requests time out after 15 seconds; failed or changed-input requests have a
+one-hour cooldown and a maximum of three attempts per event date and prompt version per Chicago
+calendar day. Attempts are stored before inference under the refresh lease.
+AI records age out with the feed retention window. A successful source refresh
+continues even when Gemini is unavailable or its response fails validation.
+
+The English Daily Brief shows an overall assessment followed by concise evaluations
+of every event. Linked event names scroll to and focus their corresponding cards;
+there is no duplicate expandable fact report. Its metadata identifies the generation
+date/time and actual model ID. The model's structured reasons are grounded in verbatim
+source evidence, while the application supplies the links and walking context.
+Participation displays one evidence-backed explanation, with source-derived analysis
+as the fallback. An exact supporting quote remains accessible in the hover title.
+Changed source inputs invalidate cached AI immediately; a new prompt version starts
+a fresh bounded retry budget. Credentials remain outside browser code and archives.
+
+Map updates the pedestrian route automatically after both endpoints are chosen,
+including event selection, campus search and map pins. Identical coordinate pairs
+reuse the route; rapid changes cancel stale results. Unmapped destinations retain
+the Google Maps link and an explicit coordinate limitation.
+
+Official reference: https://ai.google.dev/gemini-api/docs/pricing

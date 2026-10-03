@@ -22,7 +22,8 @@ export async function loadDayFeed(
   nowMs: number = Date.now(),
 ): Promise<DayFeedJson> {
   const snapshot = await repository.readFeed(date, { history: false });
-  return buildDayFeed(date, snapshot, { config, places: campusPlaces(), nowMs });
+  const aiState = config.gemini.apiKey ? await repository.readAiState(date).catch(()=>null) : null;
+  return buildDayFeed(date, snapshot, { config, places: campusPlaces(), nowMs, aiState });
 }
 
 export type WeekJson = { start: string; days: { date: string; events: CardJson[] }[] };

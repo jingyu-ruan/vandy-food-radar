@@ -21,6 +21,8 @@
 
 import type { ChangeRecord } from "./changes.ts";
 import type { Config } from "./config.ts";
+import { AI_KEY_PREFIX } from "./intelligence.ts";
+import type { AiState } from "./intelligence.ts";
 import {
   batchRows,
   boolToInt,
@@ -296,6 +298,25 @@ export class Repository {
   constructor(db: D1Like, config: Config) {
     this.db = db;
     this.config = config;
+  }
+
+  async readAiState(date: string): Promise<AiState | null> {
+    const row = await this.db.prepare("SELECT value FROM app_state WHERE key = ?")
+      .bind(`${AI_KEY_PREFIX}${date}`).first<{value: string}>();
+    return safeJsonParse<AiState | null>(row?.value ?? null, null);
+  }
+
+  /** Persist attempts before inference, fenced by the existing refresh lease. */
+  async saveAiState(date: string, state: AiState, holder: string): Promise<void> {
+    await this.db.batch([
+      this.db.prepare(`INSERT INTO app_state (key,value,updated_at)
+        VALUES (?, (SELECT holder FROM refresh_lease WHERE name = ? AND holder = ? AND expires_at > 0), ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+        .bind(PUBLISH_FENCE_KEY,LEASE_NAME,holder,state.attemptedAt),
+      this.db.prepare(`INSERT INTO app_state (key,value,updated_at) VALUES (?,?,?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+        .bind(`${AI_KEY_PREFIX}${date}`,JSON.stringify(state),state.attemptedAt),
+    ]);
   }
 
   /** Lightweight connectivity probe used by the health route. */
@@ -1043,6 +1064,7 @@ export class Repository {
         .bind(oldest, newest, ...keep),
     ];
     const asOfIso = payload.publishedAt;
+    statements.push(this.db.prepare("DELETE FROM app_state WHERE key LIKE 'ai:day:%' AND substr(key,8) NOT IN (SELECT target_date FROM feeds)"));
     for (const table of [
       "events",
       "source_records",

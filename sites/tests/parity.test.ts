@@ -205,6 +205,8 @@ test("calendar windows and Google prefill links match the reference", () => {
 
 test("scores with a resolved walk and participation match the reference exactly", async () => {
   const config = defaultConfig();
+  // The frozen Python fixture uses its original Kirkland reference point.
+  config.referenceLocation={label:"Kirkland Hall",lat:36.1487,lng:-86.8027};
   const places = campusPlaces();
   const provider = new HaversineLocationProvider();
   for (const expected of fixture.scoring) {

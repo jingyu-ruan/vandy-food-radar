@@ -1,3 +1,4 @@
+import {generatedLabel, renderBriefAssessments, bindBriefLinks} from './brief.js';
 /**
  * Entry point: wires the views together and owns navigation.
  *
@@ -14,8 +15,9 @@ import { bindCardEvents, renderCards, syncCardChrome } from './cards.js';
 import { all, one } from './dom.js';
 import { slideViews } from './view-motion.js';
 import { bindSegmented } from './segmented.js';
+import { bindScrollHint } from './scroll-hint.js';
 import { armPinMode, cancelPinMode, clearRoute, openTooltip, panTo, prepareMap, showMap, syncMarkers } from './map.js';
-import { bindDirections, destinationFor, setDestination } from './directions.js';
+import { bindDirections, destinationFor, setDestination, invalidateWalkingRoute } from './directions.js';
 import { refreshWalking } from './walking.js';
 import { bindOrigin, closeOriginPicker, coordinateLabel, labelForPoint, loadPlaces, originFromPin, refreshOriginStatus } from './origin.js';
 import {
@@ -106,6 +108,12 @@ async function loadDay(isoDate, { pushHistory = true } = {}) {
 function renderBrief() {
   const node = one('[data-role="brief-text"]', root);
   if (!node) return;
+  const meta = one('[data-role="brief-meta"]', root);
+  if (meta) {
+    meta.hidden = !!state.error || state.brief?.source !== 'gemini';
+    if (!meta.hidden) meta.textContent = generatedLabel(state.brief,state.config.timezone);
+  }
+  renderBriefAssessments(root,state.error ? null : {...state.brief,date:state.selectedDate});
   if (state.error) {
     node.textContent = `The feed could not be loaded: ${state.error}`;
     return;
@@ -270,6 +278,7 @@ function setView(view) {
 }
 
 function originChanged() {
+  invalidateWalkingRoute();
   refreshOriginStatus(root);
   renderScope();
   refreshWalking(root);
@@ -397,10 +406,12 @@ function start() {
   // Wire the agenda selection handler through the module API
   setAgendaSelectHandler(selectFromAgenda);
   bindCardEvents(root, { onSelect: selectEvent });
+  bindScrollHint(root);
   bindOrigin(root, {
     onPinRequest: beginPicking,
     onChange: originChanged,
   });
+  bindBriefLinks(root);
   bindDirections(root,{onOriginChange:originChanged,onPinRequest:beginPicking,onDestinationChange:destinationChanged});
   refreshOriginStatus(root);
   setScope();

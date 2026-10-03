@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <title>Vandy Food Radar — serif favicon</title>
+  <desc>A simplified bold serif V with a sharp point, radar arc and discovery dot.</desc>
+  <rect width="32" height="32" rx="8" fill="#1C1C1C"/>
+  <path d="M28 19A12 12 0 1 1 20 4.7" stroke="#CFAE70" stroke-width="1.7" stroke-linecap="round" opacity=".8"/>
+  <path d="M7.2 10.8H13.5V11.7C12.4 11.7 12.1 12.1 12.6 13.1L16.1 20.3L19.7 13.1C20.2 12.1 19.9 11.7 18.8 11.7V10.8H24V11.7C22.8 11.8 22.3 12.2 21.8 13.2L16.1 25L10.3 13.2C9.8 12.2 9.1 11.8 7.2 11.7Z" fill="#CFAE70"/>
+  <circle cx="25.5" cy="8" r="2.3" fill="#CFAE70"/>
+</svg>

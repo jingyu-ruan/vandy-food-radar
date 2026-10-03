@@ -1,0 +1,32 @@
+<svg width="128" height="128" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#2c2c2e"/>
+                                <stop offset="100%" stop-color="#151516"/>
+                            </linearGradient>
+                            <linearGradient id="vandyGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#FCEBAF"/>
+                                <stop offset="30%" stop-color="#D4AF37"/>
+                                <stop offset="70%" stop-color="#AA7C11"/>
+                                <stop offset="100%" stop-color="#8A610A"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Apple Squircle Background -->
+                        <rect width="512" height="512" rx="115" fill="url(#bgGradient)" stroke="#3a3a3c" stroke-width="2"/>
+                        
+                        <!-- Design Elements -->
+                        <g>
+                            <!-- Base Plate -->
+                            <path d="M 110 356 L 402 356" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" />
+                            <!-- Cloche Dome -->
+                            <path d="M 128 356 A 128 128 0 0 1 384 356" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" />
+                            <!-- Vandy 'V' -->
+                            <path d="M 216 264 L 256 316 L 296 264" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                            <!-- Radar Knob -->
+                            <circle cx="256" cy="216" r="12" fill="url(#vandyGold)" />
+                            <!-- Radar Wave 1 -->
+                            <path d="M 227.7 183.7 A 40 40 0 0 1 284.3 183.7" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" />
+                            <!-- Radar Wave 2 -->
+                            <path d="M 196.6 152.6 A 84 84 0 0 1 315.4 152.6" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" />
+                        </g>
+                    </svg>

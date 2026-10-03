@@ -51,6 +51,7 @@ jobs:
         env:
           VFR_SITES_URL: https://vandy-food-radar.rjy020128.chatgpt.site
           VFR_SITES_SERVICE_TOKEN: ${{ secrets.VFR_SITES_SERVICE_TOKEN }}
+          VFR_REFRESH_TOKEN: ${{ secrets.VFR_REFRESH_TOKEN }}
           DAYS: ${{ steps.span.outputs.days }}
         run: |
           python3 - <<'PY'
@@ -65,8 +66,9 @@ jobs:
 
           base = os.environ['VFR_SITES_URL'].rstrip('/')
           token = os.environ['VFR_SITES_SERVICE_TOKEN']
+          refresh_token = os.environ['VFR_REFRESH_TOKEN']
           days = int(os.environ['DAYS'])
-          if base != 'https://vandy-food-radar.rjy020128.chatgpt.site' or not token:
+          if base != 'https://vandy-food-radar.rjy020128.chatgpt.site' or not token or not refresh_token:
               raise SystemExit('Sites URL or service credential is missing or invalid')
           if days not in (2, 7):
               raise SystemExit('Unsupported refresh day span')
@@ -82,6 +84,7 @@ jobs:
                   base + path, data=b'' if method == 'POST' else None,
                   method=method, headers={
                       'OAI-Sites-Authorization': 'Bearer ' + token,
+                      'Authorization': 'Bearer ' + refresh_token,
                       'Accept': 'application/json',
                   })
               for attempt in range(3):

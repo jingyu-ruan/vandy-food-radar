@@ -1,6 +1,6 @@
 import { displayText } from './preferences.js';
 /**
- * Walking origin selection.
+ * Walking Origin selection.
  *
  * Three ways to set where you are walking from, in order of how often they
  * are useful:

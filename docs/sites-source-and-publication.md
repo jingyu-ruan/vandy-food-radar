@@ -54,9 +54,11 @@ this workspace update. These identifiers describe the previous baseline.
 ## Runtime operation
 
 The workflow refreshes two days every two hours at minute 17, and seven days every
-six hours at minute 47. It holds `VFR_SITES_SERVICE_TOKEN` in GitHub secrets and
-sends that token only to the fixed Site origin. Service-token rotation requires
-updating the repository secret. The existing native Sites automation remains
+six hours at minute 47. It holds `VFR_SITES_SERVICE_TOKEN` and `VFR_REFRESH_TOKEN`
+in GitHub secrets and sends both only to the fixed Site origin. Public hosting
+uses `VFR_OWNER_PRIVATE=false`; the application bearer token protects refreshes.
+Refresh-token rotation requires matching updates in Sites and GitHub secrets.
+The existing native Sites automation remains
 paused; the GitHub workflow provides the active schedule.
 
 `sites/.openai/hosting.json` identifies the existing Site. Reuse that project ID

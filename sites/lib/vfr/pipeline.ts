@@ -29,6 +29,7 @@
 import { LiveAnchorLinkAdapter, workerFetcher } from "./anchorlink.ts";
 import type { HttpFetcher } from "./anchorlink.ts";
 import { campusPlaces } from "./campus-places.ts";
+import { AI_VERSION, generateIntelligence, intelligenceHash, intelligenceInputs } from "./intelligence.ts";
 import {
   detectChanges,
   diffHistory,
@@ -101,6 +102,8 @@ export type RefreshOptions = {
   places?: PlaceDataset;
   /** Distinguishes concurrent refresh attempts in the lease. */
   holder?: string;
+  /** Gemini requests are injected separately from AnchorLink requests in tests. */
+  geminiFetcher?: typeof fetch;
 };
 
 function randomId(): string {
@@ -275,6 +278,29 @@ async function executeRefresh(options: ExecuteOptions): Promise<RefreshResult> {
   }
 
   const totals = sumCounts(computed.map((day) => day.summary.changes));
+  if (config.gemini.apiKey) {
+    for (const day of computed) {
+      const date = day.publication.targetDate;
+      const inputs = intelligenceInputs(day.publication.events);
+      // Keep one bounded request per day, with no truncated day summaries.
+      if (!inputs.length || inputs.length > 40) continue;
+      try {
+        const hash = await intelligenceHash(date, inputs);
+        const previous = await repository.readAiState(date);
+        if (previous?.result?.hash === hash && previous.result.model === config.gemini.model) continue;
+        const sameVersion = (previous?.attemptVersion ?? previous?.result?.version ?? AI_VERSION) === AI_VERSION;
+        const attempts = previous?.attemptDate === options.todayIso && sameVersion ? previous.attempts : 0;
+        if (attempts >= 3 || (previous && sameVersion && nowMs - Date.parse(previous.attemptedAt) < 3600000)) continue;
+        const state = {attemptDate:options.todayIso,attemptVersion:AI_VERSION,attempts:attempts+1,attemptedAt:nowIso,result:previous?.result ?? null};
+        await repository.saveAiState(date,state,holder);
+        state.result = await generateIntelligence(config,date,inputs,hash,nowIso,options.geminiFetcher);
+        await repository.saveAiState(date,state,holder);
+      } catch {
+        // Source publication continues on quota exhaustion, network or output failure.
+        console.warn(`Gemini enrichment unavailable for ${date}; using source-derived display.`);
+      }
+    }
+  }
   const fetched = computed.reduce((sum, day) => sum + day.summary.fetched, 0);
   const published = computed.reduce((sum, day) => sum + day.summary.published, 0);
   const pagesFetched = computed.reduce((sum, day) => sum + day.summary.pagesFetched, 0);

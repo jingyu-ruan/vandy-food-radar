@@ -56,6 +56,7 @@ export class RouteError extends Error {
 
 /** HTTP seam for the one fixed directions call, injected in tests. */
 export type RouteHttp = {
+  getFoot?(points: GeoPoint[], timeoutMs: number): Promise<RouteResult | null>;
   postJson(
     body: Record<string, unknown>,
     options: { apiKey: string; timeoutMs: number },
@@ -67,7 +68,29 @@ export type RouteHttp = {
  * `null` so the caller falls back to the labelled estimate; no error text that
  * could carry the key is ever propagated.
  */
+let footRequestQueue: Promise<unknown> = Promise.resolve();
+let lastFootRequest = 0;
+
+/** The fixed public pedestrian endpoint, serialized to respect its 1 request/s policy. */
 export const fetchRouteHttp: RouteHttp = {
+  getFoot(points, timeoutMs) {
+    const request = footRequestQueue.then(async () => {
+      const wait = Math.max(0, 1050 - (Date.now() - lastFootRequest));
+      if (wait) await new Promise(resolve => setTimeout(resolve, wait));
+      lastFootRequest = Date.now();
+      try {
+        const coordinates = points.map(p => `${p.lng.toFixed(5)},${p.lat.toFixed(5)}`).join(";");
+        const response = await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${coordinates}?overview=full&geometries=geojson&steps=false`, {
+          headers:{"User-Agent":"FreeBites/1.0 (https://vandy-food-radar.rjy020128.chatgpt.site)",Accept:"application/json"},
+          redirect:"manual", signal:AbortSignal.timeout(timeoutMs),
+        });
+        if (!response.ok) return null;
+        return parseFootRoute(await response.json(), points.length-1);
+      } catch {return null;}
+    });
+    footRequestQueue = request.catch(() => null);
+    return request;
+  },
   async postJson(body, { apiKey, timeoutMs }) {
     try {
       const response = await fetch(ORS_DIRECTIONS_URL, {
@@ -78,7 +101,7 @@ export const fetchRouteHttp: RouteHttp = {
           Accept: "application/geo+json",
         },
         body: JSON.stringify(body),
-        redirect: "error",
+        redirect: "manual",
         signal: AbortSignal.timeout(timeoutMs),
       });
       if (!response.ok) return null;
@@ -271,7 +294,7 @@ export class WalkingRouter {
 
   /** Whether a routing key is configured; never exposes the key itself. */
   get routingAvailable(): boolean {
-    return Boolean(this.config.routing.apiKey);
+    return Boolean(this.config.routing.apiKey || this.http.getFoot);
   }
 
   async route(points: GeoPoint[]): Promise<RouteResult> {
@@ -295,10 +318,8 @@ export class WalkingRouter {
   private async resolve(points: GeoPoint[]): Promise<RouteResult> {
     const { apiKey, timeoutMs } = this.config.routing;
     if (!apiKey) {
-      return estimateRoute(
-        points,
-        "Walking routing is not configured, so this is a straight-line estimate.",
-      );
+      const routed = await this.http.getFoot?.(points, timeoutMs);
+      return routed ?? estimateRoute(points, "Walking route unavailable; straight-line estimate, actual walk unverified.");
     }
     const payload = await this.http.postJson(
       {
@@ -323,4 +344,15 @@ export class WalkingRouter {
       )
     );
   }
+}
+
+/** Validate OSRM foot totals/legs/coordinates through the common GeoJSON boundary. */
+export function parseFootRoute(payload: unknown, expectedLegs: number): RouteResult | null {
+  if (!payload || typeof payload !== "object") return null;
+  const data = payload as {code?:string; routes?: {distance:unknown; duration:unknown; legs?:{distance:unknown; duration:unknown}[]; geometry?:unknown}[]};
+  const route = data.routes?.[0];
+  if (data.code !== "Ok" || !route || route.legs?.length !== expectedLegs) return null;
+  const result = parseOrsGeojson({features:[{properties:{summary:{distance:route.distance,duration:route.duration},segments:route.legs},geometry:route.geometry}]});
+  if (!result || result.geometry.length < 2) return null;
+  return {...result, detail:"Pedestrian route from FOSSGIS using OpenStreetMap data."};
 }

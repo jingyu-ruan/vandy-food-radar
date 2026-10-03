@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vandy Food Radar - 设计套件</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f7;
+            --text-main: #1d1d1f;
+            --text-muted: #86868b;
+            --card-bg: #ffffff;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        h1 { font-size: 36px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+        p.subtitle { font-size: 18px; color: var(--text-muted); }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        }
+        .card-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        h2 { font-size: 24px; font-weight: 600; margin: 0 0 10px 0; }
+        .desc { font-size: 15px; color: var(--text-muted); line-height: 1.5; }
+
+        .preview-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: #fbfbfd;
+            border-radius: 16px;
+        }
+
+        .icon-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .icon-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+
+        /* Mock Browser Tab for Favicon */
+        .browser-mockup {
+            width: 100%;
+            max-width: 320px;
+            background: #e5e5ea;
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px 0 12px;
+            background: #d1d1d6;
+        }
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f5f5f7;
+            padding: 8px 16px;
+            border-radius: 8px 8px 0 0;
+            font-size: 12px;
+            color: #1d1d1f;
+            min-width: 140px;
+            font-weight: 500;
+        }
+        .tab svg { width: 16px; height: 16px; }
+
+        .code-block {
+            background: #1d1d1f;
+            color: #f5f5f7;
+            padding: 20px;
+            border-radius: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Vandy Food Radar</h1>
+            <p class="subtitle">Apple Developer 风格品牌视觉方案</p>
+        </header>
+
+        <!-- 主 Logo 区域 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>1. 网站主 Logo / App Icon</h2>
+                <p class="desc">带有质感极佳的 Apple 风格平滑圆角矩形底板，适合用作 Readme 的大图、网站导航栏左侧主 Logo，或 PWA 的桌面图标。</p>
+            </div>
+            
+            <div class="preview-area">
+                <div class="icon-box">
+                    <!-- 512x512 Logo Preview -->
+                    <svg width="128" height="128" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#2c2c2e"/>
+                                <stop offset="100%" stop-color="#151516"/>
+                            </linearGradient>
+                            <linearGradient id="vandyGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#FCEBAF"/>
+                                <stop offset="30%" stop-color="#D4AF37"/>
+                                <stop offset="70%" stop-color="#AA7C11"/>
+                                <stop offset="100%" stop-color="#8A610A"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Apple Squircle Background -->
+                        <rect width="512" height="512" rx="115" fill="url(#bgGradient)" stroke="#3a3a3c" stroke-width="2"/>
+                        
+                        <!-- Design Elements -->
+                        <g>
+                            <!-- Base Plate -->
+                            <path d="M 110 356 L 402 356" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" />
+                            <!-- Cloche Dome -->
+                            <path d="M 128 356 A 128 128 0 0 1 384 356" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" />
+                            <!-- Vandy 'V' -->
+                            <path d="M 216 264 L 256 316 L 296 264" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                            <!-- Radar Knob -->
+                            <circle cx="256" cy="216" r="12" fill="url(#vandyGold)" />
+                            <!-- Radar Wave 1 -->
+                            <path d="M 227.7 183.7 A 40 40 0 0 1 284.3 183.7" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" />
+                            <!-- Radar Wave 2 -->
+                            <path d="M 196.6 152.6 A 84 84 0 0 1 315.4 152.6" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" />
+                        </g>
+                    </svg>
+                    <span class="icon-label">标准尺寸预览</span>
+                </div>
+                
+                <div class="icon-box">
+                    <svg width="64" height="64" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                        <use href="#appIconBody" />
+                        <!-- Redrawing to avoid strict use refs in standalone -->
+                        <rect width="512" height="512" rx="115" fill="url(#bgGradient)" stroke="#3a3a3c" stroke-width="2"/>
+                        <path d="M 110 356 L 402 356" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" />
+                        <path d="M 128 356 A 128 128 0 0 1 384 356" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" />
+                        <path d="M 216 264 L 256 316 L 296 264" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                        <circle cx="256" cy="216" r="12" fill="url(#vandyGold)" />
+                        <path d="M 227.7 183.7 A 40 40 0 0 1 284.3 183.7" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" />
+                        <path d="M 196.6 152.6 A 84 84 0 0 1 315.4 152.6" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" />
+                    </svg>
+                    <span class="icon-label">缩小效果</span>
+                </div>
+            </div>
+
+            <pre class="code-block"><code>&lt;!-- 保存为 logo.svg --&gt;
+&lt;svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"&gt;
+  &lt;defs&gt;
+    &lt;linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%"&gt;
+      &lt;stop offset="0%" stop-color="#2c2c2e"/&gt;
+      &lt;stop offset="100%" stop-color="#151516"/&gt;
+    &lt;/linearGradient&gt;
+    &lt;linearGradient id="vandyGold" x1="0%" y1="0%" x2="100%" y2="100%"&gt;
+      &lt;stop offset="0%" stop-color="#FCEBAF"/&gt;
+      &lt;stop offset="30%" stop-color="#D4AF37"/&gt;
+      &lt;stop offset="70%" stop-color="#AA7C11"/&gt;
+      &lt;stop offset="100%" stop-color="#8A610A"/&gt;
+    &lt;/linearGradient&gt;
+  &lt;/defs&gt;
+  &lt;rect width="512" height="512" rx="115" fill="url(#bgGradient)" stroke="#3a3a3c" stroke-width="2"/&gt;
+  &lt;path d="M 110 356 L 402 356" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" /&gt;
+  &lt;path d="M 128 356 A 128 128 0 0 1 384 356" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" /&gt;
+  &lt;path d="M 216 264 L 256 316 L 296 264" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none" /&gt;
+  &lt;circle cx="256" cy="216" r="12" fill="url(#vandyGold)" /&gt;
+  &lt;path d="M 227.7 183.7 A 40 40 0 0 1 284.3 183.7" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" /&gt;
+  &lt;path d="M 196.6 152.6 A 84 84 0 0 1 315.4 152.6" stroke="url(#vandyGold)" stroke-width="24" stroke-linecap="round" fill="none" /&gt;
+&lt;/svg&gt;</code></pre>
+        </div>
+
+        <!-- Favicon 区域 -->
+        <div class="card">
+            <div class="card-header">
+                <h2>2. 网页标签页图标 (Favicon)</h2>
+                <p class="desc">去除了背景底板。利用代码级调整了 <code>viewBox</code>，实现了图标无损裁剪放大，以确保在极小的浏览器标签栏中依然清晰展现。</p>
+            </div>
+
+            <div class="preview-area" style="flex-direction: column;">
+                <div class="browser-mockup">
+                    <div class="tab-bar">
+                        <div class="tab">
+                            <!-- 核心：通过 viewBox="90 89 332 332" 将中心的图案完美放大 -->
+                            <svg viewBox="90 89 332 332" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="vGoldFav" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#FCEBAF"/>
+                                        <stop offset="30%" stop-color="#D4AF37"/>
+                                        <stop offset="70%" stop-color="#AA7C11"/>
+                                        <stop offset="100%" stop-color="#8A610A"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M 110 356 L 402 356" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" />
+                                <path d="M 128 356 A 128 128 0 0 1 384 356" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" fill="none" />
+                                <path d="M 216 264 L 256 316 L 296 264" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                                <circle cx="256" cy="216" r="12" fill="url(#vGoldFav)" />
+                                <path d="M 227.7 183.7 A 40 40 0 0 1 284.3 183.7" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" fill="none" />
+                                <path d="M 196.6 152.6 A 84 84 0 0 1 315.4 152.6" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" fill="none" />
+                            </svg>
+                            Vandy Food Radar
+                        </div>
+                    </div>
+                    <div style="height: 40px; background: #fff;"></div>
+                </div>
+                <span class="icon-label">浏览器标签页真实比例渲染模拟</span>
+            </div>
+
+            <pre class="code-block"><code>&lt;!-- 保存为 favicon.svg，并放在你的 public 文件夹中 --&gt;
+&lt;svg viewBox="90 89 332 332" xmlns="http://www.w3.org/2000/svg"&gt;
+  &lt;defs&gt;
+    &lt;linearGradient id="vGoldFav" x1="0%" y1="0%" x2="100%" y2="100%"&gt;
+      &lt;stop offset="0%" stop-color="#FCEBAF"/&gt;
+      &lt;stop offset="30%" stop-color="#D4AF37"/&gt;
+      &lt;stop offset="70%" stop-color="#AA7C11"/&gt;
+      &lt;stop offset="100%" stop-color="#8A610A"/&gt;
+    &lt;/linearGradient&gt;
+  &lt;/defs&gt;
+  &lt;path d="M 110 356 L 402 356" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" /&gt;
+  &lt;path d="M 128 356 A 128 128 0 0 1 384 356" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" fill="none" /&gt;
+  &lt;path d="M 216 264 L 256 316 L 296 264" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none" /&gt;
+  &lt;circle cx="256" cy="216" r="12" fill="url(#vGoldFav)" /&gt;
+  &lt;path d="M 227.7 183.7 A 40 40 0 0 1 284.3 183.7" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" fill="none" /&gt;
+  &lt;path d="M 196.6 152.6 A 84 84 0 0 1 315.4 152.6" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" fill="none" /&gt;
+&lt;/svg&gt;</code></pre>
+        </div>
+    </div>
+</body>
+</html>

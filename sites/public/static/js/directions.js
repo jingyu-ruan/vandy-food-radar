@@ -17,6 +17,7 @@ export function googleWalkingUrl(origin, destination) {
   return `https://www.google.com/maps/dir/?${params}`;
 }
 export function setDestination(point) {
+  invalidateWalkingRoute();
   state.destination = point;
   renderDirections(document);
 }
@@ -46,6 +47,11 @@ export function renderDirections(root) {
   const url=googleWalkingUrl(state.origin,destination);
   if (url) {link.href=url;link.removeAttribute('aria-disabled');link.removeAttribute('tabindex');}
   else {link.removeAttribute('href');link.setAttribute('aria-disabled','true');link.setAttribute('tabindex','-1');}
+}
+export function invalidateWalkingRoute() {
+  const label=one('[data-role="walking-route-status"]');
+  if (label) label.textContent='';
+  import('./map.js').then(module=>{module.clearRoute();module.syncWalkingRoute(document);});
 }
 export function bindDirections(root,{onOriginChange,onPinRequest,onDestinationChange}) {
   bindPlaceSearch(one('#map-origin', root), one('#map-origin-options', root), {

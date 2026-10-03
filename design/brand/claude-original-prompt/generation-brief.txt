@@ -1,0 +1,8 @@
+This is a fresh design task using the exact user prompt below. Generate a new design from that prompt independently.
+The linked GitHub repository is checked out at /Users/ruanjingyu/Documents/ChatGPT/Vandy Food Radar, with the same origin URL verified. For website context, you may read ONLY README.md, sites/app/page.tsx and sites/public/static/app.css in that checkout. Do not read prior logo designs, comparison pages or files in other design/brand subdirectories.
+Deliver your complete response as one self-contained HTML file with inline vector artwork, saved to /Users/ruanjingyu/Documents/ChatGPT/Vandy Food Radar/design/brand/claude-original-prompt/design.html. Use only file-reading and file-writing tools; no shell, external services, settings changes, commits or deployment. Write only this HTML file. Do not impose any extra graphic-direction constraints beyond the user prompt. The parent agent will render the HTML and place the chosen logo/favicon beside other models' versions.
+
+Exact user prompt:
+帮我为这个网站设计一个标签页的那个 icon 的矢量图，或者说，再给我设计一个就是这个网页的 logo吧。就是要求符合这种苹果开发者的那个感觉。就是我不确定这个矢量图和 logo 是不是要做成一样，这个你可以自己决定。然后可以适当融入一些范德包的元素。
+以html输出
+https://github.com/jingyu-ruan/vandy-food-radar

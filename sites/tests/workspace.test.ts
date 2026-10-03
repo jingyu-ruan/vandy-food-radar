@@ -156,6 +156,7 @@ test("JSON embedded in HTML cannot close its script and contains no routing secr
   config.routing.apiKey = "test-secret-route-key";
   config.mapsApiKey = "test-secret-map-key";
   config.refreshToken = "test-secret-refresh-key";
+  config.gemini.apiKey = "test-secret-gemini-key";
   config.referenceLocation.label = "</script><script>alert(1)</script>";
   const encoded = scriptJson(clientConfig(config, TODAY, TODAY, true));
   assert.equal(encoded.includes("<"), false);

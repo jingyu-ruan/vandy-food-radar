@@ -4,7 +4,7 @@
 
 The live application is now hosted at
 [https://vandy-food-radar.rjy020128.chatgpt.site](https://vandy-food-radar.rjy020128.chatgpt.site)
-with owner-private access. React/Vinext serves the page and API in one Sites
+with public read access. React/Vinext serves the page and API in one Sites
 Worker, and Sites D1 stores feeds, source records, scoring, change history, and
 refresh leases. The production application operates on real AnchorLink data.
 
@@ -19,8 +19,14 @@ The existing GitHub Actions workflow refreshes today and tomorrow every two hour
 at minute 17, and seven days every six hours at minute 47. It reads every published
 day back to verify durable publication. GitHub supplies the timer; discovery,
 ranking, persistence, and serving run on Sites. The workflow uses
-`VFR_SITES_SERVICE_TOKEN` from repository secrets and rejects redirects. Future
-service-token rotation must also update that repository secret.
+`VFR_SITES_SERVICE_TOKEN` and `VFR_REFRESH_TOKEN` from repository secrets and
+rejects redirects. The refresh token also lives in the Sites secret environment;
+rotation must update both locations. Anonymous visitors can read listings, while
+data refreshes require the server-side bearer credential.
+
+The header and browser favicon use the original Codex black-and-gold cutlery V.
+The header mark sits beside the page title, with a smaller mobile size; accessible
+text remains ordinary HTML. Brand source files are in `design/brand/`.
 
 The complete Sites source is included as ordinary files under [`sites/`](sites/)
 and is also maintained in the Site's own source repository. See
@@ -383,7 +389,7 @@ The current [GitHub workflow](.github/workflows/hourly-refresh.yml) targets Site
 
 Manual runs can select either span. All triggers share a concurrency group with
 `cancel-in-progress: false`. The job uses the existing
-`VFR_SITES_SERVICE_TOKEN` repository secret, rejects redirects, retries transient
+`VFR_SITES_SERVICE_TOKEN` and `VFR_REFRESH_TOKEN` repository secrets, rejects redirects, retries transient
 failures, and verifies each date's persisted feed after publication. GitHub may
 delay scheduled runs during periods of high load.
 

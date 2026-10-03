@@ -1,0 +1,16 @@
+<svg viewBox="90 89 332 332" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="vGoldFav" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#FCEBAF"/>
+                                        <stop offset="30%" stop-color="#D4AF37"/>
+                                        <stop offset="70%" stop-color="#AA7C11"/>
+                                        <stop offset="100%" stop-color="#8A610A"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M 110 356 L 402 356" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" />
+                                <path d="M 128 356 A 128 128 0 0 1 384 356" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" fill="none" />
+                                <path d="M 216 264 L 256 316 L 296 264" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                                <circle cx="256" cy="216" r="12" fill="url(#vGoldFav)" />
+                                <path d="M 227.7 183.7 A 40 40 0 0 1 284.3 183.7" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" fill="none" />
+                                <path d="M 196.6 152.6 A 84 84 0 0 1 315.4 152.6" stroke="url(#vGoldFav)" stroke-width="24" stroke-linecap="round" fill="none" />
+                            </svg>

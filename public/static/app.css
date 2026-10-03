@@ -267,6 +267,14 @@ button { font: inherit; color: inherit; }
 }
 
 .work-title { font-size: 19px; }
+.work-brand { display:flex; align-items:center; gap:12px; min-width:0; }
+.brand-home { display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; flex:none; border-radius:12px; }
+.brand-icon { display:block; width:44px; height:44px; }
+@media(max-width:800px) {
+  .work-brand { gap:10px; }
+  .brand-home { width:44px; height:44px; }
+  .brand-icon { width:40px; height:40px; }
+}
 
 .work-sub { margin: 0; font-size: 13px; color: var(--ink-soft); }
 
