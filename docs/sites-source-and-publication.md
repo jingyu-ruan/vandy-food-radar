@@ -85,3 +85,36 @@ today and future dates; event rows open AnchorLink, with separate yellow save
 stars and walking links. The map uses a desktop sidebar and a mobile overlay,
 local campus searches, an event dropdown, and concise From/To labels. View
 transitions slide horizontally and respect reduced motion.
+
+## Event presentation and motion refinements on October 2, 2026
+
+GitHub implementation commit `61190d2e53dc2a2ce10fef58290499632fbecec7` was
+pushed before Sites publication. Sites source commit
+`b9dbc4b4b54521537b142e6321d236f797513f0f` was built, packaged, and deployed
+successfully. Both application source trees equal
+`f0ed0be859d04cfb9b98c12f4d497fcd2725d569`.
+
+- Saved version: `appgprj_6abda08653248191bd4377356f3e0a33~appgver_45580250538481918c3b7dae3a02cb25`
+- Deployment: `appgdep_6ac078ff7d408191ab7f13972ba88b18`
+- Validation: 110 Sites pipeline tests, 12 browser-module tests, TypeScript
+  checking, and a successful production build. Browser checks covered 1366,
+  390, and 320 pixels, light and dark appearances, both clock formats, footer
+  alignment, full-width PHield Day food text, menu keyboard and touch-sized
+  controls, save/unsave focus retention, Escape dismissal, walking URL endpoints,
+  repeated view changes, snapshot cleanup, and map zoom retention.
+
+Recommendation scores use labeled numbers; stars consistently denote saving.
+Confirmed food badges read Meal, Snacks, or Free food. Twelve-hour whole-hour
+labels omit `:00`. Event footer controls share a common height and alignment.
+Week rows expose a contextual menu on hover or focus on desktops; its entrance
+remains visible on narrow screens. Unresolved destinations remain address queries.
+
+View changes use an interruptible critically damped spring that retains position
+and velocity. A temporary inaccessible outgoing map snapshot avoids a blank
+panel while the persistent live canvas changes hosts. The map warms its library
+while idle, updates changed markers, retains cached tiles, and preserves its
+camera across tab switches. The first loaded week is framed once.
+
+The daily brief remains deterministic. Research and a proposed once-per-local-day
+D1 cache are recorded in `docs/daily-brief-model-options.md`. No model billing,
+inference credential, or new scheduled job was enabled in this release.
