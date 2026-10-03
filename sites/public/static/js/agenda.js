@@ -166,6 +166,9 @@ export function futureWeekDays(days, today) {
 export function renderAgenda(root) {
   const container = one('[data-role="agenda"]', root);
   if (!container) return;
+  const scroll = container.dataset.week === state.weekStart ? container.scrollTop : 0;
+  const focused = container.contains(document.activeElement) ? document.activeElement.closest('.agenda-row')?.querySelector('.agenda-item')?.dataset : null;
+  container.dataset.week = state.weekStart;
 
   const label = one('[data-role="week-label"]', root);
   if (label && state.weekStart) label.textContent = dayLabel(state.weekStart);
@@ -201,6 +204,8 @@ export function renderAgenda(root) {
   });
 
   replace(container, days.length ? days : el('p', { class: 'agenda-empty', text: 'This week has ended. Choose today or a future date.' }));
+  container.scrollTop = scroll;
+  if (focused) findRow(focused.date, focused.identityKey)?.querySelector('.agenda-item')?.focus({preventScroll:true});
 }
 
 /** Set the selection callback used by agenda rows. */

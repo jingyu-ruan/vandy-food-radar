@@ -140,6 +140,12 @@ test("card links are safe, restrictions are warnings, and participation influenc
   assert.ok(card.warnings.some((warning) => /members only/i.test(warning)));
   assert.ok(card.place);
   config.ranking.participationInfluence = 0.9;
+  config.referenceLocation = {label:"Another origin",lat:36.15,lng:-86.82};
+  const changedPreferences = buildCard(stored, {config,places:campusPlaces(),nowMs:NOW + 3600000});
+  assert.deepEqual(card.score_components, stored.components);
+  assert.deepEqual(changedPreferences.score_components, card.score_components);
+  assert.equal(changedPreferences.score, card.score);
+  assert.equal(changedPreferences.stars, card.stars);
   const scored = scoreEvent(stored.event, config, { status: "unknown", minutes: null, distanceM: null });
   assert.equal(scored.components.find((component) => component.factor === "participation")!.weight, 0.05);
   db.close();

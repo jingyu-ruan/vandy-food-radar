@@ -19,6 +19,7 @@ import { displayText } from './preferences.js';
 import { fetchPlaces } from './api.js';
 import { all, el, one, replace } from './dom.js';
 import { emit, setOrigin, state } from './state.js';
+import { bindPlaceSearch } from './place-search.js';
 
 const MAX_OPTIONS = 8;
 
@@ -91,6 +92,11 @@ function renderStatus(root) {
   }
   const label = one('[data-role="origin-label"]', root);
   if (label && state.origin) label.textContent = displayText(state.origin.label);
+  const button = one('[data-action="edit-origin"]', root);
+  if (button && state.origin) {
+    button.title = `Change walking location: ${displayText(state.origin.label)}`;
+    button.setAttribute('aria-label', button.title);
+  }
 }
 
 function closeList(input, list) {
@@ -138,6 +144,7 @@ export function bindOrigin(root, { onPinRequest, onChange }) {
   const apply = (origin) => {
     setOrigin(origin);
     renderStatus(root);
+    closeOriginPicker(root);
     if (onChange) onChange(origin);
   };
 
@@ -183,7 +190,7 @@ export function bindOrigin(root, { onPinRequest, onChange }) {
 
   let requestGeneration = 0;
   const locationStatus = (message) => {
-    for (const node of all('[data-role="origin-status"], [data-role="map-location-status"]',root)) node.textContent = displayText(message);
+    for (const node of all('[data-role="origin-status"], [data-role="map-location-status"], [data-role="header-origin-status"]',root)) node.textContent = displayText(message);
   };
   for (const gpsButton of all('[data-action="origin-gps"]',root)) {
     gpsButton.addEventListener('click', () => {
@@ -219,8 +226,7 @@ export function bindOrigin(root, { onPinRequest, onChange }) {
     });
   }
 
-  const resetButton = one('[data-action="origin-reset"]', container);
-  if (resetButton) {
+  for (const resetButton of all('[data-action="origin-reset"]', root)) {
     resetButton.addEventListener('click', () => {
       const reference = state.config.reference;
       apply({
@@ -233,6 +239,53 @@ export function bindOrigin(root, { onPinRequest, onChange }) {
   }
 
   renderStatus(root);
+  bindOriginPicker(root, apply);
+}
+
+export function closeOriginPicker(root, returnFocus = true) {
+  const picker = one('#header-origin-picker', root);
+  if (!picker || picker.hidden) return;
+  picker.hidden = true;
+  const trigger = one('[data-action="edit-origin"]', root);
+  trigger?.setAttribute('aria-expanded', 'false');
+  if (returnFocus) trigger?.focus({preventScroll:true});
+}
+
+function bindOriginPicker(root, apply) {
+  const trigger = one('[data-action="edit-origin"]', root);
+  const picker = one('#header-origin-picker', root);
+  const input = one('#header-origin-input', root);
+  if (!trigger || !picker || !input) return;
+  bindPlaceSearch(input, one('#header-origin-options', root), {
+    places: () => state.places,
+    currentLabel: () => state.origin?.label || '',
+    choose: place => {
+      apply({label:place.name, lat:place.lat, lng:place.lng, kind:'place'});
+      closeOriginPicker(root);
+    },
+  });
+  trigger.addEventListener('click', () => {
+    if (!picker.hidden) {closeOriginPicker(root); return;}
+    picker.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    input.value = state.origin?.label || '';
+    input.focus({preventScroll:true});
+    input.select();
+  });
+  one('[data-action="close-origin"]', root).addEventListener('click', () => closeOriginPicker(root));
+  root.addEventListener('pointerdown', event => {
+    if (!picker.hidden && !event.target.closest('.origin-picker')) closeOriginPicker(root, false);
+  });
+  picker.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && input.getAttribute('aria-expanded') !== 'true') {
+      event.preventDefault(); event.stopPropagation(); closeOriginPicker(root);
+    }
+  }, true);
+  picker.addEventListener('focusout', () => {
+    requestAnimationFrame(() => {
+      if (!picker.hidden && !one('.origin-picker', root).contains(document.activeElement)) closeOriginPicker(root, false);
+    });
+  });
 }
 
 function validPoint(point) {

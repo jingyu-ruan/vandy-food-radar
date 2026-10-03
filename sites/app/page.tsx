@@ -94,6 +94,7 @@ export default async function Home({ searchParams }: PageProps) {
         <dialog className="sidebar" id="workspace-sidebar" aria-labelledby="settings-heading">
           <div className="settings-head"><h2 id="settings-heading">Settings</h2>
           <button type="button" className="control-button" data-action="toggle-sidebar" aria-label="Close settings"><ActionIcon name="close" /></button></div>
+          <div className="settings-body">
           <section className="side-block" aria-labelledby="appearance-heading">
             <h3 className="side-heading" id="appearance-heading">Appearance</h3>
             <div className="segmented" role="group" aria-label="Appearance">
@@ -131,14 +132,14 @@ export default async function Home({ searchParams }: PageProps) {
               />
               <ul className="combobox-list" id="origin-options" role="listbox" hidden />
               <div className="side-actions">
-                <button type="button" className="control-button" data-action="origin-gps">
-                  Use my location
+                <button type="button" className="utility-action" data-action="origin-gps">
+                  <ActionIcon name="location" />Use my location
                 </button>
-                <button type="button" className="control-button" data-action="origin-pin">
-                  Pick on map
+                <button type="button" className="utility-action" data-action="origin-pin">
+                  <ActionIcon name="pin" />Pick on map
                 </button>
-                <button type="button" className="control-button" data-action="origin-reset">
-                  Reset
+                <button type="button" className="utility-action" data-action="origin-reset">
+                  <ActionIcon name="reset" />Reset
                 </button>
               </div>
               <p className="location-attribution">Location names: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> / Photon</p>
@@ -172,6 +173,7 @@ export default async function Home({ searchParams }: PageProps) {
             </p>
             <RefreshButton />
           </section>
+          </div>
         </dialog>
 
         <main className="workspace" id="workspace">
@@ -179,7 +181,15 @@ export default async function Home({ searchParams }: PageProps) {
             <div className="work-head-row">
               <h1 className="work-title">Free food on campus</h1>
             </div>
-            <div className="work-sub"><span>Walking from</span><button type="button" className="origin-button" data-action="edit-origin" aria-haspopup="dialog" aria-controls="workspace-sidebar" title="Change walking location"><ActionIcon name="location" /><span data-role="origin-label">{displayText(reference.label)}</span><ActionIcon name="chevron-down" /></button></div>
+            <div className="work-sub"><span>Walking from</span><div className="origin-picker">
+              <button type="button" className="origin-button" data-action="edit-origin" aria-haspopup="dialog" aria-expanded="false" aria-controls="header-origin-picker" title={`Change walking location: ${displayText(reference.label)}`}><ActionIcon name="location" /><span data-role="origin-label">{displayText(reference.label)}</span><ActionIcon name="chevron-down" /></button>
+              <div className="origin-popover" id="header-origin-picker" role="dialog" aria-label="Walking origin" hidden>
+                <div className="origin-popover-head"><label htmlFor="header-origin-input">Walking origin</label><button type="button" className="icon-button utility-action" data-action="close-origin" aria-label="Close location picker"><ActionIcon name="close" /></button></div>
+                <div className="combobox"><input className="control" id="header-origin-input" type="search" role="combobox" aria-expanded="false" aria-controls="header-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" /><ul className="combobox-list" id="header-origin-options" role="listbox" hidden /></div>
+                <div className="side-actions"><button type="button" className="utility-action" data-action="origin-gps"><ActionIcon name="location" />Use my location</button><button type="button" className="utility-action" data-action="origin-pin"><ActionIcon name="pin" />Pick on map</button><button type="button" className="utility-action" data-action="origin-reset"><ActionIcon name="reset" />Reset</button></div>
+                <p className="side-status" data-role="header-origin-status" aria-live="polite" />
+              </div>
+            </div></div>
           </header>
           <div className="event-toolbar">
               <div className="date-nav" data-module="date-nav">
@@ -274,6 +284,7 @@ export default async function Home({ searchParams }: PageProps) {
               Map
             </h2>
             <div className="map-workspace">
+            <div className="map-side">
             <section className="directions-controls" aria-label="Walking directions">
               <div className="directions-fields">
                 <div className="field"><label htmlFor="map-origin">From</label><div className="combobox"><input className="control" id="map-origin" type="search" role="combobox" aria-expanded="false" aria-controls="map-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" defaultValue={displayText(reference.label)} /><ul className="combobox-list" id="map-origin-options" role="listbox" hidden /></div></div>
@@ -281,13 +292,15 @@ export default async function Home({ searchParams }: PageProps) {
               </div>
               <div className="directions-actions">
                 <button type="button" className="control-button icon-button" data-action="origin-gps" aria-label="Use my location" title="Use my location"><ActionIcon name="location" /></button>
-                <button type="button" className="control-button" data-action="origin-pin">Set From on map</button>
-                <button type="button" className="control-button" data-action="pin-destination">Set To on map</button>
-                <a className="control-button directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer"><ActionIcon name="directions" />Google Maps</a>
+                <button type="button" className="utility-action" data-action="origin-pin" aria-label="Set From on map"><ActionIcon name="pin" />Set From</button>
+                <button type="button" className="utility-action" data-action="pin-destination" aria-label="Set To on map"><ActionIcon name="pin" />Set To</button>
+                <a className="control-button directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer"><ActionIcon name="directions" />Open in Google Map</a>
               </div>
               <p className="side-status" data-role="map-location-status" aria-live="polite" />
               <p className="location-attribution">Location names: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> / <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></p>
             </section>
+            <section className="map-events" aria-labelledby="mapped-events-heading"><h3 id="mapped-events-heading" className="section-heading">Events</h3><ol className="map-list" data-role="map-list" aria-label="Mapped listings" /></section>
+            </div>
             <div className="map-instructions" data-role="map-instructions" hidden><span data-role="pin-instructions" /><button type="button" className="control-button" data-action="cancel-pin">Cancel selection</button></div>
             <div data-role="map-home">
               <div className="map-split" data-role="map-split">
@@ -297,7 +310,6 @@ export default async function Home({ searchParams }: PageProps) {
                   </p>
                 </div>
                 <p className="map-selection" data-role="map-selection" aria-live="polite" />
-                <ol className="map-list" data-role="map-list" aria-label="Mapped listings" />
               </div>
             </div>
             </div>

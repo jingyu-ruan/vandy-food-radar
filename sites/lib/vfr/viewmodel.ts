@@ -86,6 +86,7 @@ export type CardJson = {
   date: string;
   stars: number;
   score: number | null;
+  score_components: {factor:string; rawValue:number; weight:number; contribution:number; note:string}[];
   time_label: string;
   start: string | null;
   end: string | null;
@@ -278,6 +279,7 @@ export function buildCard(stored: StoredEvent, context: ViewContext): CardJson {
     date: event.eventDate,
     stars: recommendationStars(event.scoreTotal),
     score: event.scoreTotal,
+    score_components: stored.components.map(component => ({...component})),
     time_label: formatTimeRange(event.startTime, event.endTime),
     start: event.startTime ? `${event.startTime}:00` : null,
     end: event.endTime ? `${event.endTime}:00` : null,

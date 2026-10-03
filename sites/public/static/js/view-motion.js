@@ -31,6 +31,7 @@ export function slideViews(viewport, panels, view, previousView, onFinish) {
       panel.hidden = panel !== nextPanel;
       panel.inert = false;
       panel.classList.remove('is-leaving');
+      panel.classList.remove('is-entering');
       panel.style.transform = '';
       panel.style.willChange = '';
     }
@@ -53,10 +54,11 @@ export function slideViews(viewport, panels, view, previousView, onFinish) {
     panel.hidden = false;
     panel.inert = panel !== nextPanel;
     panel.classList.toggle('is-leaving', panel !== nextPanel);
+    panel.classList.toggle('is-entering', panel === nextPanel);
     panel.style.willChange = 'transform';
     panel.style.transform = `translate3d(${item.position}px,0,0)`;
   }
-  viewport.style.minHeight = `${nextPanel.getBoundingClientRect().height}px`;
+  viewport.style.minHeight = `${Math.max(...[...transition.items.keys()].map(panel => panel.getBoundingClientRect().height))}px`;
   viewport.classList.add('is-transitioning');
   transition.lastTime = performance.now();
   const tick = time => {
@@ -64,7 +66,7 @@ export function slideViews(viewport, panels, view, previousView, onFinish) {
     transition.lastTime = time;
     let settled = true;
     for (const [panel, item] of transition.items) {
-      const step = springStep(item.position, item.velocity, item.target, seconds);
+      const step = springStep(item.position, item.velocity, item.target, seconds, 18);
       item.position = step.position;
       item.velocity = step.velocity;
       panel.style.transform = `translate3d(${item.position}px,0,0)`;

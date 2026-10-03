@@ -11,6 +11,8 @@
 import { Fragment } from "react";
 import { ActionIcon } from "./action-icon";
 import { foodPresentation } from "@/public/static/js/food-presentation.js";
+import { ratingPresentation } from "@/public/static/js/rating.js";
+import { FACT_ICONS } from "@/public/static/js/fact-icons.js";
 
 import type { CardJson } from "@/lib/vfr/viewmodel.ts";
 
@@ -25,7 +27,7 @@ function Fact({
 }) {
   return (
     <div className={wide ? "fact fact-wide" : "fact"}>
-      <dt>{label}</dt>
+      <dt><ActionIcon name={FACT_ICONS[label as keyof typeof FACT_ICONS] || "info"} /><span>{label}</span></dt>
       <dd>{children}</dd>
     </div>
   );
@@ -62,7 +64,7 @@ function PlaceFact({ card }: { card: CardJson }) {
 
 export function WorkspaceCard({ card }: { card: CardJson }) {
   const food = foodPresentation(card);
-  const stars = Math.max(0, Math.min(5, card.stars));
+  const rating = ratingPresentation(card);
   return (
     <article
       className={`card is-${card.state}`}
@@ -71,11 +73,15 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
       {...(card.place ? { "data-lat": card.place.lat, "data-lng": card.place.lng } : {})}
     >
       <header className="card-top">
-        <h3 className="card-title">{card.title}</h3>
-        <span className="recommendation" aria-label={`Recommendation ${stars} of 5`}>
-          <span className="recommendation-label">Recommendation</span>
-          <span className="recommendation-score">{stars}/5</span>
-        </span>
+        <h3 className="card-title">{card.event_url ? <a href={card.event_url} target="_blank" rel="noopener noreferrer">{card.title}</a> : card.title}</h3>
+        <div className="rating">
+          <button type="button" className="rating-trigger" data-action="toggle-rating" aria-label={`Rating ${rating.score} of 5. Show score breakdown for ${card.title}`} aria-expanded="false" aria-controls={rating.id}><span>Rating</span><span className="rating-score">{rating.score}/5</span></button>
+          <div className="rating-panel" id={rating.id} role="region" aria-label={`Rating breakdown for ${card.title}`} tabIndex={0} hidden>
+            <p className="rating-total">Published total {rating.total}</p>
+            {rating.rows.length ? <table><thead><tr><th>Factor</th><th>Weight</th><th>Value</th><th>Points</th></tr></thead><tbody>{rating.rows.map((row, index) => <Fragment key={index}><tr><th scope="row">{row.label}</th><td>{row.weight}</td><td>{row.value}</td><td>{row.points}</td></tr><tr className="rating-note"><td colSpan={4}>{row.note}</td></tr></Fragment>)}</tbody></table> : <p>Score breakdown is unavailable for this published event.</p>}
+            <p className="rating-context">{rating.scale} {rating.context}</p>
+          </div>
+        </div>
       </header>
 
       <p className="card-when">

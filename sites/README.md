@@ -90,17 +90,29 @@ visible on touch. Selecting an event whose location did not resolve to a campus 
 concise inline feedback. The desktop schedule layout is
 roughly 40 percent event list and 60 percent map. The first day's top border is
 removed to avoid a redundant separator under the heading; day separators between
-dates are preserved. The segmented Day/Week/Map control matches the 44-pixel
+dates are preserved. The desktop list scrolls independently while the map remains
+visible. Week and Map selection share an accent border and inset text padding.
+The segmented Day/Week/Map control matches the 44-pixel
 date-input height. Settings provide light, dark, and system appearance, plus
 12-hour and 24-hour clocks, retained in device-local storage. Display copy uses
 spacing and complete phrases instead of middle-dot separators. Settings sit in
-the event toolbar, save immediately, and close using an icon or Escape. Event cards
+the event toolbar, save immediately, and close using an icon or Escape. The header
+and close control stay fixed while the settings body scrolls. Mobile form fields
+use at least 16-pixel type to avoid automatic input zoom; closing restores page
+scroll and opener focus. Segmented controls have a moving selection surface.
+The header walking origin opens its own keyboard-accessible campus picker and
+truncates long names to one line. Event cards
 use a single column so expanded details never stretch a neighboring card. Food
 certainty and category are combined in a semantic colored badge; unspecified
 food remains explicitly unspecified, without implying quality. Cards
 show source-derived food excerpts, participation restrictions, change warnings,
-calendar actions, and resolved campus buildings with room details. The daily
-brief is deterministic and cached by a hash of its source-derived inputs.
+calendar actions, and resolved campus buildings with room details. The Day view's
+event title links to AnchorLink. Fact labels use consistent functional icons and
+type sizes; mobile footer controls remain on one line with 44-pixel heights.
+Rating opens on hover, focus, or click and shows each stored factor's weight,
+value, contribution, and explanation. Scores remain the published snapshot:
+changing walking origin or display preferences never changes the rating.
+The daily brief is deterministic and cached by a hash of its source-derived inputs.
 The checked-in dataset contains 58 curated campus places; unknown names remain
 unresolved. Participation contributes at most five percent to ranking.
 
@@ -108,7 +120,12 @@ Saved events and the selected walking origin stay in device-local storage. Optio
 waypoints and a cache. Missing or failed routing is labelled as a distance-based
 estimate. Routing keys remain server-side.
 
-The Map view uses a desktop sidebar and a mobile overlay above the map.
+The Map view puts the scrolling event list beneath From/To in the desktop sidebar.
+On mobile, compact endpoint controls appear in normal flow above the map, with
+the event list beneath it. Changing coordinates pans the persistent map smoothly;
+label-only updates and save actions preserve its camera. A new selection can
+interrupt the previous pan, and reduced motion uses immediate positioning.
+The walking link reads Open in Google Map.
 The basemap uses OpenFreeMap Liberty vector tiles rendered through MapLibre and
 Leaflet. Buildings use light neutral fills, parks retain natural green, and
 low-priority place labels appear only at closer zoom levels. Activity markers

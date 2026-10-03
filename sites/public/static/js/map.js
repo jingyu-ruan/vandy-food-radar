@@ -15,6 +15,7 @@ import { displayText, eventTime } from './preferences.js';
 
 import { el, one, replace } from './dom.js';
 import { isSaved, state } from './state.js';
+import { cameraChange, coordinateKey } from './map-camera.js';
 
 const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
@@ -29,7 +30,7 @@ let leafletPromise = null;
 let map = null;
 let markerLayer = null;
 const markers = new Map();
-let lastFrameKey = null;
+let lastCamera = null;
 let lastFramedWeek = null;
 let originKey = null;
 let destinationKey = null;
@@ -151,7 +152,7 @@ function status(root, message) {
 
 function mappable() {
   const events = state.view === 'schedule' && state.week?.days
-    ? state.week.days.flatMap(day => day.events) : state.events;
+    ? state.week.days.filter(day => day.date >= state.config.today).flatMap(day => day.events) : state.events;
   return events.filter((event) => event.place && !event.cancelled && (state.view !== 'itinerary' || isSaved(event.date,event.identity_key)));
 }
 
@@ -180,6 +181,10 @@ function markerFor(L, event) {
 function renderList(root, onSelect) {
   const list = one('[data-role="map-list"]', root);
   if (!list) return;
+  const scope = state.view === 'schedule' ? state.weekStart : state.selectedDate;
+  const scroll = list.dataset.scope === scope ? list.scrollTop : 0;
+  const focused = list.contains(document.activeElement) ? document.activeElement.closest('button')?.dataset.identityKey : null;
+  list.dataset.scope = scope;
   const events = mappable();
   const selected = events.find(event=>event.identity_key===state.selectedKey);
   const selection = one('[data-role="map-selection"]', root);
@@ -206,6 +211,7 @@ function renderList(root, onSelect) {
       const button = el('button', {
         type: 'button',
         class: state.selectedKey === event.identity_key ? 'is-selected' : '',
+        'aria-pressed':String(state.selectedKey === event.identity_key),
         dataset: { identityKey: event.identity_key },
       }, [
         el('span', { text: event.title }),
@@ -215,6 +221,8 @@ function renderList(root, onSelect) {
       return el('li', {}, button);
     }),
   );
+  list.scrollTop = scroll;
+  if (focused) [...list.querySelectorAll('button')].find(button => button.dataset.identityKey === focused)?.focus({preventScroll:true});
 }
 
 /** Open the map view, loading Leaflet on first use. */
@@ -325,17 +333,29 @@ export function syncMarkers(root, onSelect) {
   // a world-level zoom; fit only once the map panel has a measurable size.
   const canvas = map.getContainer();
   // A tab switch changes the canvas size, not the visitor's chosen camera.
-  const frameKey = JSON.stringify([state.selectedDate, originKey, destinationKey]);
+  const nextCamera = {date:state.selectedDate, origin:coordinateKey(origin), destination:coordinateKey(destination), selected:state.selectedKey};
+  const change = cameraChange(lastCamera, nextCamera);
   const needsWeekFrame = state.view === 'schedule' && state.week?.days?.length && lastFramedWeek !== state.weekStart;
-  if ((lastFrameKey !== frameKey || needsWeekFrame) && events.length && canvas.clientWidth > 0 && canvas.clientHeight > 0) {
-    lastFrameKey = frameKey;
+  if (canvas.clientWidth > 0 && canvas.clientHeight > 0) {
+    lastCamera = nextCamera;
     if (needsWeekFrame) lastFramedWeek = state.weekStart;
-    const bounds = L.latLngBounds(events.map((event) => [event.place.lat, event.place.lng]));
-    if (origin && Math.abs(origin.lat-events[0].place.lat)<0.1 && Math.abs(origin.lng-events[0].place.lng)<0.1) bounds.extend([origin.lat, origin.lng]);
-    if(destinationMarker && Math.abs(destination.lat-events[0].place.lat)<0.1 && Math.abs(destination.lng-events[0].place.lng)<0.1) bounds.extend([destination.lat,destination.lng]);
-    map.fitBounds(bounds.pad(0.25), { animate: false, maxZoom: 17 });
-    if (state.selectedKey) panTo(state.selectedKey);
+    if (change === 'destination' && destination.eventKey !== state.selectedKey) {
+      moveCamera([destination.lat, destination.lng]);
+    } else if (change === 'origin') {
+      moveCamera([origin.lat, origin.lng]);
+    } else if ((change === 'initial' || change === 'date' || needsWeekFrame) && events.length && !state.selectedKey) {
+      const bounds = L.latLngBounds(events.map((event) => [event.place.lat, event.place.lng]));
+      if (origin && Math.abs(origin.lat-events[0].place.lat)<0.1 && Math.abs(origin.lng-events[0].place.lng)<0.1) bounds.extend([origin.lat, origin.lng]);
+      if(destinationMarker && Math.abs(destination.lat-events[0].place.lat)<0.1 && Math.abs(destination.lng-events[0].place.lng)<0.1) bounds.extend([destination.lat,destination.lng]);
+      map.stop();
+      map.fitBounds(bounds.pad(0.25), { animate: change !== 'initial' && !prefersReducedMotion(), duration:0.55, maxZoom:17 });
+    }
   }
+}
+
+function moveCamera(point) {
+  map.stop();
+  map.panTo(point, {animate:!prefersReducedMotion(), duration:0.55});
 }
 
 /** Pan to a selected event, if it has a resolved building. */
@@ -343,7 +363,7 @@ export function panTo(identityKey) {
   if (!map) return;
   const event = mappable().find((item) => item.identity_key === identityKey);
   if (!event || !event.place) return;
-  map.panTo([event.place.lat, event.place.lng], { animate: !prefersReducedMotion() });
+  moveCamera([event.place.lat, event.place.lng]);
 }
 
 /** Open the tooltip on a marker so the location name is visible after panning. */

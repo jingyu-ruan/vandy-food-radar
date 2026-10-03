@@ -1,6 +1,8 @@
 import { icon } from './icons.js';
 import { foodPresentation } from './food-presentation.js';
 import { eventTime } from './preferences.js';
+import { ratingPresentation } from './rating.js';
+import { FACT_ICONS } from './fact-icons.js';
 /**
  * Card rendering and card-level interactions.
  *
@@ -16,17 +18,24 @@ import { eventTime } from './preferences.js';
 import { all, el, one, replace } from './dom.js';
 import { findEvent, isSaved, state, toggleSaved } from './state.js';
 
-function recommendation(count) {
-  const score = Math.max(0, Math.min(5, count));
-  return el('span', {class:'recommendation', 'aria-label':`Recommendation ${score} of 5`}, [
-    el('span', {class:'recommendation-label', text:'Recommendation'}),
-    el('span', {class:'recommendation-score', text:`${score}/5`}),
-  ]);
+function ratingFor(event) {
+  const rating = ratingPresentation(event);
+  const panel = el('div', {class:'rating-panel', id:rating.id, role:'region', 'aria-label':`Rating breakdown for ${event.title}`, tabindex:'0', hidden:true}, [el('p', {class:'rating-total', text:`Published total ${rating.total}`})]);
+  if (rating.rows.length) {
+    const body = el('tbody');
+    for (const row of rating.rows) body.append(
+      el('tr', {}, [el('th', {scope:'row', text:row.label}), ...[row.weight, row.value, row.points].map(text=>el('td',{text}))]),
+      el('tr', {class:'rating-note'}, [el('td', {colspan:'4', text:row.note})]),
+    );
+    panel.append(el('table', {}, [el('thead', {}, [el('tr', {}, ['Factor','Weight','Value','Points'].map(text=>el('th', {text})))]), body]));
+  } else panel.append(el('p', {text:'Score breakdown is unavailable for this published event.'}));
+  panel.append(el('p', {class:'rating-context', text:`${rating.scale} ${rating.context}`}));
+  return el('div', {class:'rating'}, [el('button', {type:'button', class:'rating-trigger', 'data-action':'toggle-rating', 'aria-expanded':'false', 'aria-controls':rating.id, 'aria-label':`Rating ${rating.score} of 5. Show score breakdown for ${event.title}`}, [el('span', {text:'Rating'}), el('span', {class:'rating-score', text:`${rating.score}/5`})]), panel]);
 }
 
 function fact(label, children, wide = false) {
   return el('div', { class: `fact${wide ? ' fact-wide' : ''}` }, [
-    el('dt', { text: label }),
+    el('dt', {}, [icon(FACT_ICONS[label] || 'info'), el('span', {text:label})]),
     el('dd', {}, children),
   ]);
 }
@@ -156,8 +165,8 @@ export function renderCard(event) {
 
   card.append(
     el('header', { class: 'card-top' }, [
-      el('h3', { class: 'card-title', text: event.title }),
-      recommendation(event.stars || 0),
+      el('h3', { class: 'card-title' }, [event.event_url ? el('a', {href:event.event_url, target:'_blank', rel:'noopener noreferrer', text:event.title}) : event.title]),
+      ratingFor(event),
     ]),
   );
 
@@ -252,10 +261,83 @@ export function syncCardChrome(root) {
  * Wire card interactions once, using delegation so client-rendered cards need
  * no extra binding.
  */
+function bindRatings(root) {
+  const open = (rating, value) => {
+    const panel = one('.rating-panel', rating);
+    panel.hidden = !value;
+    one('.rating-trigger', rating).setAttribute('aria-expanded', String(value));
+    if (value) {
+      const box = rating.getBoundingClientRect();
+      const width = panel.getBoundingClientRect().width;
+      const left = Math.max(16, Math.min(box.right - width, window.innerWidth - width - 16));
+      panel.style.left = `${left - box.left}px`;
+      panel.style.right = 'auto';
+      const below = window.innerHeight - box.bottom - 20;
+      const above = box.top - 20;
+      const placeAbove = below < 240 && above > below;
+      panel.style.top = placeAbove ? 'auto' : '100%';
+      panel.style.bottom = placeAbove ? '100%' : 'auto';
+      panel.style.maxHeight = `${Math.max(180, Math.min(window.innerHeight * 0.65, placeAbove ? above : below))}px`;
+    }
+    if (!value) rating.classList.remove('is-pinned');
+  };
+  const closeOthers = current => {
+    for (const rating of all('.rating', root)) if (rating !== current) open(rating, false);
+  };
+  root.addEventListener('click', event => {
+    const trigger = event.target.closest?.('[data-action="toggle-rating"]');
+    if (!trigger) return;
+    const rating = trigger.closest('.rating');
+    const pinned = !rating.classList.contains('is-pinned');
+    closeOthers(rating);
+    rating.classList.remove('is-dismissed');
+    open(rating, pinned);
+    rating.classList.toggle('is-pinned', pinned);
+  });
+  root.addEventListener('pointerover', event => {
+    if (!window.matchMedia('(hover:hover)').matches) return;
+    const rating = event.target.closest?.('.rating');
+    if (!rating || rating.contains(event.relatedTarget)) return;
+    closeOthers(rating);
+    rating.classList.remove('is-dismissed');
+    open(rating, true);
+  });
+  root.addEventListener('pointerout', event => {
+    const rating = event.target.closest?.('.rating');
+    if (!rating || rating.contains(event.relatedTarget) || rating.contains(document.activeElement) || rating.classList.contains('is-pinned')) return;
+    open(rating, false);
+  });
+  root.addEventListener('focusin', event => {
+    const rating = event.target.closest?.('.rating');
+    if (rating && !rating.classList.contains('is-dismissed')) {closeOthers(rating); open(rating, true);}
+  });
+  root.addEventListener('focusout', event => {
+    const rating = event.target.closest?.('.rating');
+    if (!rating) return;
+    requestAnimationFrame(() => {
+      if (!rating.contains(document.activeElement)) {open(rating, false); rating.classList.remove('is-dismissed');}
+    });
+  });
+  root.addEventListener('pointerdown', event => {
+    if (!event.target.closest?.('.rating')) closeOthers(null);
+  });
+  root.addEventListener('keydown', event => {
+    const rating = event.target.closest?.('.rating');
+    if (rating && event.key === 'Escape') {
+      event.preventDefault();
+      open(rating, false);
+      rating.classList.add('is-dismissed');
+      one('.rating-trigger', rating).focus({preventScroll:true});
+    }
+  });
+}
+
 export function bindCardEvents(root, { onSelect } = {}) {
+  bindRatings(root);
   root.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
+    if (target.closest('.rating')) return;
 
     const saveButton = target.closest('[data-action="toggle-save"]');
     if (saveButton) {
@@ -273,14 +355,14 @@ export function bindCardEvents(root, { onSelect } = {}) {
         const open = panel.hasAttribute('hidden');
         if (open) panel.removeAttribute('hidden');
         else panel.setAttribute('hidden', '');
-        one('[data-role="action-label"]', detailsButton).textContent = open ? 'Hide details' : 'Details';
+        one('[data-role="action-label"]', detailsButton).textContent = 'Details';
         detailsButton.setAttribute('aria-expanded', String(open));
       }
       return;
     }
 
     const card = target.closest('.card');
-    if (card && onSelect && !target.closest('a') && !target.closest('button')) {
+    if (card && onSelect && !target.closest('a, button, summary')) {
       const key = card.dataset.identityKey;
       onSelect(findEvent(key) ? key : null);
     }

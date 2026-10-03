@@ -13,10 +13,11 @@ import { bindAgendaMenus, renderAgenda, setAgendaSelectHandler } from './agenda.
 import { bindCardEvents, renderCards, syncCardChrome } from './cards.js';
 import { all, one } from './dom.js';
 import { slideViews } from './view-motion.js';
+import { bindSegmented } from './segmented.js';
 import { armPinMode, cancelPinMode, clearRoute, openTooltip, panTo, prepareMap, showMap, syncMarkers } from './map.js';
 import { bindDirections, destinationFor, setDestination } from './directions.js';
 import { refreshWalking } from './walking.js';
-import { bindOrigin, coordinateLabel, labelForPoint, loadPlaces, originFromPin, refreshOriginStatus } from './origin.js';
+import { bindOrigin, closeOriginPicker, coordinateLabel, labelForPoint, loadPlaces, originFromPin, refreshOriginStatus } from './origin.js';
 import {
   emit,
   initState,
@@ -206,6 +207,10 @@ async function selectFromAgenda(date, identityKey) {
     return;
   }
 
+  if (state.view === 'map' && date !== state.selectedDate) {
+    await loadDay(date);
+    if (generation !== agendaSelectionRequest || state.view !== 'map') return;
+  }
   // Select within the week view — use week data directly
   state.selectedKey = identityKey;
   syncCardChrome(root);
@@ -273,7 +278,9 @@ function originChanged() {
 }
 async function handlePin(point, mode) {
   if (mode !== 'destination') {originFromPin(root, point, originChanged);return;}
+  agendaSelectionRequest += 1;
   const destination={...point,label:point.label || coordinateLabel(point)};
+  state.selectedKey = null;
   setDestination(destination);
   syncMarkers(root, selectFromMap);
   if (point.label) return;
@@ -283,6 +290,7 @@ async function handlePin(point, mode) {
   syncMarkers(root, selectFromMap);
 }
 function beginPicking(mode='origin') {
+  closeOriginPicker(root, false);
   setView('map');
   one('.sidebar',root).close();
   showMap(root,{onSelect:selectFromMap,onPinned:handlePin}).then(()=>{
@@ -291,18 +299,41 @@ function beginPicking(mode='origin') {
   return true;
 }
 
+function destinationChanged() {
+  const destination = state.destination;
+  if (destination?.eventKey) {
+    selectFromAgenda(destination.date, destination.eventKey);
+    return;
+  }
+  agendaSelectionRequest += 1;
+  state.selectedKey = null;
+  syncCardChrome(root);
+  renderAgenda(root);
+  if (usesMap()) syncMarkers(root, selectFromMap);
+}
+
 function bindNavigation() {
   one('[data-action="cancel-pin"]',root).addEventListener('click',cancelPinMode);
   const settings = one('.sidebar', root);
+  let settingsPosition = null;
   for (const button of all('[data-action="toggle-sidebar"]', root)) {
     button.addEventListener('click', () => {
       if (settings.open) settings.close();
-      else settings.showModal();
+      else {
+        closeOriginPicker(root, false);
+        settingsPosition = {x:window.scrollX, y:window.scrollY, opener:button};
+        settings.showModal();
+        document.documentElement.classList.add('settings-open');
+      }
     });
   }
-  one('[data-action="edit-origin"]', root).addEventListener('click', () => {
-    settings.showModal();
-    one('#origin-input', root).focus();
+  settings.addEventListener('close', () => {
+    document.documentElement.classList.remove('settings-open');
+    if (!settingsPosition) return;
+    const position = settingsPosition;
+    settingsPosition = null;
+    position.opener.focus({preventScroll:true});
+    window.scrollTo({left:position.x, top:position.y, behavior:'instant'});
   });
   settings.addEventListener('click', event => {
     if (event.target !== settings) return;
@@ -361,6 +392,7 @@ function start() {
     if (usesMap()) syncMarkers(root, selectFromMap);
   });
   bindNavigation();
+  bindSegmented(root);
   bindAgendaMenus(root);
   // Wire the agenda selection handler through the module API
   setAgendaSelectHandler(selectFromAgenda);
@@ -369,7 +401,7 @@ function start() {
     onPinRequest: beginPicking,
     onChange: originChanged,
   });
-  bindDirections(root,{onOriginChange:originChanged,onPinRequest:beginPicking,onDestinationChange:()=>{if(usesMap())syncMarkers(root,selectFromMap);}});
+  bindDirections(root,{onOriginChange:originChanged,onPinRequest:beginPicking,onDestinationChange:destinationChanged});
   refreshOriginStatus(root);
   setScope();
   renderScope();
