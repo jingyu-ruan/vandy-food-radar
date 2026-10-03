@@ -341,17 +341,8 @@ button { font: inherit; color: inherit; }
 
 .card-title { font-size: 15px; line-height: 1.3; min-width: 0; }
 
-.stars { flex: none; display: inline-flex; gap: 2px; }
 
-.star {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  display: inline-block;
-}
 
-.star.on { background: var(--accent); }
-.star.off { background: var(--line-strong); }
 
 .card-when {
   display: flex;
@@ -806,8 +797,6 @@ body { background:var(--surface); }
 .card-title { font-size:19px; line-height:1.35; font-weight:600; letter-spacing:-.025em; }
 .card-when { font-size:15px; margin:12px 0 18px; }
 .when-time { font-weight:550; }
-.stars { padding-top:6px; gap:2px; }
-.star { width:10px; height:10px; border-radius:0; clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 93%,50% 72%,21% 93%,32% 57%,2% 35%,39% 35%); }
 .card-facts { flex:1; gap:10px; font-size:14px; }
 .fact dt { font-size:13px; }
 .fact dd { line-height:1.55; }
@@ -937,7 +926,7 @@ body { font-size:17px; }
 .card-facts { font-size:16px; gap:12px; }
 .fact dt { font-size:15px; }
 .fact-wide dt, .chip, .food-note { font-size:14px; }
-.fact dd { max-width:85ch; font-size:16px; }
+.fact dd { max-width:none; font-size:16px; }
 .fact-muted, .fact-text, .card-detail-body { font-size:16px; line-height:1.65; }
 .card-when { font-size:17px; }
 .card-warnings, .card-details, .agenda-item, .map-list button { font-size:16px; }
@@ -1036,10 +1025,6 @@ body { font-size:17px; }
 .action-save[aria-pressed="true"] .ui-icon, .agenda-save[aria-pressed="true"] .ui-icon { fill:var(--favorite-fill); }
 .agenda-save { color:var(--ink-soft); }
 .agenda-directions { color:var(--accent); }
-.stars { gap:3px; padding-top:6px; }
-.star { width:17px; height:17px; }
-.star.on { background:var(--favorite-fill); }
-.star.off { background:var(--line-strong); }
 .fact { align-items:baseline; }
 .fact dt { padding-top:0; line-height:1.65; }
 .fact dd { line-height:1.65; }
@@ -1077,7 +1062,6 @@ body { font-size:17px; }
   .view-switch { flex:1; }
   .view-switch button { min-height:44px; }
   .card-top { flex-wrap:wrap; gap:6px 14px; }
-  .stars { padding-top:3px; }
   .map-workspace { position:relative; display:block; }
   .directions-controls { position:absolute; top:12px; left:12px; right:12px; z-index:1000; padding:14px; border-radius:16px; box-shadow:0 4px 20px #00000016; }
   .directions-fields { gap:10px; }
@@ -1102,3 +1086,29 @@ body { font-size:17px; }
 @media(max-width:380px) {
   .date-nav .control-date::-webkit-calendar-picker-indicator { display:none; }
 }
+
+/* Scores use numbers; the star consistently means saving an event. */
+.recommendation { display:inline-flex; align-items:baseline; flex:none; gap:7px; padding-top:3px; font-size:13px; line-height:1.6; color:var(--ink-faint); white-space:nowrap; }
+.recommendation-score { color:var(--ink-soft); font-size:15px; font-weight:500; font-variant-numeric:tabular-nums; }
+.card-actions { align-items:center; }
+.card-actions > .action, .card-actions .calendar-menu > summary { min-height:44px; line-height:20px; }
+.calendar-menu > summary { display:flex; align-items:center; }
+.agenda-menu { position:relative; flex:none; }
+.agenda-menu > summary { list-style:none; cursor:pointer; color:var(--ink-soft); background:transparent; }
+.agenda-menu > summary::-webkit-details-marker { display:none; }
+.agenda-menu > summary .ui-icon { width:22px; height:22px; }
+.agenda-menu-options { position:absolute; top:calc(100% + 3px); right:0; z-index:1100; width:218px; padding:6px; background:var(--surface); border:1px solid var(--line-strong); border-radius:12px; box-shadow:0 8px 24px #00000018; }
+.agenda-menu-options .action { display:flex; width:100%; gap:9px; min-height:44px; font-size:14px; border-radius:8px; }
+.agenda-menu-options .ui-icon { width:20px; height:20px; flex:none; }
+.agenda-menu-options .agenda-save[aria-pressed="true"] { background:transparent; }
+.agenda-saved { color:var(--favorite); font-size:12px; }
+@media(hover:hover) and (pointer:fine) {
+  .agenda-menu > summary { opacity:0; transition:opacity 120ms ease, background 120ms ease; }
+  .agenda-row:hover .agenda-menu > summary, .agenda-row:focus-within .agenda-menu > summary, .agenda-menu[open] > summary { opacity:1; }
+  .agenda-menu > summary:hover { background:var(--surface-sunken); }
+}
+@media(max-width:800px) {
+  .recommendation { padding-top:0; }
+  .agenda-menu > summary { opacity:1; }
+}
+.map-transition-snapshot { pointer-events:none; }

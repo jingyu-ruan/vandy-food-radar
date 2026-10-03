@@ -4,7 +4,7 @@ import { eventTime } from './preferences.js';
  *
  * The schedule browses the week containing the selected date and shares one
  * map markers retain location selection. Event rows open their AnchorLink
- * source; separate buttons save events and open walking directions.
+ * source; a contextual menu saves events and opens walking directions.
  */
 
 import { el, one, replace } from './dom.js';
@@ -40,16 +40,32 @@ function agendaRow(event) {
       el('span', { class: 'agenda-title', text: event.title }),
     ],
   );
+  const saved = isSaved(event.date, event.identity_key);
+  if (saved) row.append(el('span', {class:'agenda-saved', text:'Saved'}));
   const save = el('button', {
-    type:'button', class:'agenda-save icon-button',
-    'aria-label':`${isSaved(event.date,event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
-    'aria-pressed':String(isSaved(event.date,event.identity_key)),
-    title:`${isSaved(event.date,event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
-  }, [icon('star')]);
-  save.addEventListener('click', () => toggleSaved(event.date,event.identity_key));
+    type:'button', class:'action agenda-save',
+    'aria-label':`${saved ? 'Unsave' : 'Save'} ${event.title}`,
+    'aria-pressed':String(saved),
+  }, [icon('star'), el('span', {text:saved ? 'Unsave event' : 'Save event'})]);
+  const menu = el('details', {class:'agenda-menu', 'data-action-menu':''}, [
+    el('summary', {class:'icon-button', 'aria-label':`Actions for ${event.title}`, title:`Actions for ${event.title}`}, [icon('ellipsis')]),
+  ]);
+  save.addEventListener('click', () => {
+    menu.open = false;
+    toggleSaved(event.date, event.identity_key);
+    // Saving rebuilds the week. Keep keyboard focus on this row's menu.
+    const replacement = Array.from(document.querySelectorAll('.agenda-row')).find(item => item.querySelector('.agenda-item')?.dataset.identityKey === event.identity_key && item.querySelector('.agenda-item')?.dataset.date === event.date);
+    replacement?.querySelector('summary')?.focus({preventScroll:true});
+  });
+  const options = el('div', {class:'agenda-menu-options'}, [save]);
   const url = googleWalkingUrl(state.origin, destinationFor(event));
-  const directions = url ? el('a', {class:'agenda-directions icon-button', href:url, target:'_blank', rel:'noopener noreferrer', 'aria-label':`Walking directions to ${event.title}`, title:`Walking directions to ${event.title}`}, [icon('directions')]) : null;
-  return el('div',{class:'agenda-row'},[row,save,directions]);
+  if (url) {
+    const directions = el('a', {class:'action agenda-directions', href:url, target:'_blank', rel:'noopener noreferrer'}, [icon('directions'), el('span', {text:'Walking directions'})]);
+    directions.addEventListener('click', () => {menu.open = false;});
+    options.append(directions);
+  }
+  menu.append(options);
+  return el('div', {class:'agenda-row'}, [row, menu]);
 }
 
 /** Render the agenda for the loaded week. */
@@ -94,4 +110,23 @@ export function renderAgenda(root) {
   });
 
   replace(container, days.length ? days : el('p', {class:'agenda-empty', text:'This week has ended. Choose today or a future date.'}));
+}
+
+/** Native disclosure menus work with pointer, keyboard and touch input. */
+export function bindAgendaMenus(root) {
+  root.addEventListener('click', event => {
+    const current = event.target.closest?.('[data-action-menu]');
+    for (const menu of root.querySelectorAll('[data-action-menu][open]')) {
+      if (menu !== current) menu.open = false;
+    }
+  });
+  root.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    const menu = event.target.closest?.('[data-action-menu][open]');
+    if (menu) {
+      menu.open = false;
+      menu.querySelector('summary').focus();
+      event.preventDefault();
+    }
+  });
 }

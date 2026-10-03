@@ -72,15 +72,9 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
     >
       <header className="card-top">
         <h3 className="card-title">{card.title}</h3>
-        <span
-          className="stars"
-          role="img"
-          aria-label={`Recommendation ${stars} of 5`}
-          title={`Recommendation ${stars} of 5`}
-        >
-          {Array.from({ length: 5 }, (_, index) => (
-            <i key={index} className={`star ${index < stars ? "on" : "off"}`} aria-hidden="true" />
-          ))}
+        <span className="recommendation" aria-label={`Recommendation ${stars} of 5`}>
+          <span className="recommendation-label">Recommendation</span>
+          <span className="recommendation-score">{stars}/5</span>
         </span>
       </header>
 

@@ -16,17 +16,12 @@ import { eventTime } from './preferences.js';
 import { all, el, one, replace } from './dom.js';
 import { findEvent, isSaved, state, toggleSaved } from './state.js';
 
-function stars(count) {
-  const wrap = el('span', {
-    class: 'stars',
-    role: 'img',
-    'aria-label': `Recommendation ${count} of 5`,
-    title: `Recommendation ${count} of 5`,
-  });
-  for (let index = 0; index < 5; index += 1) {
-    wrap.append(el('i', { class: `star ${index < count ? 'on' : 'off'}`, 'aria-hidden': 'true' }));
-  }
-  return wrap;
+function recommendation(count) {
+  const score = Math.max(0, Math.min(5, count));
+  return el('span', {class:'recommendation', 'aria-label':`Recommendation ${score} of 5`}, [
+    el('span', {class:'recommendation-label', text:'Recommendation'}),
+    el('span', {class:'recommendation-score', text:`${score}/5`}),
+  ]);
 }
 
 function fact(label, children, wide = false) {
@@ -162,7 +157,7 @@ export function renderCard(event) {
   card.append(
     el('header', { class: 'card-top' }, [
       el('h3', { class: 'card-title', text: event.title }),
-      stars(event.stars || 0),
+      recommendation(event.stars || 0),
     ]),
   );
 

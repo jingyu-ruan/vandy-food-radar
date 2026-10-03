@@ -13,4 +13,5 @@
 <symbol id="chevron-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
 <symbol id="chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
 <symbol id="directions" viewBox="0 0 24 24"><path d="m12 2 10 10-10 10L2 12zM8 15v-4h8m-3-3 3 3-3 3"/></symbol>
+<symbol id="ellipsis" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
 </defs></svg>

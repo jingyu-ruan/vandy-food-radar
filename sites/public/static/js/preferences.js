@@ -28,15 +28,15 @@ export function formatMinutes(minutes, clock = preferences.clock) {
   const m = String(wrapped % 60).padStart(2, '0');
   return clock === '24'
     ? `${String(h).padStart(2, '0')}:${m}`
-    : `${h % 12 || 12}:${m} ${h < 12 ? 'AM' : 'PM'}`;
+    : `${h % 12 || 12}${m === '00' ? '' : ':' + m} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
 export function clockMinutes(value) {
   if (typeof value !== 'string') return null;
-  const match = /^(\d{1,2}):(\d{2})(?::00)?(?:\s*(AM|PM))?$/i.exec(value.trim());
-  if (!match) return null;
+  const match = /^(\d{1,2})(?::(\d{2})(?::00)?)?(?:\s*(AM|PM))?$/i.exec(value.trim());
+  if (!match || (!match[2] && !match[3])) return null;
   let h = Number(match[1]);
-  const m = Number(match[2]);
+  const m = Number(match[2] || 0);
   if (m > 59 || h > (match[3] ? 12 : 23) || (match[3] && h === 0)) return null;
   if (match[3]) h = h % 12 + (match[3].toUpperCase() === 'PM' ? 12 : 0);
   return h * 60 + m;

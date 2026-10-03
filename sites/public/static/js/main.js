@@ -9,10 +9,11 @@
 
 import { bindPreferences, displayText, formatTimesInText } from './preferences.js';
 import { fetchDay, fetchWeek } from './api.js';
-import { renderAgenda } from './agenda.js';
+import { bindAgendaMenus, renderAgenda } from './agenda.js';
 import { bindCardEvents, renderCards, syncCardChrome } from './cards.js';
 import { all, one } from './dom.js';
-import { armPinMode, cancelPinMode, clearRoute, panTo, showMap, syncMarkers } from './map.js';
+import { slideViews } from './view-motion.js';
+import { armPinMode, cancelPinMode, clearRoute, panTo, prepareMap, showMap, syncMarkers } from './map.js';
 import { bindDirections, destinationFor, setDestination } from './directions.js';
 import { refreshWalking } from './walking.js';
 import { bindOrigin, coordinateLabel, labelForPoint, loadPlaces, originFromPin, refreshOriginStatus } from './origin.js';
@@ -27,7 +28,6 @@ import {
 } from './state.js';
 
 const VIEWS = new Set(['cards', 'schedule', 'map']);
-let finishTransition = null;
 const root = document;
 let dayRequest = 0;
 let weekRequest = 0;
@@ -169,19 +169,32 @@ async function selectFromAgenda(date, identityKey) {
 
 function setView(view) {
   if (!VIEWS.has(view) || view === state.view) return;
-  if (finishTransition) finishTransition();
   const previousView = state.view;
   const previousPanel = one(`[data-view-panel="${previousView}"]`, root);
-  const nextPanel = one(`[data-view-panel="${view}"]`, root);
   const viewport = one('.event-content', root);
-  const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches && !!nextPanel?.animate;
-  const direction = [...VIEWS].indexOf(view) > [...VIEWS].indexOf(previousView) ? 1 : -1;
+  const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   cancelPinMode();
   state.view = view;
   clearRoute();
   const split = one('[data-role="map-split"]', root);
   const host = one(view === 'schedule' ? '[data-role="schedule-map-host"]' : '[data-role="map-home"]', root);
-  if (split && host && split.parentNode !== host) host.append(split);
+  // Keep the outgoing map visible while its live canvas moves to the next view.
+  let snapshot = null;
+  if (split && host && split.parentNode !== host) {
+    host.querySelector('.map-transition-snapshot')?.remove();
+    if (animate && split.closest('[data-view-panel]') === previousPanel) {
+      snapshot = split.cloneNode(true);
+      snapshot.classList.add('map-transition-snapshot');
+      snapshot.setAttribute('aria-hidden', 'true');
+      snapshot.inert = true;
+      for (const node of [snapshot, ...snapshot.querySelectorAll('*')]) {
+        node.removeAttribute('id');
+        node.removeAttribute('data-role');
+      }
+      split.parentNode.append(snapshot);
+    }
+    host.append(split);
+  }
   for (const panel of all('[data-view-panel]', root)) {
     const active = panel.dataset.viewPanel === view;
     panel.classList.toggle('is-active', active);
@@ -193,29 +206,10 @@ function setView(view) {
     button.classList.toggle('is-current', current);
     button.setAttribute('aria-pressed', String(current));
   }
-  if (animate) {
-    viewport.classList.add('is-transitioning');
-    viewport.style.minHeight = `${nextPanel.getBoundingClientRect().height}px`;
-    previousPanel.hidden = false;
-    previousPanel.classList.add('is-leaving');
-    previousPanel.inert = true;
-    const options = {duration: 340, easing: 'cubic-bezier(.22,.68,0,1)', fill: 'both'};
-    const outgoing = previousPanel.animate([{transform:'translateX(0)'},{transform:`translateX(${-direction * 100}%)`}], options);
-    const incoming = nextPanel.animate([{transform:`translateX(${direction * 100}%)`},{transform:'translateX(0)'}], options);
-    const finish = () => {
-      outgoing.cancel(); incoming.cancel();
-      previousPanel.hidden = true;
-      previousPanel.inert = false;
-      previousPanel.classList.remove('is-leaving');
-      viewport.classList.remove('is-transitioning');
-      viewport.style.minHeight = '';
-      finishTransition = null;
-    };
-    finishTransition = finish;
-    incoming.finished.then(finish, () => {});
-  }
   if (view === 'schedule' && !state.week) loadWeek();
-  if (usesMap()) showMap(root, { onSelect: selectFromMap, onPinned: handlePin });
+  // Resize the persistent map before motion begins; keep its camera unchanged.
+  if (usesMap()) showMap(root, {onSelect:selectFromMap, onPinned:handlePin});
+  slideViews(viewport, all('[data-view-panel]', root), view, previousView, () => snapshot?.remove());
 }
 
 function originChanged() {
@@ -315,6 +309,7 @@ function start() {
     if (usesMap()) syncMarkers(root, selectFromMap);
   });
   bindNavigation();
+  bindAgendaMenus(root);
   bindCardEvents(root, { onSelect: selectEvent });
   bindOrigin(root, {
     onPinRequest: beginPicking,
@@ -337,6 +332,9 @@ function start() {
   });
 
   loadPlaces();
+  // Warm the small map library after the initial page becomes interactive.
+  if ('requestIdleCallback' in window) window.requestIdleCallback(prepareMap, {timeout:2500});
+  else window.setTimeout(prepareMap, 1200);
   // Load the selected day's JSON so client-side views have structured data to
   // work with, replacing the server-rendered cards with identical markup.
   loadDay(state.selectedDate, { pushHistory: false });

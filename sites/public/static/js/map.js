@@ -1,9 +1,9 @@
 import { displayText, eventTime } from './preferences.js';
 /**
- * Campus map, loaded only when the map view is first opened.
+ * Campus map, warmed after the first paint and initialised on first use.
  *
  * Leaflet is ~150 KB and most sessions never leave the card view, so the
- * library is fetched on demand from a CDN with Subresource Integrity hashes.
+ * library is warmed during idle time from a CDN with Subresource Integrity hashes.
  * If that fetch fails — offline, blocked CDN, integrity mismatch — the panel
  * states plainly that the map is unavailable and keeps the adjacent list of
  * mapped listings usable, rather than showing an empty grey rectangle.
@@ -26,6 +26,11 @@ const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyrigh
 let leafletPromise = null;
 let map = null;
 let markerLayer = null;
+const markers = new Map();
+let lastFrameKey = null;
+let lastFramedWeek = null;
+let originKey = null;
+let destinationKey = null;
 let originMarker = null;
 let destinationMarker = null;
 let campusLayer = null;
@@ -66,6 +71,11 @@ function loadLeaflet() {
     document.head.append(script);
   });
   return leafletPromise;
+}
+
+/** Fetch shared assets during idle time; the visible panel handles failures. */
+export function prepareMap() {
+  loadLeaflet().catch(() => {});
 }
 
 function status(root, message) {
@@ -150,7 +160,7 @@ export async function showMap(root, { onSelect, onPinned }) {
   if (!canvas) return;
 
   if (map) {
-    map.invalidateSize();
+    map.invalidateSize({pan:false, animate:false, debounceMoveend:true});
     syncMarkers(root, onSelect);
     return;
   }
@@ -168,7 +178,7 @@ export async function showMap(root, { onSelect, onPinned }) {
   }
 
   if (map) {
-    map.invalidateSize();
+    map.invalidateSize({pan:false, animate:false, debounceMoveend:true});
     syncMarkers(root, onSelect);
     return;
   }
@@ -179,7 +189,7 @@ export async function showMap(root, { onSelect, onPinned }) {
     [reference.lat, reference.lng],
     16,
   );
-  L.tileLayer(TILE_URL, { maxZoom: 19, attribution: TILE_ATTRIBUTION }).addTo(map);
+  L.tileLayer(TILE_URL, {maxZoom:19, keepBuffer:4, attribution:TILE_ATTRIBUTION}).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
   map.on('click', (clickEvent) => {
     if (!pinMode || !onPin) return;
@@ -193,21 +203,32 @@ export function syncMarkers(root, onSelect) {
   renderList(root, onSelect);
   if (!map || !window.L || !markerLayer) return;
   const L = window.L;
-  markerLayer.clearLayers();
-
   const events = mappable();
+  const activeKeys = new Set();
   for (const event of events) {
+    const key = `${event.date}:${event.identity_key}`;
+    activeKeys.add(key);
+    const signature = JSON.stringify([event.place.lat, event.place.lng, event.title, eventTime(event), isSaved(event.date, event.identity_key), state.selectedKey === event.identity_key]);
+    const previous = markers.get(key);
+    if (previous?.signature === signature) continue;
+    if (previous) markerLayer.removeLayer(previous.marker);
     const marker = markerFor(L, event);
     marker.on('click', () => {if(pinMode)pickPoint({lat:event.place.lat,lng:event.place.lng,label:event.place.name});else onSelect(event.identity_key);});
     marker.addTo(markerLayer);
+    markers.set(key, {marker, signature});
+  }
+  for (const [key, entry] of markers) {
+    if (!activeKeys.has(key)) {markerLayer.removeLayer(entry.marker); markers.delete(key);}
   }
 
-  if (originMarker) {
-    originMarker.remove();
-    originMarker = null;
-  }
   const origin = state.origin;
-  if (origin) {
+  const nextOriginKey = JSON.stringify(origin);
+  if (nextOriginKey !== originKey) {
+    originMarker?.remove();
+    originMarker = null;
+    originKey = nextOriginKey;
+  }
+  if (origin && !originMarker) {
     originMarker = L.marker([origin.lat, origin.lng], {
       icon: L.divIcon({
         className: 'vfr-pin-wrap',
@@ -222,9 +243,14 @@ export function syncMarkers(root, onSelect) {
     originMarker.addTo(map);
   }
 
-  if(destinationMarker) {destinationMarker.remove();destinationMarker=null;}
   const destination=state.destination;
-  if(Number.isFinite(destination?.lat) && Number.isFinite(destination?.lng)) {
+  const nextDestinationKey = JSON.stringify(destination);
+  if (nextDestinationKey !== destinationKey) {
+    destinationMarker?.remove();
+    destinationMarker = null;
+    destinationKey = nextDestinationKey;
+  }
+  if(!destinationMarker && Number.isFinite(destination?.lat) && Number.isFinite(destination?.lng)) {
     destinationMarker=L.marker([destination.lat,destination.lng],{icon:L.divIcon({className:'vfr-pin-wrap',html:'<span class="vfr-pin is-destination"></span>',iconSize:[16,16],iconAnchor:[8,8]}),title:`Destination: ${destination.label}`,alt:`Destination: ${destination.label}`}).addTo(map);
     destinationMarker.bindTooltip(el('span',{text:`Destination: ${destination.label}`}));
   }
@@ -233,7 +259,12 @@ export function syncMarkers(root, onSelect) {
   // A mobile agenda hides the canvas. Fitting a zero-sized map would choose
   // a world-level zoom; fit only once the map panel has a measurable size.
   const canvas = map.getContainer();
-  if (events.length && canvas.clientWidth > 0 && canvas.clientHeight > 0) {
+  // A tab switch changes the canvas size, not the visitor's chosen camera.
+  const frameKey = JSON.stringify([state.selectedDate, originKey, destinationKey]);
+  const needsWeekFrame = state.view === 'schedule' && state.week?.days?.length && lastFramedWeek !== state.weekStart;
+  if ((lastFrameKey !== frameKey || needsWeekFrame) && events.length && canvas.clientWidth > 0 && canvas.clientHeight > 0) {
+    lastFrameKey = frameKey;
+    if (needsWeekFrame) lastFramedWeek = state.weekStart;
     const bounds = L.latLngBounds(events.map((event) => [event.place.lat, event.place.lng]));
     if (origin && Math.abs(origin.lat-events[0].place.lat)<0.1 && Math.abs(origin.lng-events[0].place.lng)<0.1) bounds.extend([origin.lat, origin.lng]);
     if(destinationMarker && Math.abs(destination.lat-events[0].place.lat)<0.1 && Math.abs(destination.lng-events[0].place.lng)<0.1) bounds.extend([destination.lat,destination.lng]);
