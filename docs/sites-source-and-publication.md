@@ -140,3 +140,27 @@ markers, and controls; MapLibre renders the basemap. Blue activity markers, gold
 saved markers, and a selection ring remain centered on their coordinates.
 The previous grayscale filters were removed. CARTO was evaluated but required
 an API key and returned placeholder tiles, so it was excluded from the release.
+
+## Week event interactions on October 2, 2026
+
+GitHub implementation commit `ffa9e13` was pushed before Sites publication.
+Sites source commit `9bf0f7f83b5b46f79b8433c7af512ac8545c82e7` was built,
+packaged, and deployed successfully under the existing owner-private access.
+Both application source trees equal `a23ecd8f32d96969f1761c1ebbd6807098833410`.
+
+- Saved version: `appgprj_6abda08653248191bd4377356f3e0a33~appgver_3a4dc2ced6f88191b9a8288c43e12c6e`
+- Deployment: `appgdep_6ac0862a3ba08191898c3417c321c0f0`
+- Validation: 122 existing pipeline and browser-module tests, final browser-module
+  checks, TypeScript checking, lint with zero errors, JavaScript syntax checks,
+  and successful production packaging. Browser checks covered 1366, 390, and
+  320 pixels, both appearances, keyboard selection, repeated selection,
+  save/unsave focus retention, single-menu expansion, Escape dismissal, menu URLs,
+  unresolved-location feedback, and cross-date map selection.
+
+Week rows select their map location; Source and Walking directions live in the
+ellipsis menu. Saving displays a gold star immediately before the ellipsis,
+and clicking that star unsaves. Hover and focus backgrounds cover the entire
+row. Desktop columns use a 40/60 split, the first day has no top separator,
+and the date input and outer display switch both measure 44 pixels tall.
+Desktop selection preserves the browsing date; mobile selection loads the
+event's date before showing the Map view. Location tooltips wrap long names.
