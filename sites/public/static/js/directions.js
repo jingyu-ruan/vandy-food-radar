@@ -1,7 +1,8 @@
 /** Endpoint selection and Google's documented, cross-platform walking URL. */
-import { el, one, replace } from './dom.js';
+import { one } from './dom.js';
+import { cancelPinMode } from './map.js';
 import { setOrigin, state, subscribe } from './state.js';
-import { bindPlaceSearch } from './place-search.js';
+import { bindPlaceSearch, searchAddresses } from './place-search.js';
 
 export function validPoint(point) {
   return Number.isFinite(point?.lat) && Math.abs(point.lat) <= 90 && Number.isFinite(point?.lng) && Math.abs(point.lng) <= 180;
@@ -30,18 +31,10 @@ function eventChoices() {
   return [...new Map([...state.events,...(state.week?.days?.flatMap(day=>day.events) || [])].map(event=>[event.identity_key,event])).values()];
 }
 export function renderDirections(root) {
-  const start = one('#map-origin', root), end = one('#map-destination',root);
-  if (!start || !end) return;
-  if (document.activeElement !== start) start.value = state.origin?.label || '';
-  const search = one('#map-place-search', root);
-  if (document.activeElement !== search) search.value = state.destination?.label || '';
-  const events = eventChoices().filter(event => (event.place || event.location_listed) && event.date >= state.config.today);
-  const chosen = state.destination;
-  const selection = chosen?.eventKey ? `event:${chosen.eventKey}` : '';
-  const extra = chosen?.eventKey && !events.some(event => event.identity_key === chosen.eventKey)
-    ? [el('option', {value:selection, text:chosen.label})] : [];
-  replace(end, [el('option', {value:'', text:'Choose an event'}), ...extra, ...events.map(event => el('option', {value:`event:${event.identity_key}`, text:event.title}))]);
-  end.value = selection;
+  const start=one('#map-origin',root), search=one('#map-place-search',root);
+  if (!start || !search) return;
+  if (document.activeElement!==start) start.value=state.origin?.label || '';
+  if (document.activeElement!==search) search.value=state.destination?.label || '';
   const destination = state.destination;
   const link=one('[data-role="google-directions"]',root);
   const url=googleWalkingUrl(state.origin,destination);
@@ -54,28 +47,21 @@ export function invalidateWalkingRoute() {
   import('./map.js').then(module=>{module.clearRoute();module.syncWalkingRoute(document);});
 }
 export function bindDirections(root,{onOriginChange,onPinRequest,onDestinationChange}) {
-  bindPlaceSearch(one('#map-origin', root), one('#map-origin-options', root), {
-    places: () => state.places,
-    currentLabel: () => state.origin?.label || '',
-    choose: place => {
-      setOrigin({label:place.name, lat:place.lat, lng:place.lng, kind:'place'});
-      onOriginChange();
+  const campus=()=>state.places.map(place=>({...place,kind:'campus'}));
+  const common={remote:searchAddresses,openOnFocus:true,onChoose:cancelPinMode,onCancel:cancelPinMode};
+  bindPlaceSearch(one('#map-origin',root),one('#map-origin-options',root),{
+    ...common,places:campus,currentLabel:()=>state.origin?.label || '',onFocus:()=>onPinRequest('origin',true),
+    choose:place=>{setOrigin({label:place.kind==='address' && place.detail ? `${place.name}, ${place.detail}` : place.name,lat:place.lat,lng:place.lng,kind:'place'});onOriginChange();},
+  });
+  bindPlaceSearch(one('#map-place-search',root),one('#map-place-options',root),{
+    ...common, currentLabel:()=>state.destination?.label || '',onFocus:()=>onPinRequest('destination',true),
+    places:()=>[...eventChoices().filter(event=>!event.cancelled && (event.place || event.location_listed) && event.date>=state.config.today)
+      .map(event=>({id:`event:${event.identity_key}`,name:event.title,aliases:[event.place?.name,event.location_listed].filter(Boolean),detail:`${event.date} / ${event.place?.name || event.location_listed}`,kind:'event',event})),...campus()],
+    choose:place=>{
+      setDestination(place.kind==='event' ? destinationFor(place.event) : {label:place.detail ? `${place.name}, ${place.detail}` : place.name,lat:place.lat,lng:place.lng,placeId:place.id});
+      onDestinationChange?.();
     },
   });
-  bindPlaceSearch(one('#map-place-search', root), one('#map-place-options', root), {
-    places: () => state.places,
-    currentLabel: () => state.destination?.label || '',
-    choose: place => {
-      setDestination({label:place.name, lat:place.lat, lng:place.lng, placeId:place.id});
-      if (onDestinationChange) onDestinationChange();
-    },
-  });
-  one('#map-destination', root).addEventListener('change', event => {
-    const item = eventChoices().find(item => `event:${item.identity_key}` === event.target.value);
-    setDestination(item ? destinationFor(item) : null);
-    if (onDestinationChange) onDestinationChange();
-  });
-  one('[data-action="pin-destination"]',root).addEventListener('click',()=>onPinRequest('destination'));
   one('[data-role="google-directions"]',root).addEventListener('click',event=>{
     if (event.currentTarget.getAttribute('aria-disabled')==='true') event.preventDefault();
   });

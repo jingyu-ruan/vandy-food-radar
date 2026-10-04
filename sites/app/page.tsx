@@ -1,3 +1,4 @@
+import {foodEmojiText, foodSourceText} from "@/public/static/js/food-emoji.js";
 import {BriefAssessments} from "@/components/vfr/brief-assessments";
 import {generatedLabel} from "@/public/static/js/brief.js";
 /**
@@ -193,7 +194,7 @@ export default async function Home({ searchParams }: PageProps) {
               <button type="button" className="origin-button" data-action="edit-origin" aria-haspopup="dialog" aria-expanded="false" aria-controls="header-origin-picker" title={`Change walking location: ${displayText(reference.label)}`}><ActionIcon name="location" /><span data-role="origin-label">{displayText(reference.label)}</span><ActionIcon name="chevron-down" /></button>
               <div className="origin-popover" id="header-origin-picker" role="dialog" aria-label="Walking Origin" hidden>
                 <div className="origin-popover-head"><label htmlFor="header-origin-input">Walking Origin</label><button type="button" className="icon-button utility-action" data-action="close-origin" aria-label="Close location picker"><ActionIcon name="close" /></button></div>
-                <div className="combobox"><input className="control" id="header-origin-input" type="search" role="combobox" aria-expanded="false" aria-controls="header-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" /><ul className="combobox-list" id="header-origin-options" role="listbox" hidden /></div>
+                <div className="combobox"><input className="control" id="header-origin-input" type="search" role="combobox" aria-expanded="false" aria-controls="header-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search places or addresses" /><ul className="combobox-list" id="header-origin-options" role="listbox" hidden /></div>
                 <div className="side-actions"><button type="button" className="utility-action" data-action="origin-gps"><ActionIcon name="location" />Use My Location</button><button type="button" className="utility-action" data-action="origin-pin"><ActionIcon name="pin" />Pick on Map</button><button type="button" className="utility-action" data-action="origin-reset"><ActionIcon name="reset" />Reset</button></div>
                 <p className="side-status" data-role="header-origin-status" aria-live="polite" />
               </div>
@@ -248,7 +249,7 @@ export default async function Home({ searchParams }: PageProps) {
             data-view-panel="cards"
             aria-labelledby="cards-heading"
           >
-            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily Brief</h2><p className="brief-text" data-role="brief-text" lang="en">{displayText(briefText)}</p><BriefAssessments brief={feed?.brief} date={selected} events={feed?.events} /><p className="brief-meta" data-role="brief-meta" hidden={!generatedLabel(feed?.brief,config.timezone)}>{generatedLabel(feed?.brief,config.timezone)}</p></section>
+            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily Brief</h2><p className="brief-text" data-role="brief-text" lang="en">{foodEmojiText(displayText(briefText), foodSourceText(feed?.events || []))}</p><BriefAssessments brief={feed?.brief} date={selected} events={feed?.events} /><p className="brief-meta" data-role="brief-meta" hidden={!generatedLabel(feed?.brief,config.timezone)}>{generatedLabel(feed?.brief,config.timezone)}</p></section>
             <div className="events-heading"><h2 className="section-heading" id="cards-heading">
               Events{" "}
               <span className="count" data-role="card-count">
@@ -298,18 +299,12 @@ export default async function Home({ searchParams }: PageProps) {
               <div className="endpoint-group">
                 <div className="endpoint-row">
                   <label className="endpoint-label" htmlFor="map-origin">From</label>
-                  <div className="combobox endpoint-search"><input className="control" id="map-origin" type="search" role="combobox" aria-expanded="false" aria-controls="map-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" defaultValue={displayText(reference.label)} /><ul className="combobox-list" id="map-origin-options" role="listbox" hidden /></div>
+                  <div className="combobox endpoint-search"><input className="control" id="map-origin" type="search" role="combobox" aria-expanded="false" aria-controls="map-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search events, places or addresses" defaultValue={displayText(reference.label)} /><ul className="combobox-list" id="map-origin-options" role="listbox" hidden /></div>
                   <button type="button" className="endpoint-action" data-action="origin-gps" aria-label="Use current location" title="Use current location"><ActionIcon name="location" /></button>
-                  <button type="button" className="endpoint-action" data-action="origin-pin" aria-label="Choose start point on map" title="Choose start point on map"><ActionIcon name="pin" /></button>
                 </div>
                 <div className="endpoint-row endpoint-row-to">
                   <label className="endpoint-label" htmlFor="map-place-search">To</label>
                   <div className="combobox endpoint-search"><input className="control" id="map-place-search" type="search" role="combobox" aria-expanded="false" aria-controls="map-place-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" /><ul className="combobox-list" id="map-place-options" role="listbox" hidden /></div>
-                  <button type="button" className="endpoint-action" data-action="pin-destination" aria-label="Choose destination on map" title="Choose destination on map"><ActionIcon name="pin" /></button>
-                </div>
-                <div className="endpoint-event">
-                  <label htmlFor="map-destination">Destination event</label>
-                  <select className="control" id="map-destination" defaultValue=""><option value="">Choose an event</option></select>
                 </div>
                 <div className="directions-actions">
                   <a className="control-button directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer"><ActionIcon name="directions" />Open in Google Map</a>

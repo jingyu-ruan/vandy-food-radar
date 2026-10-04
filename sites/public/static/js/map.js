@@ -461,15 +461,15 @@ function drawCampusChoices() {
   }
 }
 /** Named campus markers and arbitrary map coordinates use the same selection flow. */
-export function armPinMode(mode='origin') {
+export function armPinMode(mode='origin',inline=false) {
   if(!map)return false;
   pinMode=mode==='destination' ? 'destination' : 'origin';
-  one('[data-role="map-instructions"]').hidden=false;
+  one('[data-role="map-instructions"]').hidden=inline;
   one('[data-role="pin-instructions"]').textContent=`Choose your ${pinMode==='origin' ? 'starting point' : 'destination'}: select a campus marker or click anywhere on the map.`;
   map.getContainer().classList.add('is-picking');
   drawCampusChoices();
-  if(state.places?.length) map.fitBounds(window.L.latLngBounds(state.places.map(place=>[place.lat,place.lng])).pad(.12),{animate:false,maxZoom:16});
-  map.getContainer().scrollIntoView({block:'nearest',behavior:'instant'});
+  if(!inline && state.places?.length) map.fitBounds(window.L.latLngBounds(state.places.map(place=>[place.lat,place.lng])).pad(.12),{animate:false,maxZoom:16});
+  if(!inline) map.getContainer().scrollIntoView({block:'nearest',behavior:'instant'});
   return true;
 }
 export function cancelPinMode() {

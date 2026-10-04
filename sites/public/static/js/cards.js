@@ -1,3 +1,4 @@
+import {foodEmojiText, foodSourceText} from './food-emoji.js';
 import {eventAnchor, participationText} from './brief.js';
 import { icon } from './icons.js';
 import { foodPresentation } from './food-presentation.js';
@@ -31,7 +32,7 @@ function ratingFor(event) {
     panel.append(el('table', {}, [el('thead', {}, [el('tr', {}, ['Factor','Weight','Value','Points'].map(text=>el('th', {text})))]), body]));
   } else panel.append(el('p', {text:'Score breakdown is unavailable for this published event.'}));
   panel.append(el('p', {class:'rating-context', text:`${rating.scale} ${rating.context}`}));
-  return el('div', {class:'rating'}, [el('button', {type:'button', class:'rating-trigger', 'data-action':'toggle-rating', 'aria-expanded':'false', 'aria-controls':rating.id, 'aria-label':`Rating ${rating.score} of 5. Show score breakdown for ${event.title}`}, [el('span', {text:'Rating'}), el('span', {class:'rating-score', text:`${rating.score}/5`})]), panel]);
+  return el('div', {class:'rating'}, [el('button', {type:'button', class:'rating-trigger', 'data-action':'toggle-rating', 'aria-expanded':'false', 'aria-controls':rating.id, 'aria-label':`Rating ${rating.score} of 5. Show score breakdown for ${event.title}`}, [el('span', {text:'Rating'}), el('span', {class:'rating-score', text:`${rating.score}/5.0`})]), panel]);
 }
 
 function fact(label, children, wide = false) {
@@ -183,7 +184,7 @@ export function renderCard(event) {
   const foodChildren = [el('span', {class:`chip chip-${food.tone}`}, [food.label])];
   if (food.detail) foodChildren.push(el('span', {class:'food-note',text:food.detail}));
   if (event.food_description) {
-    foodChildren.push(el('span', { class: 'fact-text', text: event.food_description }));
+    foodChildren.push(el('span', { class: 'fact-text', text: foodEmojiText(event.food_description, foodSourceText([event])) }));
   }
 
   const facts = el('dl', { class: 'card-facts' }, [fact('Food', foodChildren), placeFact(event)]);

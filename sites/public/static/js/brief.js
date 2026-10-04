@@ -1,7 +1,9 @@
+import {foodEmojiText, foodSourceText} from './food-emoji.js';
 /** Shared table presentation and stable card links for server/browser rendering. */
+import {icon} from './icons.js';
 import { el, one, replace } from './dom.js';
 import { eventTime, formatTimesInText } from './preferences.js';
-export const BRIEF_COLUMNS = ['Rank', 'Activity', 'Time', 'Food', 'Location', 'Walk', 'Notes'];
+export const BRIEF_COLUMNS = ['Rank', 'Event', 'Time', 'Food', 'Location', 'Walk', 'Notes'];
 export function briefRows(brief, events = [], clock) {
   const cards = new Map(events.map(event => [event.identity_key, event]));
   return (brief?.items || []).map((item, index) => {
@@ -9,8 +11,9 @@ export function briefRows(brief, events = [], clock) {
     return {
       ...item,
       rank: index + 1,
+      source_url: card?.event_url || null,
       time: card ? eventTime(card, clock) : formatTimesInText(item.time || 'Time not listed', clock),
-      food: !item.food || item.food === 'Food/Menu Not Specified' ? 'Unspecified' : item.food,
+      food: !item.food || item.food === 'Food/Menu Not Specified' ? 'Unspecified' : foodEmojiText(item.food, foodSourceText(card ? [card] : [])),
       location: item.location || 'Location not listed',
       walk: (item.walk || '—').replace('Walking Time Unverified', '—').replace(/;.*$/, '').replace(/\s+(?:straight-line )?estimate$/, ''),
       walk_detail: item.walk,
@@ -42,13 +45,13 @@ export function renderBriefAssessments(root, brief, events = []) {
   node.hidden = !rows.length;
   if (!rows.length) { replace(node, []); return; }
   replace(node, [
-    el('div', {class:'brief-table-scroll',tabindex:0,role:'region','aria-label':'Daily Brief activity table'}, [
+    el('div', {class:'brief-table-scroll',tabindex:0,role:'region','aria-label':'Daily Brief event table'}, [
       el('table', {class:'brief-table'}, [
-        el('caption', {class:'visually-hidden',text:'Ranked free-food activities for the selected date'}),
+        el('caption', {class:'visually-hidden',text:'Ranked free-food events for the selected date'}),
         el('thead', {}, [el('tr', {}, BRIEF_COLUMNS.map(column => el('th', {scope:'col',text:column})))]),
         el('tbody', {}, rows.map(item => el('tr', {dataset:{identityKey:item.identity_key},class:item.cancelled ? 'brief-row-cancelled' : ''}, [
           el('td', {class:'brief-rank',text:item.rank}),
-          el('th', {scope:'row',class:'brief-activity'}, [el('a',{class:'brief-event-link',href:eventHref(item.identity_key,brief?.date),text:item.title}), item.cancelled ? el('span',{class:'brief-cancelled',text:'Cancelled'}) : null]),
+          el('th', {scope:'row',class:'brief-activity'}, [el('div',{class:'brief-event'}, [el('a',{class:'brief-event-link brief-event-title',href:eventHref(item.identity_key,brief?.date),text:item.title}), el('span',{class:'brief-event-actions'}, [el('a',{class:'brief-event-link brief-event-action',href:eventHref(item.identity_key,brief?.date),title:'Show event card','aria-label':`Show event card for ${item.title}`},[icon('arrow-down')]), item.source_url ? el('a',{class:'brief-event-action',href:item.source_url,target:'_blank',rel:'noopener noreferrer',title:'Open source','aria-label':`Open source for ${item.title}`},[icon('external-link')]) : null])]), item.cancelled ? el('span',{class:'brief-cancelled',text:'Cancelled'}) : null]),
           el('td', {class:'brief-time',text:item.time}),
           el('td', {text:item.food}),
           el('td', {text:item.location}),

@@ -1,3 +1,4 @@
+import {foodEmojiText, foodSourceText} from './food-emoji.js';
 import {generatedLabel, renderBriefAssessments, bindBriefLinks} from './brief.js';
 /**
  * Entry point: wires the views together and owns navigation.
@@ -120,7 +121,7 @@ function renderBrief() {
     node.textContent = `The feed could not be loaded: ${state.error}`;
     return;
   }
-  if (state.brief) node.textContent = formatTimesInText(displayText(state.brief.text));
+  if (state.brief) node.textContent = formatTimesInText(foodEmojiText(displayText(state.brief.text), foodSourceText(state.events)));
 }
 
 function renderScope() {
@@ -294,12 +295,13 @@ async function handlePin(point, mode) {
   setDestination({...destination,label:`Near ${label}`});
   syncMarkers(root, selectFromMap);
 }
-function beginPicking(mode='origin') {
+function beginPicking(mode='origin',inline=false) {
   closeOriginPicker(root, false);
   setView('map');
   one('.sidebar',root).close();
   showMap(root,{onSelect:selectFromMap,onPinned:handlePin}).then(()=>{
-    if (!armPinMode(mode)) one('[data-role="map-location-status"]',root).textContent='The map is unavailable. Search for a campus building in From or To.';
+    if (inline && document.activeElement?.id !== (mode==='destination' ? 'map-place-search' : 'map-origin')) return;
+    if (!armPinMode(mode,inline)) one('[data-role="map-location-status"]',root).textContent='The map is unavailable. Search for a campus building in From or To.';
   });
   return true;
 }

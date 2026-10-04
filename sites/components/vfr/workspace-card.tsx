@@ -1,3 +1,4 @@
+import {foodEmojiText, foodSourceText} from "@/public/static/js/food-emoji.js";
 /**
  * One event card, server-rendered from the same `CardJson` the browser modules
  * render on every later date change (`public/static/js/cards.js`). The markup
@@ -78,7 +79,7 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
       <header className="card-top">
         <h3 className="card-title">{card.event_url ? <a href={card.event_url} target="_blank" rel="noopener noreferrer">{card.title}</a> : card.title}</h3>
         <div className="rating">
-          <button type="button" className="rating-trigger" data-action="toggle-rating" aria-label={`Rating ${rating.score} of 5. Show score breakdown for ${card.title}`} aria-expanded="false" aria-controls={rating.id}><span>Rating</span><span className="rating-score">{rating.score}/5</span></button>
+          <button type="button" className="rating-trigger" data-action="toggle-rating" aria-label={`Rating ${rating.score} of 5. Show score breakdown for ${card.title}`} aria-expanded="false" aria-controls={rating.id}><span>Rating</span><span className="rating-score">{rating.score}/5.0</span></button>
           <div className="rating-panel" id={rating.id} role="region" aria-label={`Rating breakdown for ${card.title}`} tabIndex={0} hidden>
             <p className="rating-total">Published total {rating.total}</p>
             {rating.rows.length ? <table><thead><tr><th>Factor</th><th>Weight</th><th>Value</th><th>Points</th></tr></thead><tbody>{rating.rows.map((row, index) => <Fragment key={index}><tr><th scope="row">{row.label}</th><td>{row.weight}</td><td>{row.value}</td><td>{row.points}</td></tr><tr className="rating-note"><td colSpan={4}>{row.note}</td></tr></Fragment>)}</tbody></table> : <p>Score breakdown is unavailable for this published event.</p>}
@@ -98,7 +99,7 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
           <span className={`chip chip-${food.tone}`}>{food.label}</span>
           {food.detail ? <span className="food-note">{food.detail}</span> : null}
           {card.food_description ? (
-            <span className="fact-text">{card.food_description}</span>
+            <span className="fact-text">{foodEmojiText(card.food_description, foodSourceText([card]))}</span>
           ) : null}
         </Fact>
         <PlaceFact card={card} />

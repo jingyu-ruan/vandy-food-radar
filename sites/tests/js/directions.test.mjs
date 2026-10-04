@@ -28,9 +28,9 @@ test('unresolved event locations remain address queries instead of fabricated pi
  assert.equal(coordinateLabel({lat:36.148271,lng:-86.803471}),'36.14827, -86.80347');
 });
 test('certainty takes precedence and unknown food type never implies a meal',()=>{
- assert.deepEqual(foodPresentation({food_label:'Food confirmed',food_category:'Unspecified'}),{label:'Free food',tone:'teal',detail:'Food type not listed'});
+ assert.deepEqual(foodPresentation({food_label:'Food confirmed',food_category:'Unspecified'}),{label:'Free Food',tone:'teal',detail:'Food type not listed'});
  assert.equal(foodPresentation({food_label:'Food confirmed',food_category:'Full meal'}).label,'Meal');
  assert.equal(foodPresentation({food_label:'Food confirmed',food_category:'Snacks'}).tone,'blue');
- assert.deepEqual(foodPresentation({food_label:'Food disputed',food_category:'Snacks'}),{label:'Food disputed',tone:'red',detail:'Snacks listed'});
- assert.deepEqual(foodPresentation({food_label:'Food unconfirmed',food_category:'Unspecified'}),{label:'Food unconfirmed',tone:'amber',detail:''});
+ assert.deepEqual(foodPresentation({food_label:'Food disputed',food_category:'Snacks'}),{label:'Food Disputed',tone:'red',detail:'Snacks listed'});
+ assert.deepEqual(foodPresentation({food_label:'Food unconfirmed',food_category:'Unspecified'}),{label:'Food Unconfirmed',tone:'amber',detail:''});
 });

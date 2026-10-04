@@ -16,10 +16,10 @@ export function ratingPresentation(event) {
   }));
   return {
     id:`rating-${event.date}-${event.identity_key}`.replace(/[^a-zA-Z0-9_-]/g, '-'),
-    score:Math.max(0, Math.min(5, event.stars || 0)),
+    score:Math.max(0, Math.min(5, Number.isFinite(event.score) ? (Math.round(event.score * 50 + Number.EPSILON * 50) / 10) : event.stars || 0)).toFixed(1),
     total:Number.isFinite(event.score) ? `${number.format(event.score * 100)}/100` : 'Unavailable',
     rows,
     context:'Scores use the published snapshot. Walking and timing reflect the scoring origin and time at publication.',
-    scale:'Rating is the weighted total scaled to 5 and rounded.',
+    scale:'Rating is the weighted total scaled to 5 and rounded to one decimal place.',
   };
 }

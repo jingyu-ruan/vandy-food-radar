@@ -34,7 +34,7 @@ test("Gemini uses a fixed server endpoint, key header, bounded structured respon
     assert.ok(!String(url).includes("test-key"));
     const body=JSON.parse(String(options?.body));
     assert.equal(body.generationConfig.responseMimeType,"application/json");
-    assert.match(body.systemInstruction.parts[0].text,/Rank, Activity, Time, Food, Location, Walk, Notes/);
+    assert.match(body.systemInstruction.parts[0].text,/Rank, Event, Time, Food, Location, Walk, Notes/);
     assert.match(body.systemInstruction.parts[0].text,/Use your editorial judgment/);
     assert.match(body.generationConfig.responseSchema.properties.recommendations.items.properties.reason.description,/original Notes assessment/);
     assert.equal(body.generationConfig.temperature,0.5);
@@ -195,11 +195,11 @@ test("the opening is an editorial takeaway: prompt asks for a spotlight and coun
   }));
   const body=captured.body!;
   const prompt=body.systemInstruction.parts[0].text;
-  assert.match(prompt,/Spotlight one specific, compelling event/);
-  assert.match(prompt,/must-go only when its source details clearly justify it/);
+  assert.match(prompt,/Lead with the best supported food option/);
+  assert.match(prompt,/Use must-go only with strong source support/);
   assert.match(prompt,/Never spotlight a cancelled event/);
-  assert.match(body.generationConfig.responseSchema.properties.brief.description,/spotlighting one specific non-cancelled event/);
-  assert.equal(AI_VERSION,"editorial-takeaway-brief-v8");
+  assert.match(body.generationConfig.responseSchema.properties.brief.description,/naming the best supported food option/);
+  assert.equal(AI_VERSION,"food-first-plain-brief-v9");
   for (const brief of ["There are 3 events on the calendar.","Two free-food events are listed for the selected date.","Compare the ranked activities below by food and timing.","The table below ranks every option."]) {
     assert.throws(()=>validateIntelligence({brief,traits:[]},[input]),/generic model brief/);
   }
