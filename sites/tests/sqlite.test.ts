@@ -105,7 +105,7 @@ test("a refresh publishes and reads back through real SQL", async () => {
   assert.ok((first.event.scoreTotal ?? 0) > (second.event.scoreTotal ?? 0));
 
   // Everything needed to explain a result survived the round trip.
-  assert.equal(first.components.length, 8);
+  assert.equal(first.components.length, 5);
   assert.equal(first.provenance.length, 12);
   assert.equal(first.sources.length, 1);
   assert.equal(first.change?.kind, "new");

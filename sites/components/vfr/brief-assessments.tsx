@@ -1,4 +1,3 @@
-import {ActionIcon} from './action-icon';
 import type {BriefItemJson, CardJson, DayFeedJson} from '@/lib/vfr/viewmodel.ts';
 import {BRIEF_COLUMNS, briefRows, eventHref} from '@/public/static/js/brief.js';
 
@@ -11,15 +10,16 @@ export function BriefAssessments({brief,date,events=[]}:{brief:DayFeedJson['brie
      <caption className="visually-hidden">Ranked free-food events for the selected date</caption>
      <thead><tr>{BRIEF_COLUMNS.map(column=><th scope="col" key={column}>{column}</th>)}</tr></thead>
      <tbody>{rows.map(item=><tr key={item.identity_key} data-identity-key={item.identity_key} className={item.cancelled ? 'brief-row-cancelled' : undefined}>
-      <td className="brief-rank">{item.rank}</td>
-      <th scope="row" className="brief-activity"><div className="brief-event"><a className="brief-event-link brief-event-title" href={eventHref(item.identity_key,date)}>{item.title}</a><span className="brief-event-actions"><a className="brief-event-link brief-event-action" href={eventHref(item.identity_key,date)} title="Show event card" aria-label={`Show event card for ${item.title}`}><ActionIcon name="arrow-down" /></a>{item.source_url && <a className="brief-event-action" href={item.source_url} target="_blank" rel="noopener noreferrer" title="Open source" aria-label={`Open source for ${item.title}`}><ActionIcon name="external-link" /></a>}</span></div>{item.cancelled && <span className="brief-cancelled">Cancelled</span>}</th>
+      <td className="brief-rank"><a className="brief-card-link" href={eventHref(item.identity_key,date)} title="View Event Card" aria-label={`View event card for ${item.title}`}>{item.rank}</a></td>
+      <th scope="row" className="brief-activity">{item.source_url ? <a className="brief-event-link" href={item.source_url} target="_blank" rel="noopener noreferrer" title="Open Event Source">{item.title}</a> : <span>{item.title}</span>}{item.cancelled && <span className="brief-cancelled">Cancelled</span>}</th>
       <td className="brief-time">{item.time}</td><td>{item.food}</td><td>{item.location}</td>
       <td className="brief-walk" data-role="brief-walking" title={item.walk_detail} aria-label={item.walk_detail || 'Walking time unavailable'}>{item.walk}</td>
       <td className="brief-notes">{item.reason}</td>
      </tr>)}</tbody>
     </table>
    </div>
-   <p className="brief-scroll-hint">Scroll horizontally to see all columns.</p>
+   <p className="brief-link-hint">Select Rank to view the event card. Select Event to open its source.</p>
+   <p className="brief-scroll-hint" hidden>Scroll inside the table for more events and columns.</p>
   </>}
  </div>;
 }

@@ -195,11 +195,11 @@ test("the opening is an editorial takeaway: prompt asks for a spotlight and coun
   }));
   const body=captured.body!;
   const prompt=body.systemInstruction.parts[0].text;
-  assert.match(prompt,/Lead with the best supported food option/);
+  assert.match(prompt,/food-led highlights/);
   assert.match(prompt,/Use must-go only with strong source support/);
   assert.match(prompt,/Never spotlight a cancelled event/);
-  assert.match(body.generationConfig.responseSchema.properties.brief.description,/naming exactly one recommended food option/);
-  assert.equal(AI_VERSION,"food-first-plain-brief-v10");
+  assert.match(body.generationConfig.responseSchema.properties.brief.description,/One to three plain-English food highlights/);
+  assert.equal(AI_VERSION,"food-highlights-meal-ranking-v11");
   for (const brief of ["There are 3 events on the calendar.","Two free-food events are listed for the selected date.","Compare the ranked activities below by food and timing.","The table below ranks every option."]) {
     assert.throws(()=>validateIntelligence({brief,traits:[]},[input]),/generic model brief/);
   }
@@ -207,4 +207,11 @@ test("the opening is an editorial takeaway: prompt asks for a spotlight and coun
   assert.equal(validateIntelligence({brief:spotlight,traits:[]},[input]).brief,spotlight);
   // Existing guards still apply to an otherwise editorial opening.
   assert.throws(()=>validateIntelligence({brief:"Lunch is a must-go at 7 PM.",traits:[]},[input]),/unsupported model time/);
+});
+
+test('food highlights accept separate plain lines and reject excessive lines or model list markup',()=>{
+ const brief='Get pizza at Lunch.\nSnacks at the reception are a second option.';
+ assert.equal(validateIntelligence({brief,traits:[]},[input]).brief,brief);
+ assert.throws(()=>validateIntelligence({brief:'One.\nTwo.\nThree.\nFour.',traits:[]},[input]));
+ assert.throws(()=>validateIntelligence({brief:'- Pizza at Lunch.',traits:[]},[input]));
 });

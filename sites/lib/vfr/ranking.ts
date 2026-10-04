@@ -1,29 +1,9 @@
-/**
- * Transparent weighted-sum ranking.
- *
- * Each factor is normalized to [0, 1], multiplied by its configured weight, and
- * summed: `scoreTotal = sum(weight_f * value_f)`. The seven design weights keep
- * their documented values and are scaled by `1 - participationInfluence`; the
- * remaining share (5% by default) goes to participation convenience, so the
- * total stays in [0, 1] and that inference can never dominate the food
- * factors. Explicit eligibility restrictions are warnings, not penalties. Every factor's raw value,
- * weight, contribution, and an explanatory note are retained, so a total is
- * always fully explainable and nothing about a rank is opaque.
- *
- * Ordering is deterministic: cancelled events last, then score descending, then
- * the earlier start time, then title ascending.
- */
-
+/** Five transparent food-focused factors. Cancelled events sort last. */
 import type { Config } from "./config.ts";
 import { FoodCategory, FoodConfirmed, SCORE_FACTORS, VerificationState } from "./models.ts";
 import type { Event, ScoreComponent, ScoreFactor } from "./models.ts";
-import {
-  ParticipationLevel,
-  assessParticipation,
-  participationFactorValue,
-  participationInputFor,
-} from "./participation.ts";
 import type { ParticipationAssessment } from "./participation.ts";
+import {menuSpecificity} from "./menu-specificity.ts";
 import { walkingFactorValue } from "./walking.ts";
 import type { WalkingResult } from "./walking.ts";
 
@@ -40,51 +20,7 @@ const FULL_MEAL_VALUE: Record<FoodCategory, number> = {
   none: 0,
 };
 
-/** Words that add no menu specificity when counting named food items. */
-const GENERIC_FOOD_WORDS = new Set([
-  "food",
-  "free",
-  "and",
-  "the",
-  "a",
-  "an",
-  "of",
-  "with",
-  "for",
-  "provided",
-  "served",
-  "included",
-  "refreshments",
-  "snacks",
-  "snack",
-  "light",
-  "bites",
-  "drinks",
-  "all",
-  "students",
-  "some",
-  "will",
-  "be",
-]);
-
 export type ScoredEvent = { event: Event; components: ScoreComponent[] };
-
-/**
- * Distinct non-generic words from a description, in stable order.
- *
- * These are description-detail terms, not identified foods: the rule counts
- * words, so it cannot tell a dish from any other specific noun. The word list
- * and the count are inherited unchanged from the reference application.
- */
-function namedFoodTerms(description: string | null): string[] {
-  if (!description) return [];
-  const seen: string[] = [];
-  for (const match of description.toLowerCase().match(/[a-z]+/g) ?? []) {
-    if (match.length <= 2 || GENERIC_FOOD_WORDS.has(match)) continue;
-    if (!seen.includes(match)) seen.push(match);
-  }
-  return seen;
-}
 
 function round(value: number, places: number): number {
   if (!Number.isFinite(value) || value === 0) return value;
@@ -110,38 +46,14 @@ function round(value: number, places: number): number {
   return Math.sign(value) * Number(rounded) / 10 ** places;
 }
 
-/**
- * Scale by description detail: zero qualifying terms scores 0.0 and each
- * distinct non-generic word adds 0.25, capped at 1.0. The rule is inherited
- * verbatim from the reference application, so its arithmetic is fixed.
- */
-function foodSpecificityValue(event: Event): number {
-  return round(Math.min(1, 0.25 * namedFoodTerms(event.foodDescription).length), 4);
-}
-
-/** Likelihood of actually receiving food, given RSVP status. */
-function rsvpLikelihoodValue(event: Event): number {
-  if (event.rsvpRequired === false) return 1;
-  if (event.rsvpRequired === true) return event.rsvpLinkOk === false ? 0.3 : 0.7;
-  return 0.5;
-}
-
-/**
- * Preference curve over the start time: full value inside the configured good
- * window, decaying linearly to zero four hours past either edge. An unknown
- * start time is neutral.
- */
+/** Start-time proximity to breakfast, lunch or dinner; unknown stays neutral. */
 function timingValue(event: Event, config: Config): number {
-  const start = event.startTime;
-  if (start === null) return 0.5;
-  const [h, m] = start.split(":").map(Number);
+  if (event.startTime===null) return 0.5;
+  const [h,m]=event.startTime.split(":").map(Number);
   if (!Number.isFinite(h) || !Number.isFinite(m)) return 0.5;
-  const hour = h + m / 60;
-  const goodStart = config.ranking.timingGoodStartHour;
-  const goodEnd = config.ranking.timingGoodEndHour;
-  if (hour >= goodStart && hour <= goodEnd) return 1;
-  const gap = hour < goodStart ? goodStart - hour : hour - goodEnd;
-  return round(Math.max(0, 1 - gap / 4), 4);
+  const hour=h+m/60;
+  const gap=Math.min(...config.ranking.mealWindows.map(([start,end])=>hour<start ? start-hour : hour>end ? hour-end : 0));
+  return round(Math.max(0,1-gap/2),4);
 }
 
 function foodConfirmedNote(event: Event): string {
@@ -161,36 +73,6 @@ function fullMealNote(event: Event): string {
   return "food type unspecified";
 }
 
-/**
- * Describe the specificity factor without asserting that its terms are foods.
- *
- * The counted words are simply non-generic words from the description. Naming
- * them as a menu claimed evidence the source never gave: "hosted", "student",
- * and "october" are not food items. The numeric rule is unchanged; only the
- * wording is now accurate about what was measured.
- */
-function foodSpecificityNote(event: Event): string {
-  const count = namedFoodTerms(event.foodDescription).length;
-  if (count === 0) return "limited description detail";
-  return "source description contains additional detail";
-}
-
-function rsvpLikelihoodNote(event: Event): string {
-  if (event.rsvpRequired === false) return "no RSVP needed";
-  if (event.rsvpRequired === true) {
-    return event.rsvpLinkOk === false
-      ? "RSVP required but the link looks broken"
-      : "RSVP required";
-  }
-  return "RSVP requirement unknown";
-}
-
-function timingNote(event: Event): string {
-  return event.startTime === null
-    ? "start time unknown"
-    : `starts at ${event.startTime}`;
-}
-
 function walkingNote(result: WalkingResult): string {
   if (result.status === "ok" && result.minutes !== null) {
     return `about a ${result.minutes} min walk`;
@@ -198,64 +80,34 @@ function walkingNote(result: WalkingResult): string {
   return "walking distance unavailable";
 }
 
-function confidenceNote(event: Event): string {
-  if (event.confidence === null) return "confidence unknown";
-  return `verified with ${Math.round(event.confidence * 100)}% confidence`;
-}
-
-function participationNote(assessment: ParticipationAssessment): string {
-  if (assessment.level === ParticipationLevel.OPEN) return "listed as open to attend";
-  if (assessment.level === ParticipationLevel.RESTRICTED) {
-    return "the listing states an eligibility limit";
-  }
-  return "the listing does not say who may attend";
-}
-
-/**
- * Score one event, producing its total and the full per-factor breakdown.
- *
- * `participation` is derived from the event's own listed text when omitted;
- * the pipeline passes the assessment built from the full source records.
- */
+/** Persist each factor and its explanation at publication time. */
 export function scoreEvent(
   event: Event,
   config: Config,
   walking: WalkingResult,
   participation?: ParticipationAssessment,
 ): ScoredEvent {
-  const weights = config.ranking.weights;
-  const assessment = participation ?? assessParticipation(participationInputFor(event));
-  const influence = Math.min(Math.max(config.ranking.participationInfluence, 0), 0.05);
-  const designScale = 1 - influence;
-  const rawValues: Record<ScoreFactor, number> = {
-    food_confirmed: FOOD_CONFIRMED_VALUE[event.foodConfirmed] ?? 0.3,
-    full_meal: FULL_MEAL_VALUE[event.foodCategory] ?? 0.2,
-    food_specificity: foodSpecificityValue(event),
-    rsvp_likelihood: rsvpLikelihoodValue(event),
-    timing: timingValue(event, config),
-    walking: walkingFactorValue(walking, config.ranking.walkingUnknownValue),
-    confidence: event.confidence ?? 0.5,
-    participation: participationFactorValue(
-      assessment,
-      config.ranking.participationUnknownValue,
-    ),
+  const weights=config.ranking.weights;
+  const menu=menuSpecificity(event.foodDescription);
+  const rawValues:Record<ScoreFactor,number>={
+    food_confirmed:FOOD_CONFIRMED_VALUE[event.foodConfirmed] ?? 0.3,
+    full_meal:FULL_MEAL_VALUE[event.foodCategory] ?? 0.2,
+    food_specificity:event.foodConfirmed===FoodConfirmed.CONTRADICTED ? 0 : menu.value,
+    timing:timingValue(event,config),
+    walking:walkingFactorValue(walking,config.ranking.walkingUnknownValue),
   };
-  const notes: Record<ScoreFactor, string> = {
-    food_confirmed: foodConfirmedNote(event),
-    full_meal: fullMealNote(event),
-    food_specificity: foodSpecificityNote(event),
-    rsvp_likelihood: rsvpLikelihoodNote(event),
-    timing: timingNote(event),
-    walking: walkingNote(walking),
-    confidence: confidenceNote(event),
-    participation: participationNote(assessment),
+  const notes:Record<ScoreFactor,string>={
+    food_confirmed:foodConfirmedNote(event),full_meal:fullMealNote(event),
+    food_specificity:event.foodConfirmed===FoodConfirmed.CONTRADICTED ? 'Food provision is contradicted.' : menu.note,
+    timing:event.startTime ? `Starts at ${event.startTime}; breakfast 7–10 AM, lunch 11 AM–2 PM, dinner 5–8 PM.` : 'Start Time Unknown',
+    walking:walkingNote(walking),
   };
 
   const components: ScoreComponent[] = [];
   let total = 0;
   for (const factor of SCORE_FACTORS) {
     const weight =
-      factor === "participation" ? influence : round((weights[factor] ?? 0) * designScale, 6);
+      weights[factor] ?? 0;
     const raw = rawValues[factor];
     const contribution = round(weight * raw, 6);
     total += contribution;

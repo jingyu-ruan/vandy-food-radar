@@ -1,4 +1,4 @@
-import {foodEmojiText, foodSourceText} from './food-emoji.js';
+import {foodDescriptionText} from './food-emoji.js';
 import {eventAnchor, participationText} from './brief.js';
 import { icon } from './icons.js';
 import { foodPresentation } from './food-presentation.js';
@@ -22,7 +22,7 @@ import { findEvent, isSaved, state, toggleSaved } from './state.js';
 
 function ratingFor(event) {
   const rating = ratingPresentation(event);
-  const panel = el('div', {class:'rating-panel', id:rating.id, role:'region', 'aria-label':`Rating breakdown for ${event.title}`, tabindex:'0', hidden:true}, [el('p', {class:'rating-total', text:`Published total ${rating.total}`})]);
+  const panel = el('div', {class:'rating-panel', id:rating.id, role:'region', 'aria-label':`Rating breakdown for ${event.title}`, tabindex:'0', hidden:true}, [el('p', {class:'rating-total', text:`Published Total ${rating.total}`})]);
   if (rating.rows.length) {
     const body = el('tbody');
     for (const row of rating.rows) body.append(
@@ -32,7 +32,7 @@ function ratingFor(event) {
     panel.append(el('table', {}, [el('thead', {}, [el('tr', {}, ['Factor','Weight','Value','Points'].map(text=>el('th', {text})))]), body]));
   } else panel.append(el('p', {text:'Score breakdown is unavailable for this published event.'}));
   panel.append(el('p', {class:'rating-context', text:`${rating.scale} ${rating.context}`}));
-  return el('div', {class:'rating'}, [el('button', {type:'button', class:'rating-trigger', 'data-action':'toggle-rating', 'aria-expanded':'false', 'aria-controls':rating.id, 'aria-label':`Rating ${rating.score} of 5. Show score breakdown for ${event.title}`}, [el('span', {text:'Rating'}), el('span', {class:'rating-score', text:`${rating.score}/5.0`})]), panel]);
+  return el('div', {class:'rating'}, [el('button', {type:'button', class:'rating-trigger', 'data-action':'toggle-rating', 'aria-expanded':'false', 'aria-controls':rating.id, 'aria-label':`Rating ${rating.score} of 5. Show score breakdown for ${event.title}`}, [el('span', {text:'Rating'}), el('span', {class:'rating-score', text:`${rating.score} / 5.0`})]), panel]);
 }
 
 function fact(label, children, wide = false) {
@@ -55,10 +55,10 @@ function placeFact(event) {
     return fact('Place', [
       el('span', { class: 'fact-strong', text: event.location_listed }),
       ' ',
-      el('span', { class: 'fact-muted', text: 'not matched to a campus building' }),
+      el('span', { class: 'chip chip-quiet', text: 'Unmapped' }),
     ]);
   }
-  return fact('Place', [el('span', { class: 'fact-muted', text: 'Not listed' })]);
+  return fact('Place', [el('span', { class: 'chip chip-quiet', text: 'Not Listed' })]);
 }
 
 function actionsFor(event) {
@@ -182,9 +182,9 @@ export function renderCard(event) {
 
   const food = foodPresentation(event);
   const foodChildren = [el('span', {class:`chip chip-${food.tone}`}, [food.label])];
-  if (food.detail) foodChildren.push(el('span', {class:'food-note',text:food.detail}));
-  if (event.food_description) {
-    foodChildren.push(el('span', { class: 'fact-text', text: foodEmojiText(event.food_description, foodSourceText([event])) }));
+  if (food.detail) foodChildren.push(el('span', {class:'chip chip-quiet',text:food.detail}));
+  if (foodDescriptionText(event)) {
+    foodChildren.push(el('span', { class: 'fact-text', text: foodDescriptionText(event) }));
   }
 
   const facts = el('dl', { class: 'card-facts' }, [fact('Food', foodChildren), placeFact(event)]);
@@ -194,7 +194,7 @@ export function renderCard(event) {
     );
   }
   facts.append(fact('Walk', [el('span', { class: 'fact-text', 'data-role':'walking', text: event.walking_label })]));
-  if (event.rsvp_label !== 'RSVP not stated' || event.rsvp_url) facts.append(
+  if (event.rsvp_label !== 'RSVP Not Stated' || event.rsvp_url) facts.append(
     fact('RSVP', [
       event.rsvp_url
         ? el('a', {
@@ -208,7 +208,7 @@ export function renderCard(event) {
     ]),
   );
   facts.append(
-    fact('Host', [el('span', { class: 'fact-text', text: event.organizer || 'Not listed' })]),
+    fact('Host', [el('span', { class: 'fact-text', text: event.organizer || 'Not Listed' })]),
   );
   const accessChildren = [el('span', {class:'fact-text',text:participationText(event.participation),title:event.participation.ai_evidence ? `Source: ${event.participation.ai_evidence}` : null})];
   facts.append(fact('Participation', accessChildren, true));
@@ -287,6 +287,11 @@ function bindRatings(root) {
   const closeOthers = current => {
     for (const rating of all('.rating', root)) if (rating !== current) open(rating, false);
   };
+  window.addEventListener('resize', () => {
+    for (const rating of all('.rating', root)) {
+      if (!one('.rating-panel', rating).hidden) open(rating, true);
+    }
+  });
   root.addEventListener('click', event => {
     const trigger = event.target.closest?.('[data-action="toggle-rating"]');
     if (!trigger) return;

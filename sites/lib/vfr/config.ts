@@ -39,16 +39,11 @@ export type AnchorLinkConfig = {
 };
 
 export type RankingConfig = {
-  /** Design weights; they sum to 1.0 and are scaled by `1 - participationInfluence`. */
+  /** Food-focused weights sum to one. */
   weights: Record<DesignScoreFactor, number>;
-  /** Share of the total reserved for participation convenience (capped). */
-  participationInfluence: number;
-  /** Neutral participation value when the listing gives no evidence. */
-  participationUnknownValue: number;
-  /** Neutral value used when a walk is unknown so it never zeroes a score. */
   walkingUnknownValue: number;
-  timingGoodStartHour: number;
-  timingGoodEndHour: number;
+  /** Breakfast, lunch and dinner start windows, in local hours. */
+  mealWindows: [number, number][];
 };
 
 export type DedupConfig = {
@@ -112,17 +107,9 @@ export type Config = {
   maxEventsPerFeed: number;
 };
 
-/** Ranking weights. These sum to 1.0 and match the reference application. */
+/** Favor food substance and a named menu over a long event description. */
 function defaultWeights(): Record<DesignScoreFactor, number> {
-  return {
-    food_confirmed: 0.25,
-    full_meal: 0.25,
-    food_specificity: 0.15,
-    rsvp_likelihood: 0.1,
-    timing: 0.05,
-    walking: 0.1,
-    confidence: 0.1,
-  };
+  return {food_confirmed:0.20, full_meal:0.30, food_specificity:0.25, timing:0.15, walking:0.10};
 }
 
 export function defaultConfig(): Config {
@@ -145,11 +132,8 @@ export function defaultConfig(): Config {
     authorityPrecedence: ["official_page", "anchor_link", "google_calendar"],
     ranking: {
       weights: defaultWeights(),
-      participationInfluence: 0.05,
-      participationUnknownValue: 0.5,
       walkingUnknownValue: 0.5,
-      timingGoodStartHour: 11,
-      timingGoodEndHour: 20,
+      mealWindows: [[7,10],[11,14],[17,20]],
     },
     dedup: { mergeThreshold: 0.75, reviewLow: 0.55, timeProximityMinutes: 30 },
     locationProvider: "haversine",

@@ -1,9 +1,5 @@
 /** Present published score components; display preferences never rescore events. */
-const LABELS = {
-  food_confirmed:'Food confirmed', full_meal:'Full meal', food_specificity:'Description detail',
-  rsvp_likelihood:'RSVP likelihood', timing:'Timing', walking:'Walking',
-  confidence:'Verification confidence', participation:'Participation convenience',
-};
+const LABELS = {food_confirmed:'Food Confirmed', full_meal:'Full Meal', food_specificity:'Menu Specificity', timing:'Meal Timing', walking:'Walking'};
 const number = new Intl.NumberFormat('en-US', {maximumFractionDigits:2});
 /** @param {{date:string, identity_key:string, stars:number, score:number|null, score_components?:Array<{factor:string, rawValue:number, weight:number, contribution:number, note:string}>}} event */
 export function ratingPresentation(event) {

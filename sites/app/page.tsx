@@ -1,6 +1,6 @@
 import {foodEmojiText, foodSourceText} from "@/public/static/js/food-emoji.js";
 import {BriefAssessments} from "@/components/vfr/brief-assessments";
-import {generatedLabel} from "@/public/static/js/brief.js";
+import {generatedLabel, briefLines} from "@/public/static/js/brief.js";
 /**
  * Free Bites at Vandy — the campus workspace for one selected local date.
  *
@@ -109,8 +109,8 @@ export default async function Home({ searchParams }: PageProps) {
           <section className="side-block" aria-labelledby="clock-heading">
             <h3 className="side-heading" id="clock-heading">Time Format</h3>
             <div className="segmented" role="group" aria-label="Time Format">
-              <button type="button" data-clock="12" aria-pressed="true">12-hour</button>
-              <button type="button" data-clock="24" aria-pressed="false">24-hour</button>
+              <button type="button" data-clock="12" aria-pressed="true">12-Hour</button>
+              <button type="button" data-clock="24" aria-pressed="false">24-Hour</button>
             </div>
             <p className="side-status" data-role="preferences-status" aria-live="polite">Changes save automatically on this device.</p>
           </section>
@@ -139,13 +139,13 @@ export default async function Home({ searchParams }: PageProps) {
                   <ActionIcon name="location" />Use My Location
                 </button>
                 <button type="button" className="utility-action" data-action="origin-pin">
-                  <ActionIcon name="pin" />Pick on Map
+                  <ActionIcon name="pin" />Pick On Map
                 </button>
                 <button type="button" className="utility-action" data-action="origin-reset">
                   <ActionIcon name="reset" />Reset
                 </button>
               </div>
-              <p className="location-attribution">Map and Routes: <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener noreferrer">FOSSGIS</a> / <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer">Fix the Map</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> / Photon</p>
+              <p className="location-attribution">Map And Routes: <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener noreferrer">FOSSGIS</a> / <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer">Fix The Map</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> / Photon</p>
               <p className="side-status" data-role="origin-status" aria-live="polite">
                 Origin: {displayText(reference.label)}
               </p>
@@ -157,7 +157,7 @@ export default async function Home({ searchParams }: PageProps) {
               Saved
             </h2>
             <p className="side-status" data-role="saved-count" aria-live="polite">
-              None saved
+              None Saved
             </p>
             <button type="button" className="control-button" data-action="clear-saved">
               Clear Saved
@@ -195,7 +195,7 @@ export default async function Home({ searchParams }: PageProps) {
               <div className="origin-popover" id="header-origin-picker" role="dialog" aria-label="Walking Origin" hidden>
                 <div className="origin-popover-head"><label htmlFor="header-origin-input">Walking Origin</label><button type="button" className="icon-button utility-action" data-action="close-origin" aria-label="Close location picker"><ActionIcon name="close" /></button></div>
                 <div className="combobox"><input className="control" id="header-origin-input" type="search" role="combobox" aria-expanded="false" aria-controls="header-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search places or addresses" /><ul className="combobox-list" id="header-origin-options" role="listbox" hidden /></div>
-                <div className="side-actions"><button type="button" className="utility-action" data-action="origin-gps"><ActionIcon name="location" />Use My Location</button><button type="button" className="utility-action" data-action="origin-pin"><ActionIcon name="pin" />Pick on Map</button><button type="button" className="utility-action" data-action="origin-reset"><ActionIcon name="reset" />Reset</button></div>
+                <div className="side-actions"><button type="button" className="utility-action" data-action="origin-gps"><ActionIcon name="location" />Use My Location</button><button type="button" className="utility-action" data-action="origin-pin"><ActionIcon name="pin" />Pick On Map</button><button type="button" className="utility-action" data-action="origin-reset"><ActionIcon name="reset" />Reset</button></div>
                 <p className="side-status" data-role="header-origin-status" aria-live="polite" />
               </div>
             </div></div>
@@ -249,7 +249,7 @@ export default async function Home({ searchParams }: PageProps) {
             data-view-panel="cards"
             aria-labelledby="cards-heading"
           >
-            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily Brief</h2><p className="brief-text" data-role="brief-text" lang="en">{foodEmojiText(displayText(briefText), foodSourceText(feed?.events || []))}</p><BriefAssessments brief={feed?.brief} date={selected} events={feed?.events} /><p className="brief-meta" data-role="brief-meta" hidden={!generatedLabel(feed?.brief,config.timezone)}>{generatedLabel(feed?.brief,config.timezone)}</p></section>
+            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily Brief</h2><div className="brief-text" data-role="brief-text" lang="en">{briefLines(briefText).length>1 ? <ul className="brief-highlights">{briefLines(briefText).map((line,index)=><li key={index}>{foodEmojiText(displayText(line),foodSourceText(feed?.events || []))}</li>)}</ul> : <p>{foodEmojiText(displayText(briefText), foodSourceText(feed?.events || []))}</p>}</div><BriefAssessments brief={feed?.brief} date={selected} events={feed?.events} /><p className="brief-meta" data-role="brief-meta" hidden={!generatedLabel(feed?.brief,config.timezone)}>{generatedLabel(feed?.brief,config.timezone)}</p></section>
             <div className="events-heading"><h2 className="section-heading" id="cards-heading">
               Events{" "}
               <span className="count" data-role="card-count">
@@ -307,7 +307,7 @@ export default async function Home({ searchParams }: PageProps) {
                   <div className="combobox endpoint-search"><input className="control" id="map-place-search" type="search" role="combobox" aria-expanded="false" aria-controls="map-place-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" /><ul className="combobox-list" id="map-place-options" role="listbox" hidden /></div>
                 </div>
                 <div className="directions-actions">
-                  <a className="control-button directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer"><ActionIcon name="directions" />Open in Google Map</a>
+                  <a className="control-button directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer"><ActionIcon name="directions" />Open In Google Map</a>
                 </div>
               </div>
               <p className="route-status" data-role="walking-route-status" aria-live="polite" />
@@ -325,7 +325,7 @@ export default async function Home({ searchParams }: PageProps) {
                 </div>
                 <p className="map-selection" data-role="map-selection" aria-live="polite" />
               </div>
-              <footer className="map-attribution" data-role="map-attribution">Map and Routes: <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener noreferrer">FOSSGIS</a> / <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer">Fix the Map</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> / <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></footer>
+              <footer className="map-attribution" data-role="map-attribution">Map And Routes: <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener noreferrer">FOSSGIS</a> / <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer">Fix The Map</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> / <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></footer>
             </div>
             </div>
           </section>

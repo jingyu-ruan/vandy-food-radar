@@ -1,3 +1,4 @@
+import {compareEventCards} from "../../public/static/js/event-order.js";
 import { displayFields } from "./display.ts";
 import { intelligenceHash, intelligenceInputs, specificFoodItems } from "./intelligence.ts";
 import type { AiState } from "./intelligence.ts";
@@ -169,10 +170,10 @@ export function formatTimeRange(start: string | null, end: string | null): strin
 }
 
 function rsvpLabel(event: Event): string {
-  if (event.rsvpRequired === null) return "RSVP not stated";
-  if (!event.rsvpRequired) return "No RSVP needed";
-  if (event.rsvpLinkOk === false) return "RSVP required (link looks broken)";
-  return "RSVP required";
+  if (event.rsvpRequired === null) return "RSVP Not Stated";
+  if (!event.rsvpRequired) return "No RSVP Needed";
+  if (event.rsvpLinkOk === false) return "RSVP Required (link looks broken)";
+  return "RSVP Required";
 }
 
 function words(fieldName: string): string {
@@ -290,7 +291,7 @@ export function buildCard(stored: StoredEvent, context: ViewContext): CardJson {
     stars: recommendationStars(event.scoreTotal),
     score: event.scoreTotal,
     score_components: stored.components.map(component => ({...component})),
-    time_label: formatTimeRange(event.startTime, event.endTime),
+    time_label: formatTimeRange(event.startTime, event.endTime).replace("Time not listed","Time Not Listed"),
     start: event.startTime ? `${event.startTime}:00` : null,
     end: event.endTime ? `${event.endTime}:00` : null,
     food_label: FOOD_LABELS[event.foodConfirmed] ?? "Food unconfirmed",
@@ -350,7 +351,7 @@ export async function buildDayFeed(
   context: ViewContext,
 ): Promise<DayFeedJson> {
   const events = (snapshot?.events ?? []).filter((stored) => stored.event.eventDate === date);
-  const cards = events.map((stored) => buildCard(stored, context));
+  const cards = events.map((stored) => buildCard(stored, context)).sort(compareEventCards);
   let brief: DayFeedJson["brief"];
   if (snapshot === null) {
     // Never published is not the same as a quiet day, and the brief says so.
@@ -460,7 +461,7 @@ export function ruleTakeaway(cards:CardJson[]):string {
     : pick.food_category==="Snacks" ? "The listing advertises light refreshments." : "";
   const overlap=pick.start && pick.end ? cards.find(other=>other.identity_key!==pick.identity_key && !other.cancelled &&
     other.start && other.end && pick.start!<other.end && other.start<pick.end!) : undefined;
-  const tradeoff=pick.rsvp_label.startsWith("RSVP required") ? "RSVP is required, so register before you go."
+  const tradeoff=/^RSVP Required/i.test(pick.rsvp_label) ? "RSVP is required, so register before you go."
     : overlap ? `It overlaps ${overlap.title}, so you may need to choose.`
     : pick.participation.level==="structured" ? "Plan to join the scheduled program rather than only stopping by for food." : "";
   return [opening,food,tradeoff].filter(Boolean).join(" ");
@@ -479,14 +480,14 @@ function briefItem(card:CardJson, cards:CardJson[], context:ViewContext, aiReaso
   const hasCalendar=card.sources.some(source=>source.label==="Calendar");
   const sourceStatus=card.sources.length>1 && new Set(card.sources.map(source=>source.label)).size>1 ? (card.conflicts.length ? "Multiple Sources Have Conflicting Details" : "Multiple Sources; No Recorded Field Conflicts") : "AnchorLink Only; Second-Source Match Unverified";
   const category=card.food_category==="Full meal" ? "A meal is advertised" : card.food_category==="Snacks" ? "Light refreshments are advertised" : named.length ? "The listing specifies the food offering" : "Free food is listed; menu details are unspecified";
-  const restricted=card.rsvp_label==="RSVP required" || /\b(?:spaces? (?:are |is )?limited|limited spaces?|registration is required|rsvp is required)\b/i.test(card.description || "");
+  const restricted=card.rsvp_label==="RSVP Required" || /\b(?:spaces? (?:are |is )?limited|limited spaces?|registration is required|rsvp is required)\b/i.test(card.description || "");
   const fallback=card.cancelled ? "This event is cancelled" : `${category}${restricted ? "; check registration and eligibility" : card.participation.level==="structured" ? "; expect to join the scheduled activity" : ""}`;
   const assessment=(aiReason || fallback).replace(/[.;\s]+$/,"");
   return {identity_key:card.identity_key,title:card.title,url:card.event_url,
     time:`${card.start?.slice(0,5) || "Start Time Not Listed"}–${card.end?.slice(0,5) || "End Time Not Listed"} (Nashville Local Time)${card.cancelled ? "; Cancelled" : ""}`,
     food:menu,location,address,walk:walk===null ? "Walking Time Unverified" : `~${walk} min straight-line estimate; actual pedestrian route/time unverified`,
     route_url:params ? `https://www.google.com/maps/dir/?${params}` : null,
-    rsvp:card.rsvp_label==="RSVP not stated" ? (/\b(?:rsvp|register|registration|sign[- ]?up)\b/i.test(card.description || "") ? "The source mentions RSVP/registration; check requirements, eligibility and remaining availability" : "RSVP/Registration Not Stated") : card.rsvp_label==="No RSVP needed" ? "The source explicitly states no RSVP is needed" : "RSVP Required; Check Availability and Eligibility",
+    rsvp:card.rsvp_label==="RSVP Not Stated" ? (/\b(?:rsvp|register|registration|sign[- ]?up)\b/i.test(card.description || "") ? "The source mentions RSVP/registration; check requirements, eligibility and remaining availability" : "RSVP/Registration Not Stated") : card.rsvp_label==="No RSVP Needed" ? "The source explicitly states no RSVP is needed" : "RSVP Required; Check Availability and Eligibility",
     participation:card.participation.ai_note ? card.participation.ai_note : ({open:"Open attendance is explicitly stated; suitability for a food-only visit remains unverified",structured:"The activity has a planned format; suitability for a brief food-only visit remains unverified",restricted:"The source lists participation restrictions; verify eligibility",unknown:"Eligibility and participation format are unstated or unverified"}[card.participation.level] || "Consult the official participation requirements; suitability for a brief food-only visit is unverified"),
     sources:sourceStatus+(hasCalendar ? "; See event links for the calendar source" : "; Personal calendar is not connected; calendar time/location differences unverified"),
     conflicts:[...card.conflicts.map(c=>`${c.field}: ${c.values.join(" / ")}`),...(peers.length ? [`Overlaps ${peers.map(p=>p.title).join("; ")}; all events retained`] : ["No overlap found among listed event times"])].join("; "),

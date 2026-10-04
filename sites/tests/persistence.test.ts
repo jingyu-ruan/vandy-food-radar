@@ -175,7 +175,7 @@ test("a refresh that lost its lease cannot overwrite the newer published feed", 
   assert.equal(view.publishedAt, new Date(laterMs).toISOString());
   assert.equal(view.snapshot?.events.length, 1);
   assert.equal(view.snapshot?.events[0].event.title, "Taco Tuesday");
-  assert.equal(view.snapshot?.events[0].components.length, 8);
+  assert.equal(view.snapshot?.events[0].components.length, 5);
 
   const titles = db
     .prepare("SELECT title FROM events WHERE feed_date = ?")
@@ -277,7 +277,7 @@ test("a feed read cannot mix one publication's metadata with another's rows", as
   );
   // Every card carries its own complete scoring and provenance.
   for (const stored of snapshot.events) {
-    assert.equal(stored.components.length, 8);
+    assert.equal(stored.components.length, 5);
     assert.equal(stored.sources.length, 1);
     assert.ok(stored.provenance.length > 0);
     assert.notEqual(stored.explanation, "");
@@ -359,7 +359,7 @@ test("two AnchorLink events with identical fields keep their own metadata", asyn
   }
 
   for (const stored of events) {
-    assert.equal(stored.components.length, 8, "score breakdown lost");
+    assert.equal(stored.components.length, 5, "score breakdown lost");
     assert.equal(stored.sources.length, 1, "source record lost");
     assert.equal(
       stored.sources[0].sourceUrl,

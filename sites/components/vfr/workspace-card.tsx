@@ -1,4 +1,4 @@
-import {foodEmojiText, foodSourceText} from "@/public/static/js/food-emoji.js";
+import {foodDescriptionText} from "@/public/static/js/food-emoji.js";
 /**
  * One event card, server-rendered from the same `CardJson` the browser modules
  * render on every later date change (`public/static/js/cards.js`). The markup
@@ -53,13 +53,13 @@ function PlaceFact({ card }: { card: CardJson }) {
     return (
       <Fact label="Place">
         <span className="fact-strong">{card.location_listed}</span>{" "}
-        <span className="fact-muted">not matched to a campus building</span>
+        <span className="chip chip-quiet">Unmapped</span>
       </Fact>
     );
   }
   return (
     <Fact label="Place">
-      <span className="fact-muted">Not listed</span>
+      <span className="chip chip-quiet">Not Listed</span>
     </Fact>
   );
 }
@@ -79,9 +79,9 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
       <header className="card-top">
         <h3 className="card-title">{card.event_url ? <a href={card.event_url} target="_blank" rel="noopener noreferrer">{card.title}</a> : card.title}</h3>
         <div className="rating">
-          <button type="button" className="rating-trigger" data-action="toggle-rating" aria-label={`Rating ${rating.score} of 5. Show score breakdown for ${card.title}`} aria-expanded="false" aria-controls={rating.id}><span>Rating</span><span className="rating-score">{rating.score}/5.0</span></button>
+          <button type="button" className="rating-trigger" data-action="toggle-rating" aria-label={`Rating ${rating.score} of 5. Show score breakdown for ${card.title}`} aria-expanded="false" aria-controls={rating.id}><span>Rating</span><span className="rating-score">{rating.score} / 5.0</span></button>
           <div className="rating-panel" id={rating.id} role="region" aria-label={`Rating breakdown for ${card.title}`} tabIndex={0} hidden>
-            <p className="rating-total">Published total {rating.total}</p>
+            <p className="rating-total">Published Total {rating.total}</p>
             {rating.rows.length ? <table><thead><tr><th>Factor</th><th>Weight</th><th>Value</th><th>Points</th></tr></thead><tbody>{rating.rows.map((row, index) => <Fragment key={index}><tr><th scope="row">{row.label}</th><td>{row.weight}</td><td>{row.value}</td><td>{row.points}</td></tr><tr className="rating-note"><td colSpan={4}>{row.note}</td></tr></Fragment>)}</tbody></table> : <p>Score breakdown is unavailable for this published event.</p>}
             <p className="rating-context">{rating.scale} {rating.context}</p>
           </div>
@@ -97,9 +97,9 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
       <dl className="card-facts">
         <Fact label="Food">
           <span className={`chip chip-${food.tone}`}>{food.label}</span>
-          {food.detail ? <span className="food-note">{food.detail}</span> : null}
-          {card.food_description ? (
-            <span className="fact-text">{foodEmojiText(card.food_description, foodSourceText([card]))}</span>
+          {food.detail ? <span className="chip chip-quiet">{food.detail}</span> : null}
+          {foodDescriptionText(card) ? (
+            <span className="fact-text">{foodDescriptionText(card)}</span>
           ) : null}
         </Fact>
         <PlaceFact card={card} />
@@ -113,7 +113,7 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
             {card.walking_label}
           </span>
         </Fact>
-        {card.rsvp_label !== "RSVP not stated" || card.rsvp_url ? (
+        {card.rsvp_label !== "RSVP Not Stated" || card.rsvp_url ? (
           <Fact label="RSVP">
             {card.rsvp_url ? (
               <a
@@ -130,7 +130,7 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
           </Fact>
         ) : null}
         <Fact label="Host">
-          <span className="fact-text">{card.organizer || "Not listed"}</span>
+          <span className="fact-text">{card.organizer || "Not Listed"}</span>
         </Fact>
         <Fact label="Participation" wide>
           <span className="fact-text" title={card.participation.ai_evidence ? `Source: ${card.participation.ai_evidence}` : undefined}>{participationText(card.participation)}</span>

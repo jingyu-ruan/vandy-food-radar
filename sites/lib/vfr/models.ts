@@ -65,28 +65,11 @@ export const FieldAgreement = {
 export type FieldAgreement =
   (typeof FieldAgreement)[keyof typeof FieldAgreement];
 
-/**
- * The seven design ranking factors, whose weights sum to 1.0 before the
- * participation share is carved out.
- */
-export const DESIGN_SCORE_FACTORS = [
-  "food_confirmed",
-  "full_meal",
-  "food_specificity",
-  "rsvp_likelihood",
-  "timing",
-  "walking",
-  "confidence",
-] as const;
+/** Five food-focused factors, persisted in a fixed presentation order. */
+export const DESIGN_SCORE_FACTORS = ["food_confirmed", "full_meal", "food_specificity", "timing", "walking"] as const;
 export type DesignScoreFactor = (typeof DESIGN_SCORE_FACTORS)[number];
-
-/**
- * Every ranking factor, in the fixed order used for deterministic persistence
- * and for tie-breaking inside the explanation generator. `participation` is a
- * small convenience nudge capped by `ranking.participationInfluence`.
- */
-export const SCORE_FACTORS = [...DESIGN_SCORE_FACTORS, "participation"] as const;
-export type ScoreFactor = (typeof SCORE_FACTORS)[number];
+export const SCORE_FACTORS = DESIGN_SCORE_FACTORS;
+export type ScoreFactor = DesignScoreFactor;
 
 /** How a fresh event compares to the previously published feed. */
 export const ChangeKind = {

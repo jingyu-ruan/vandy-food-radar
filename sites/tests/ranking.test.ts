@@ -1,12 +1,4 @@
-/**
- * Ranking and verification parity with the reference implementation.
- *
- * These numbers are not arbitrary. The weights, the per-factor value tables, and
- * the confidence blend all came from the application being replaced, and the UI
- * shows the resulting score to two decimals. If any of them drift, the ranking a
- * user sees changes meaning without anything appearing to break, so the exact
- * expected totals are pinned here.
- */
+/** Food-focused scoring, verification and deterministic order. */
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -65,98 +57,34 @@ function baseEvent(overrides: Partial<Event> = {}): Event {
   };
 }
 
-test("the seven ranking weights are unchanged and sum to one", () => {
-  const weights = defaultConfig().ranking.weights;
-  assert.deepEqual(weights, {
-    food_confirmed: 0.25,
-    full_meal: 0.25,
-    food_specificity: 0.15,
-    rsvp_likelihood: 0.1,
-    timing: 0.05,
-    walking: 0.1,
-    confidence: 0.1,
-  });
-  const total = DESIGN_SCORE_FACTORS.reduce((sum, factor) => sum + weights[factor], 0);
-  assert.equal(Math.round(total * 1e6) / 1e6, 1);
-  // Participation convenience is the eighth factor and is capped at 5%.
-  assert.deepEqual([...SCORE_FACTORS], [...DESIGN_SCORE_FACTORS, "participation"]);
-  assert.equal(defaultConfig().ranking.participationInfluence, 0.05);
+test("five food-focused factors sum to one and survive scoring", () => {
+ const config=defaultConfig(),result=scoreEvent(baseEvent(),config,UNKNOWN_WALK);
+ assert.deepEqual(config.ranking.weights,{food_confirmed:0.2,full_meal:0.3,food_specificity:0.25,timing:0.15,walking:0.1});
+ assert.deepEqual(result.components.map(c=>c.factor),['food_confirmed','full_meal','food_specificity','timing','walking']);
+ assert.equal(result.components.reduce((sum,c)=>sum+c.weight,0),1);
+ assert.equal(result.event.scoreTotal,0.95);
 });
-
-test("the persisted weights are the design weights scaled to make room for participation", () => {
-  const result = scoreEvent(baseEvent(), defaultConfig(), UNKNOWN_WALK);
-  const weights = Object.fromEntries(result.components.map((c) => [c.factor, c.weight]));
-  assert.deepEqual(weights, {
-    food_confirmed: 0.2375,
-    full_meal: 0.2375,
-    food_specificity: 0.1425,
-    rsvp_likelihood: 0.095,
-    timing: 0.0475,
-    walking: 0.095,
-    confidence: 0.095,
-    participation: 0.05,
-  });
-  const sum = result.components.reduce((total, c) => total + c.weight, 0);
-  assert.equal(Math.round(sum * 1e6) / 1e6, 1);
+test("real menu evidence increases the score; longer unrelated copy never does", () => {
+ const value=(description:string)=>scoreEvent(baseEvent({foodDescription:description}),defaultConfig(),UNKNOWN_WALK).components.find(c=>c.factor==='food_specificity')!.rawValue;
+ assert.equal(value('Free food provided.'),0);
+ assert.equal(value('Free food provided. Join our distinguished guest for a detailed research discussion.'),0);
+ assert.equal(value('Dinner will be provided.'),0);
+ assert.equal(value('Pizza will be provided.'),1);
+ assert.equal(value('Chick-fil-A will be provided.'),0.75);
+ assert.equal(value('Dinner includes vegetarian and halal options.'),0.4);
+ assert.equal(value('No pizza will be provided.'),0);
 });
-
-test("a confirmed full meal with an unknown walk scores the expected total", () => {
-  const config = defaultConfig();
-  const result = scoreEvent(baseEvent(), config, UNKNOWN_WALK);
-
-  const byFactor = new Map(result.components.map((c) => [c.factor, c]));
-  // confirmed food
-  assert.equal(byFactor.get("food_confirmed")!.rawValue, 1);
-  // full meal
-  assert.equal(byFactor.get("full_meal")!.rawValue, 1);
-  // named terms: pizza, salad -> 2 * 0.25
-  assert.equal(byFactor.get("food_specificity")!.rawValue, 0.5);
-  // RSVP requirement unknown stays neutral rather than being assumed
-  assert.equal(byFactor.get("rsvp_likelihood")!.rawValue, 0.5);
-  // 18:00 sits inside the preferred 11:00-20:00 window
-  assert.equal(byFactor.get("timing")!.rawValue, 1);
-  // an unknown walk uses the neutral value and never zeroes the score
-  assert.equal(byFactor.get("walking")!.rawValue, 0.5);
-  assert.equal(byFactor.get("confidence")!.rawValue, 0.3);
-
-  // The listing says nothing about who may attend, so participation is neutral.
-  assert.equal(byFactor.get("participation")!.rawValue, 0.5);
-
-  // 0.95 * (0.25 + 0.25 + 0.075 + 0.05 + 0.05 + 0.05 + 0.03) + 0.05 * 0.5
-  assert.equal(result.event.scoreTotal, 0.74225);
+test("meal start windows distinguish meal time from mid-afternoon and late night",()=>{
+ const value=(startTime:string|null)=>scoreEvent(baseEvent({startTime}),defaultConfig(),UNKNOWN_WALK).components.find(c=>c.factor==='timing')!.rawValue;
+ for(const time of ['08:00','12:00','18:00']) assert.equal(value(time),1);
+ assert.equal(value('15:00'),0.5);assert.equal(value('22:00'),0);assert.equal(value(null),0.5);
 });
-
-test("factor values follow the documented tables", () => {
-  const config = defaultConfig();
-  const value = (event: Partial<Event>, factor: string) => {
-    const result = scoreEvent(baseEvent(event), config, UNKNOWN_WALK);
-    return result.components.find((c) => c.factor === factor)!.rawValue;
-  };
-
-  assert.equal(value({ foodConfirmed: FoodConfirmed.UNCONFIRMED }, "food_confirmed"), 0.3);
-  assert.equal(value({ foodConfirmed: FoodConfirmed.CONTRADICTED }, "food_confirmed"), 0);
-  assert.equal(
-    value({ foodCategory: FoodCategory.SNACKS_OR_REFRESHMENTS }, "full_meal"),
-    0.4,
-  );
-  assert.equal(value({ foodCategory: FoodCategory.UNSPECIFIED }, "full_meal"), 0.2);
-  assert.equal(value({ foodCategory: FoodCategory.NONE }, "full_meal"), 0);
-
-  assert.equal(value({ rsvpRequired: false }, "rsvp_likelihood"), 1);
-  assert.equal(value({ rsvpRequired: true }, "rsvp_likelihood"), 0.7);
-  assert.equal(
-    value({ rsvpRequired: true, rsvpLinkOk: false }, "rsvp_likelihood"),
-    0.3,
-  );
-
-  // Timing decays linearly to zero four hours outside the good window.
-  assert.equal(value({ startTime: "09:00" }, "timing"), 0.5);
-  assert.equal(value({ startTime: "07:00" }, "timing"), 0);
-  assert.equal(value({ startTime: "22:00" }, "timing"), 0.5);
-  assert.equal(value({ startTime: null }, "timing"), 0.5);
-
-  // Generic words add no menu specificity.
-  assert.equal(value({ foodDescription: "Free food provided" }, "food_specificity"), 0);
+test("full meals beat unspecified food and confidence or access never alter the food score",()=>{
+ const score=(event:Partial<Event>)=>scoreEvent(baseEvent(event),defaultConfig(),UNKNOWN_WALK).event.scoreTotal!;
+ assert.ok(score({foodCategory:FoodCategory.FULL_MEAL})>score({foodCategory:FoodCategory.SNACKS_OR_REFRESHMENTS}));
+ assert.ok(score({foodCategory:FoodCategory.SNACKS_OR_REFRESHMENTS})>score({foodCategory:FoodCategory.UNSPECIFIED}));
+ assert.equal(score({confidence:0,rsvpRequired:true}),score({confidence:1,rsvpRequired:false}));
+ assert.equal(score({organizer:'Members only'}),score({organizer:'Everyone welcome'}));
 });
 
 test("walking distance maps onto the documented ramp", () => {

@@ -3,7 +3,7 @@ import type { Event, SourceRecord } from "./models.ts";
 import type { Config } from "./config.ts";
 import { localDateOf } from "./time.ts";
 
-export const AI_VERSION = "food-first-plain-brief-v10";
+export const AI_VERSION = "food-highlights-meal-ranking-v11";
 export const AI_KEY_PREFIX = "ai:day:";
 export type AiTrait = { identityKey: string; level: string; note: string; evidence: string };
 /** Generic meal labels describe category, not a published menu. */
@@ -63,7 +63,7 @@ Use only supplied facts. Never invent menus, eligibility, addresses, RSVP, atten
 The Daily Brief layout is an opening takeaway followed by a seven-column table: Rank, Event, Time, Food, Location, Walk, Notes.
 The application constructs the table from published events, preserves its recommendation order, and supplies Event links, Time, Location and Walk. You supply brief for the opening takeaway, foods for supported named menus, and recommendations[].reason for the corresponding Notes cells, joined strictly by identityKey. Never produce Markdown, HTML, table rows, column headers, ranking numbers or walking estimates in any generated string.
 Use your editorial judgment to decide what is distinctive and useful in the full event context. Write naturally, varying the emphasis and sentence structure with the day's actual offerings. You may compare activities and make reasoned judgments about their appeal or practical tradeoffs when the supplied facts support them. Keep factual claims tied to the sources and express uncertain interpretations tentatively.
-brief: one or two short, memorable sentences in plain everyday English, normally under 45 words and at most 80. Choose exactly one lead recommendation. Lead with the best supported food option and name its event so readers know where to go. Do not offer a pair of alternatives joined by "or" or end with a general sentence about both events. Every sentence must help the reader decide whether to go to that one pick. Compare confirmed menus and meals first; a named menu, a full meal, and clear access can matter more than a famous speaker or an impressive program. When no menu is listed, say only what the source supports. If food information is equally sparse, choose one useful event and explain the practical reason. Follow with a decisive RSVP, eligibility or timing detail only when needed. Use simple verbs and concrete words; avoid "the lineup features", promotional language and abstract descriptions. A celebrity's credentials are not the food recommendation. Never spotlight a cancelled event or invent portion sizes, quality, availability or menu items. Use must-go only with strong source support. Do not summarize the day, count or list events, describe table columns, or repeat Notes. Both date (selected date) and currentDate (actual local date) are supplied. Use "today" only when they match; otherwise name the event without a relative date. You have no personal calendar. Leave food emoji to the application.
+brief: one to three distinct, useful food-led highlights in plain everyday English. Write each highlight on its own line, with no bullet markers; the application renders the list. Normally use fewer than 30 words per highlight, at most 50 per line and at most 120 total. Choose one highlight when only one event deserves attention; use two or three when several options have a concrete reason to go. Rank your picks by food appeal using only source facts: a named dish, a named caterer, a full meal, dietary options and meal time. Name each event so readers know where to go. Add a decisive RSVP, eligibility or timing detail when needed. Avoid duplicate picks, weak filler, "the lineup features", generic summaries and promotional language. A celebrity's credentials are not the food recommendation. Never spotlight a cancelled event or invent portions, quality, availability or menu items. Use must-go only with strong source support. Do not count events, describe table columns, or repeat Notes. Both date and currentDate are supplied; use "today" only when they match. You have no personal calendar. Leave food emoji to the application.
 foods: extract specific food items the event promises to provide. Keep original source words. Omit generic Food, Dinner, Lunch, Snacks, Catering, or drinks with no named menu items. Never extract negated/paid/hypothetical food. Each entry has identityKey, items and an exact supporting source quotation evidence.
 recommendations: aim to cover every supplied event, even when events overlap. Each reason fills that event's Notes cell with a compact, original assessment, normally under 30 words and at most 45 words. Use plain everyday words and short, direct verbs; avoid promotional phrasing and abstract academic descriptions. You decide what matters: the activity's purpose, host, experience, format, named food, RSVP, eligibility, or tradeoffs with the supplied overlappingActivities. One or two short sentences are welcome. Explain why someone might choose the event or what they should account for, instead of restating table fields. Mention missing details only when they materially affect the assessment; avoid giving every row the same warning. For sparse descriptions, the title can support a tentative interpretation of the activity's theme; quote that exact title as evidence and avoid inventing format or access conditions. Never infer unlimited portions, remaining availability, unrestricted entry or guaranteed food. Each entry has the exact supplied identityKey, reason and exact supporting evidence; omit entries lacking supporting evidence and let the application provide its fallback.
 traits: short, friendly English notes (at most 35 words) about how a brief food-focused visit fits the published activity. Keep the mood light and welcoming. A small, dry joke about the format is welcome when the source supports it: "Pizza with a meeting attached" or "Dinner comes with a discussion; plan to stay for both." Keep any RSVP or eligibility requirement clear. Avoid stern etiquette lectures, the word "awkward", embarrassment labels, numerical scores, or jokes at an organizer's or participant's expense. Describe format as an inference, never predict anyone's feelings.
@@ -75,10 +75,10 @@ Return JSON with brief, foods, recommendations and traits. All generated prose m
 export function validateIntelligence(value: unknown, inputs: AiInput[], date?:string, currentDate?:string): {brief: string; traits: AiTrait[]; foods:AiFood[]; recommendations:AiRecommendation[]} {
   if (!value || typeof value !== "object") throw new Error("invalid model response");
   const output = value as Record<string,unknown>;
-  if (typeof output.brief !== "string" || !plainTableCopy(output.brief,80) ||
+  if (typeof output.brief !== "string" || !plainBriefCopy(output.brief) ||
     !Array.isArray(output.traits)) throw new Error("invalid model response");
   if (date && currentDate && date!==currentDate && /\btoday\b/i.test(output.brief)) throw new Error("unsupported relative model date");
-  if (genericOpening(output.brief)) throw new Error("generic model brief");
+  if (output.brief.split(/[\r\n]+/).some(genericOpening)) throw new Error("generic model brief");
   // Accept clock times in event fields or explicit source-description details.
   const allowedTimes = new Set(inputs.flatMap(i=>[i.start,i.end]).filter(Boolean));
   for (const input of inputs) {
@@ -146,6 +146,11 @@ function genericOpening(value:string):boolean {
     /\b(?:(?:the|this) table|(?:table|list|ranking) below|(?:see|compare) the (?:ranked )?(?:activities|events|options) below)\b/i.test(value);
 }
 
+function plainBriefCopy(value:string):boolean {
+  const lines=value.trim().split(/[\r\n]+/);
+  return lines.length>=1 && lines.length<=3 && value.trim().split(/\s+/).length<=120 && lines.every(line=>plainTableCopy(line,50));
+}
+
 /** Table structure belongs to the renderer; model strings are bounded cell copy. */
 function plainTableCopy(value:string, maxWords:number):boolean {
   return Boolean(value.trim()) && value.length<=1000 && value.trim().split(/\s+/).length<=maxWords &&
@@ -163,7 +168,7 @@ export async function generateIntelligence(
     body:JSON.stringify({systemInstruction:{parts:[{text:SYSTEM}]},
       contents:[{role:"user",parts:[{text:JSON.stringify({date,currentDate,events:inputs})}]}],
       generationConfig:{temperature:0.5,maxOutputTokens:8192,responseMimeType:"application/json",
-        responseSchema:{type:"OBJECT",properties:{brief:{type:"STRING",description:"A plain-English food-first takeaway of one or two short sentences, normally under 45 words and at most 80, naming exactly one recommended food option and its non-cancelled event, with a decisive practical detail when needed. No pairs of alternatives or generic closing sentence. No event counts, day summaries, lists or table descriptions."},traits:{type:"ARRAY",items:{type:"OBJECT",
+        responseSchema:{type:"OBJECT",properties:{brief:{type:"STRING",description:"One to three plain-English food highlights on separate lines, each naming a non-cancelled event and a concrete food reason. At most 50 words per line and 120 total. No bullet markers, counts, generic day summaries or table descriptions."},traits:{type:"ARRAY",items:{type:"OBJECT",
           properties:{identityKey:{type:"STRING"},level:{type:"STRING",enum:LEVELS},note:{type:"STRING"},evidence:{type:"STRING"}},
           required:["identityKey","level","note","evidence"]}},
           foods:{type:"ARRAY",items:{type:"OBJECT",properties:{identityKey:{type:"STRING"},items:{type:"ARRAY",items:{type:"STRING"}},evidence:{type:"STRING"}},required:["identityKey","items","evidence"]}},

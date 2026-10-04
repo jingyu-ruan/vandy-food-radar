@@ -9,7 +9,7 @@ test('formatting preserves midnight, noon and overnight meaning in both clocks',
   assert.equal(formatMinutes(1025, '24'), '17:05');
   assert.equal(eventTime({start:'23:30:00',end:'01:00:00'}, '24'), '23:30 – 01:00 next day');
   assert.equal(eventTime({start:'17:00:00',end:'18:15:00'}, '12'), '5 PM – 6:15 PM');
-  assert.equal(eventTime({start:null,time_label:'Time not listed'}, '24'), 'Time not listed');
+  assert.equal(eventTime({start:null,time_label:'Time Not Listed'}, '24'), 'Time Not Listed');
   assert.equal(eventTime({start:'17:00:00',end:null}, '24'), '17:00');
 });
 

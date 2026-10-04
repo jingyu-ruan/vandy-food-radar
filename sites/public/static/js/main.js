@@ -1,5 +1,4 @@
-import {foodEmojiText, foodSourceText} from './food-emoji.js';
-import {generatedLabel, renderBriefAssessments, bindBriefLinks} from './brief.js';
+import {renderBriefCopy, generatedLabel, renderBriefAssessments, bindBriefLinks} from './brief.js';
 /**
  * Entry point: wires the views together and owns navigation.
  *
@@ -121,7 +120,7 @@ function renderBrief() {
     node.textContent = `The feed could not be loaded: ${state.error}`;
     return;
   }
-  if (state.brief) node.textContent = formatTimesInText(foodEmojiText(displayText(state.brief.text), foodSourceText(state.events)));
+  if (state.brief) renderBriefCopy(node,displayText(state.brief.text),state.events);
 }
 
 function renderScope() {
@@ -379,7 +378,7 @@ function renderSavedCount() {
   const total = state.saved.length;
   const onDay = state.saved.filter((entry) => entry.date === state.selectedDate).length;
   if (!total) {
-    node.textContent = state.storageWarning || 'None saved';
+    node.textContent = state.storageWarning || 'None Saved';
     return;
   }
   const suffix = state.storageWarning ? ` ${state.storageWarning}` : '';

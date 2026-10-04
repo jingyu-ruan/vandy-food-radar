@@ -29,18 +29,24 @@ test('table keeps published order and joins times to the correct event instead o
  assert.match(rows[0].walk_detail,/straight-line estimate/);
  assert.equal(rows[0].food,'Pizza');
  assert.equal(rows[1].rank,2);
- assert.equal(rows[1].time,'Time not listed');
+ assert.equal(rows[1].time,'Time Not Listed');
  assert.equal(rows[1].cancelled,true);
  assert.equal(rows[1].food,'Unspecified');
  assert.equal(rows[1].walk,'—');
  assert.equal(rows[0].location,'Location not listed');
  assert.equal(briefRows(brief,events,'24')[0].time,'23:30 – 01:00 next day');
  assert.deepEqual(briefRows(null,events),[]);
- assert.equal(generatedLabel({source:'rules'}),'Source summary');
+ assert.equal(generatedLabel({source:'rules'}),'Source Summary');
  assert.match(generatedLabel({source:'gemini',model:'gemini-3.5-flash-lite',generated_at:'2026-10-04T00:36:38Z'}),/by gemini-3.5-flash-lite/);
 });
 test('participation displays one supported explanation, falling back to source analysis',()=>{
  assert.equal(participationText({note:'Inferred: Discussion is expected.',ai_note:'RSVP is required; a brief visit may be impractical.'}),'RSVP is required; a brief visit may be impractical.');
  assert.equal(participationText({note:'Inferred: Discussion is expected.'}),'Discussion is expected.');
  assert.equal(participationText({note:'Eligibility is unspecified.'}),'Eligibility is unspecified.');
+});
+
+test('table rank follows full published scores even when brief rows arrived out of order',()=>{
+ const events=[{identity_key:'low',score:.61,start:'12:00',title:'Low'},{identity_key:'high',score:.88,start:'18:00',title:'High'},{identity_key:'cancelled',score:1,start:'12:00',title:'Cancelled',cancelled:true}];
+ const rows=briefRows({items:events.map(e=>({identity_key:e.identity_key,title:e.title}))},events);
+ assert.deepEqual(rows.map(row=>row.identity_key),['high','low','cancelled']);assert.deepEqual(rows.map(row=>row.rank),[1,2,3]);
 });

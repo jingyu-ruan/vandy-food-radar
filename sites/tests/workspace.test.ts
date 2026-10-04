@@ -124,7 +124,7 @@ test("ended listings remain visible and recent time changes survive an unchanged
   db.close();
 });
 
-test("card links are safe, restrictions are warnings, and participation influence is capped", async () => {
+test("card links are safe, restrictions are warnings, and participation is independent of rating", async () => {
   const { db, config, repository } = setup();
   const restricted = row(TODAY, 1, "Members mixer");
   restricted.description = "Members only. Free pizza provided.";
@@ -139,7 +139,6 @@ test("card links are safe, restrictions are warnings, and participation influenc
   assert.equal(card.change, null);
   assert.ok(card.warnings.some((warning) => /members only/i.test(warning)));
   assert.ok(card.place);
-  config.ranking.participationInfluence = 0.9;
   config.referenceLocation = {label:"Another origin",lat:36.15,lng:-86.82};
   const changedPreferences = buildCard(stored, {config,places:campusPlaces(),nowMs:NOW + 3600000});
   assert.deepEqual(card.score_components, stored.components);
@@ -147,7 +146,7 @@ test("card links are safe, restrictions are warnings, and participation influenc
   assert.equal(changedPreferences.score, card.score);
   assert.equal(changedPreferences.stars, card.stars);
   const scored = scoreEvent(stored.event, config, { status: "unknown", minutes: null, distanceM: null });
-  assert.equal(scored.components.find((component) => component.factor === "participation")!.weight, 0.05);
+  assert.ok(scored.components.every(component=>["food_confirmed","full_meal","food_specificity","timing","walking"].includes(component.factor)));
   db.close();
 });
 

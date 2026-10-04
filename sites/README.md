@@ -297,3 +297,9 @@ reuse the route; rapid changes cancel stale results. Unmapped destinations retai
 the Google Maps link and an explicit coordinate limitation.
 
 Official reference: https://ai.google.dev/gemini-api/docs/pricing
+
+## Food-focused ratings
+
+Ratings use Food Confirmed (20%), Full Meal (30%), Menu Specificity (25%), Meal Timing (15%), and Walking (10%). Description length, source-verification confidence, RSVP likelihood and participation estimates do not contribute to the score. Specific dishes receive full menu credit, a named provider receives 75%, dietary options receive 40%, and a generic meal claim receives no menu-specificity credit. Meal timing favors starts during breakfast (7–10), lunch (11–14) and dinner (17–20) in the configured local timezone, with a two-hour linear falloff outside those windows. Unknown time or walking information stays neutral.
+
+Scores and components are persisted together during refresh. Cards and the Daily Brief table sort by that published score descending, with time and title as tie-breakers and cancelled events last. Changing the walking origin updates route estimates without changing the published score. Rank opens the card; Event opens the original source. Long tables scroll within the page with a sticky header on desktop and mobile. Daily Brief copy supports up to three source-supported food highlights.

@@ -45,7 +45,7 @@ export function clockMinutes(value) {
 export function eventTime(event, clock = preferences.clock) {
   const start = clockMinutes(event.start);
   const end = clockMinutes(event.end);
-  if (start === null) return displayText(event.time_label || 'Time not listed');
+  if (start === null) return displayText(event.time_label || 'Time Not Listed').replace('Time not listed','Time Not Listed');
   const first = formatMinutes(start, clock);
   if (end === null) return first;
   return `${first} – ${formatMinutes(end, clock)}${end <= start ? ' next day' : ''}`;

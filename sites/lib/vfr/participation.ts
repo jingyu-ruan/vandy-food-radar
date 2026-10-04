@@ -11,8 +11,7 @@
  * Explicit eligibility limits ("members only", "graduate students only") are
  * reader-facing warnings. They are deliberately *not* folded into ranking: an
  * event closed to someone is a caveat to read, not a slightly worse event. The
- * convenience value is the only thing ranking consumes, capped by
- * `ranking.participationInfluence` (5% by default).
+ * participation assessment stays separate from the five food-focused ranking factors.
  *
  * Pure: no I/O, no clock, no randomness.
  */
