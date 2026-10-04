@@ -6,7 +6,10 @@ export function bindScrollHint(root) {
 function bindListHint(agenda, hint) {
   if (!agenda || !hint) return;
   const update = () => {
-    hint.hidden = agenda.clientHeight === 0 || agenda.scrollHeight - agenda.clientHeight - agenda.scrollTop <= 8;
+    // The list reserves bottom padding for this cue; padding is not another event.
+    const last = agenda.lastElementChild;
+    const visibleBottom = agenda.getBoundingClientRect().top + agenda.clientTop + agenda.clientHeight;
+    hint.hidden = agenda.clientHeight === 0 || !last || last.getBoundingClientRect().bottom <= visibleBottom + 8;
   };
   agenda.addEventListener('scroll', update, {passive:true});
   hint.addEventListener('click', () => {
