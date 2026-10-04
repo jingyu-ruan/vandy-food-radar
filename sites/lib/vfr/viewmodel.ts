@@ -380,7 +380,7 @@ export async function buildDayFeed(
     brief.origin=context.config.referenceLocation.label;
     brief.items=cards.map(card=>briefItem(card,cards,context,brief.source==='gemini' ? ai?.recommendations?.find(item=>item.identityKey===card.identity_key)?.reason : undefined));
     if (brief.source!=='gemini') {
-      brief.text=`${cards.length} free-food events are listed for ${date}, ranked by food value, attendance certainty and walking convenience. Select an event name in the brief to see its details.`;
+      brief.text=`${cards.length} free-food ${cards.length===1 ? 'event is' : 'events are'} listed for ${date}; compare the ranked activities below by food, timing and participation requirements.`;
       brief.sentences=[brief.text];
     }
   }
@@ -451,7 +451,6 @@ function briefItem(card:CardJson, cards:CardJson[], context:ViewContext, aiReaso
   const restricted=card.rsvp_label==="RSVP required" || /\b(?:spaces? (?:are |is )?limited|limited spaces?|registration is required|rsvp is required)\b/i.test(card.description || "");
   const fallback=card.cancelled ? "This event is cancelled" : `${category}${restricted ? "; plan ahead because attendance has limited availability or requires registration" : card.participation.level==="structured" ? "; the program suggests a visit that includes participation" : card.participation.level==="unknown" ? "; confirm the participation requirements" : ""}`;
   const assessment=(aiReason || fallback).replace(/[.;\s]+$/,"");
-  const convenience=walk===null ? "Walking convenience remains unverified." : walk<=10 ? "The published location has a short estimated walk from the reference origin." : "The longer estimated walk makes this a less convenient stop.";
   return {identity_key:card.identity_key,title:card.title,url:card.event_url,
     time:`${card.start?.slice(0,5) || "Start Time Not Listed"}–${card.end?.slice(0,5) || "End Time Not Listed"} (Nashville Local Time)${card.cancelled ? "; Cancelled" : ""}`,
     food:menu,location,address,walk:walk===null ? "Walking Time Unverified" : `~${walk} min straight-line estimate; actual pedestrian route/time unverified`,
@@ -460,6 +459,6 @@ function briefItem(card:CardJson, cards:CardJson[], context:ViewContext, aiReaso
     participation:card.participation.ai_note ? card.participation.ai_note : ({open:"Open attendance is explicitly stated; suitability for a food-only visit remains unverified",structured:"The activity has a planned format; suitability for a brief food-only visit remains unverified",restricted:"The source lists participation restrictions; verify eligibility",unknown:"Eligibility and participation format are unstated or unverified"}[card.participation.level] || "Consult the official participation requirements; suitability for a brief food-only visit is unverified"),
     sources:sourceStatus+(hasCalendar ? "; See event links for the calendar source" : "; Personal calendar is not connected; calendar time/location differences unverified"),
     conflicts:[...card.conflicts.map(c=>`${c.field}: ${c.values.join(" / ")}`),...(peers.length ? [`Overlaps ${peers.map(p=>p.title).join("; ")}; all events retained`] : ["No overlap found among listed event times"])].join("; "),
-    reason:`${assessment}. ${convenience}`,
+    reason:`${card.cancelled ? 'This event is cancelled' : assessment}.${peers.length ? ' Overlaps another listed event.' : ''}${card.conflicts.length ? ' Source details conflict.' : ''}`,
   };
 }

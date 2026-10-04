@@ -267,11 +267,16 @@ calendar day. Attempts are stored before inference under the refresh lease.
 AI records age out with the feed retention window. A successful source refresh
 continues even when Gemini is unavailable or its response fails validation.
 
-The English Daily Brief shows an overall assessment followed by concise evaluations
-of every event. Linked event names scroll to and focus their corresponding cards;
-there is no duplicate expandable fact report. Its metadata identifies the generation
+The English Daily Brief shows one opening sentence followed by a semantic table with
+Ranking, Activity, Time, Food, Location, Walk and Notes columns for every event.
+The table scrolls horizontally on narrow screens. Tablet layouts keep activity
+names visible; phone layouts give the Notes column room to be read in full.
+Linked event names scroll to and focus their corresponding cards. Its metadata identifies the generation
 date/time and actual model ID. The model's structured reasons are grounded in verbatim
-source evidence, while the application supplies the links and walking context.
+source evidence. Gemini returns bounded JSON prose for the opening sentence and
+Notes cells; the application constructs all table markup and supplies source times,
+ranking, links and locations. Walk values update with the visitor's selected origin
+and remain labelled as estimates when a pedestrian route is unavailable.
 Participation displays one evidence-backed explanation, with source-derived analysis
 as the fallback. An exact supporting quote remains accessible in the hover title.
 Changed source inputs invalidate cached AI immediately; a new prompt version starts

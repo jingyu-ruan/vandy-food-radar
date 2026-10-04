@@ -32,9 +32,26 @@ test("Gemini uses a fixed server endpoint, key header, bounded structured respon
     assert.equal(String(url),"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent");
     assert.equal(new Headers(options?.headers).get("x-goog-api-key"),"test-key");
     assert.ok(!String(url).includes("test-key"));
-    assert.equal(JSON.parse(String(options?.body)).generationConfig.responseMimeType,"application/json");
+    const body=JSON.parse(String(options?.body));
+    assert.equal(body.generationConfig.responseMimeType,"application/json");
+    assert.match(body.systemInstruction.parts[0].text,/Ranking, Activity, Time, Food, Location, Walk, Notes/);
+    assert.match(body.systemInstruction.parts[0].text,/exactly one concise English opening sentence/);
+    assert.match(body.generationConfig.responseSchema.properties.recommendations.items.properties.reason.description,/Notes sentence/);
     return new Response("secret provider message",{status:429});
   }),/Gemini request failed \(429\)/);
+});
+
+test("table copy rejects model-generated markup and keeps valid event Notes by identity",()=>{
+ for (const brief of ['Opening.\n| Ranking | Activity |','```json','<table>Events</table>','1. First event',Array(41).fill('word').join(' ')]) {
+  assert.throws(()=>validateIntelligence({brief,traits:[]},[input]));
+ }
+ const output=validateIntelligence({brief:'The selected day offers a casual snack event.',traits:[],recommendations:[
+  {identityKey:input.identityKey,reason:'| 1 | Lunch |',evidence:'Drop in anytime'},
+  {identityKey:'unknown:event',reason:'A short visit suits this format.',evidence:'Drop in anytime'},
+  {identityKey:input.identityKey,reason:Array(31).fill('word').join(' '),evidence:'Drop in anytime'},
+  {identityKey:input.identityKey,reason:'A brief visit fits the advertised drop-in format.',evidence:'Drop in anytime'},
+ ]},[input]);
+ assert.deepEqual(output.recommendations,[{identityKey:input.identityKey,reason:'A brief visit fits the advertised drop-in format.',evidence:'Drop in anytime'}]);
 });
 
 function setup() {

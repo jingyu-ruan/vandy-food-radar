@@ -1,6 +1,7 @@
 /** Labelled walking estimates, refreshed when the origin or date changes. */
 import { fetchWalking } from './api.js';
 import { state } from './state.js';
+import { briefContext } from './brief.js';
 
 let generation = 0;
 const routeCache = new Map();
@@ -26,6 +27,9 @@ export async function walkingLeg(from, to) {
 export async function refreshWalking(root) {
   const current = ++generation;
   const origin = {...state.origin};
+  const context = root.querySelector('[data-role="brief-context"]');
+  if (context) context.textContent = briefContext(origin.label);
+  const briefRows = new Map(Array.from(root.querySelectorAll('.brief-table tbody tr')).map(row => [row.dataset.identityKey, row]));
   const cards = Array.from(root.querySelectorAll('.card'));
   let cursor = 0;
   await Promise.all(Array.from({length:3},async()=> {
@@ -34,12 +38,21 @@ export async function refreshWalking(root) {
       const event = state.events.find(item=>item.identity_key===card.dataset.identityKey);
       const node = card.querySelector('[data-role="walking"]');
       if (!node || !event?.place) continue;
+      const briefNode = briefRows.get(event.identity_key)?.querySelector('[data-role="brief-walking"]');
+      if (briefNode) {
+        briefNode.textContent = `~${estimateMinutes(origin,event.place)} min estimate`;
+        briefNode.title = 'Straight-line distance at 80 metres/minute; paths and entrances can add time.';
+      }
       const result = await walkingLeg(origin,{lat:event.place.lat,lng:event.place.lng});
       if (current !== generation) return;
       node.textContent = result.mode === 'routed'
         ? `${result.minutes} min walk from ${origin.label}`
         : `~${result.minutes} min estimate from ${origin.label}`;
       node.title = result.mode === 'routed' ? 'Pedestrian route' : 'Straight-line distance at 80 metres/minute; paths and entrances can add time.';
+      if (briefNode) {
+        briefNode.textContent = result.mode === 'routed' ? `${result.minutes} min walk` : `~${result.minutes} min estimate`;
+        briefNode.title = node.title;
+      }
     }
   }));
 }

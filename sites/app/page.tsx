@@ -248,7 +248,7 @@ export default async function Home({ searchParams }: PageProps) {
             data-view-panel="cards"
             aria-labelledby="cards-heading"
           >
-            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily Brief</h2><p className="brief-text" data-role="brief-text" lang="en">{displayText(briefText)}</p><BriefAssessments brief={feed?.brief} date={selected} /><p className="brief-meta" data-role="brief-meta" hidden={feed?.brief.source !== "gemini"}>{generatedLabel(feed?.brief,config.timezone)}</p></section>
+            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily Brief</h2><p className="brief-text" data-role="brief-text" lang="en">{displayText(briefText)}</p><BriefAssessments brief={feed?.brief} date={selected} events={feed?.events} /><p className="brief-meta" data-role="brief-meta" hidden={feed?.brief.source !== "gemini"}>{generatedLabel(feed?.brief,config.timezone)}</p></section>
             <div className="events-heading"><h2 className="section-heading" id="cards-heading">
               Events{" "}
               <span className="count" data-role="card-count">

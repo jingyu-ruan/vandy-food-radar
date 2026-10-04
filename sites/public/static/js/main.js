@@ -113,7 +113,7 @@ function renderBrief() {
     meta.hidden = !!state.error || state.brief?.source !== 'gemini';
     if (!meta.hidden) meta.textContent = generatedLabel(state.brief,state.config.timezone);
   }
-  renderBriefAssessments(root,state.error ? null : {...state.brief,date:state.selectedDate});
+  renderBriefAssessments(root,state.error ? null : {...state.brief,date:state.selectedDate},state.events,state.origin?.label);
   if (state.error) {
     node.textContent = `The feed could not be loaded: ${state.error}`;
     return;
