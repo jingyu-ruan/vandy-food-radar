@@ -45,6 +45,12 @@ let pinMode = null;
 let onPin = null;
 
 let vectorAssetsPromise = null;
+let glRenderer = null;
+
+/** Render the current camera synchronously so a snapshot copies a complete frame. */
+export function flushMapFrame() {
+  if (typeof glRenderer?.redraw === 'function') glRenderer.redraw();
+}
 
 function loadMapAsset(tag, url, integrity) {
   return new Promise((resolve, reject) => {
@@ -75,15 +81,22 @@ async function addBasemap(L, canvas) {
     if (fallbackActive) return;
     fallbackActive = true;
     vectorLayer?.remove();
+    glRenderer = null;
     map.attributionControl.removeAttribution(BASEMAP_ATTRIBUTION);
     L.tileLayer(FALLBACK_TILE_URL, {maxZoom: 19, attribution: OSM_ATTRIBUTION}).addTo(map);
     canvas.append(el('p', {class: 'map-basemap-notice', text: 'Simplified basemap unavailable. Showing the standard map.'}));
   };
   try {
     await loadVectorAssets();
-    vectorLayer = L.maplibreGL({style: BASEMAP_STYLE, attribution: BASEMAP_ATTRIBUTION, attributionControl: false}).addTo(map);
+    // A preserved drawing buffer lets view transitions copy the WebGL canvas
+    // synchronously; MapLibre 5 reads it from canvasContextAttributes.
+    vectorLayer = L.maplibreGL({
+      style: BASEMAP_STYLE, attribution: BASEMAP_ATTRIBUTION, attributionControl: false,
+      canvasContextAttributes: {preserveDrawingBuffer: true},
+    }).addTo(map);
     map.attributionControl.addAttribution(BASEMAP_ATTRIBUTION);
     const renderer = vectorLayer.getMaplibreMap();
+    glRenderer = renderer;
     renderer.once('style.load', () => {
       // A flat, light campus background leaves activity markers prominent.
       renderer.setLayerZoomRange('building', 13, 24);
@@ -479,7 +492,7 @@ export function syncWalkingRoute(root) {
   const label=one('[data-role="walking-route-status"]',root);
   if (!Number.isFinite(origin?.lat) || !Number.isFinite(origin?.lng) || !Number.isFinite(destination?.lat) || !Number.isFinite(destination?.lng)) {
     clearRoute();
-    if (label) label.textContent=destination ? 'This destination has no verified map coordinates. Open Google Maps to check walking directions.' : '';
+    if (label) label.textContent=destination ? 'This destination has no verified map coordinates. Use Open in Google Map to check walking directions.' : '';
     return;
   }
   const key=JSON.stringify([origin.lat,origin.lng,destination.lat,destination.lng]);
@@ -510,8 +523,8 @@ export async function showWalkingRoute(root) {
     const geometry = estimated ? [[origin.lat,origin.lng],[destination.lat,destination.lng]] : route.geometry;
     routeLine = window.L.polyline(geometry,{color:'#007aff',weight:4,opacity:0.85,dashArray:estimated?'6 8':null}).addTo(map);
     map.fitBounds(routeLine.getBounds().pad(0.18),{animate:!prefersReducedMotion(),maxZoom:18});
-    if (label) label.textContent=estimated ? `~${route.minutes} min straight-line estimate; actual walking route unverified.` : `${route.minutes} min walking · ${(route.distance_m/1000).toFixed(2)} km`;
+    if (label) label.textContent=estimated ? `~${route.minutes} min straight-line estimate; actual walking route unverified.` : `${route.minutes} min walking, ${(route.distance_m/1000).toFixed(2)} km`;
   } catch {
-    if (generation === routeGeneration && label) label.textContent='Walking route unavailable. Try again or open Google Maps.';
+    if (generation === routeGeneration && label) label.textContent='Walking route unavailable. Try again or use Open in Google Map.';
   }
 }

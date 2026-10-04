@@ -1,7 +1,7 @@
 /** Shared table presentation and stable card links for server/browser rendering. */
 import { el, one, replace } from './dom.js';
 import { eventTime, formatTimesInText } from './preferences.js';
-export const BRIEF_COLUMNS = ['Ranking', 'Activity', 'Time', 'Food', 'Location', 'Walk', 'Notes'];
+export const BRIEF_COLUMNS = ['Rank', 'Activity', 'Time', 'Food', 'Location', 'Walk', 'Notes'];
 export function briefRows(brief, events = [], clock) {
   const cards = new Map(events.map(event => [event.identity_key, event]));
   return (brief?.items || []).map((item, index) => {

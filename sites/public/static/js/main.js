@@ -16,7 +16,8 @@ import { all, one } from './dom.js';
 import { slideViews } from './view-motion.js';
 import { bindSegmented } from './segmented.js';
 import { bindScrollHint } from './scroll-hint.js';
-import { armPinMode, cancelPinMode, clearRoute, openTooltip, panTo, prepareMap, showMap, syncMarkers } from './map.js';
+import { armPinMode, cancelPinMode, clearRoute, flushMapFrame, openTooltip, panTo, prepareMap, showMap, syncMarkers } from './map.js';
+import { relocateMap } from './map-snapshot.js';
 import { bindDirections, destinationFor, setDestination, invalidateWalkingRoute } from './directions.js';
 import { refreshWalking } from './walking.js';
 import { bindOrigin, closeOriginPicker, coordinateLabel, labelForPoint, loadPlaces, originFromPin, refreshOriginStatus } from './origin.js';
@@ -244,23 +245,15 @@ function setView(view) {
   clearRoute();
   const split = one('[data-role="map-split"]', root);
   const host = one(view === 'schedule' ? '[data-role="schedule-map-host"]' : '[data-role="map-home"]', root);
-  // Keep the outgoing map visible while its live canvas moves to the next view.
-  let snapshot = null;
-  if (split && host && split.parentNode !== host) {
-    host.querySelector('.map-transition-snapshot')?.remove();
-    if (animate && split.closest('[data-view-panel]') === previousPanel) {
-      snapshot = split.cloneNode(true);
-      snapshot.classList.add('map-transition-snapshot');
-      snapshot.setAttribute('aria-hidden', 'true');
-      snapshot.inert = true;
-      for (const node of [snapshot, ...snapshot.querySelectorAll('*')]) {
-        node.removeAttribute('id');
-        node.removeAttribute('data-role');
-      }
-      split.parentNode.append(snapshot);
-    }
-    host.append(split);
-  }
+  // The outgoing panel keeps a pixel copy while the live map moves on; if no
+  // faithful copy can be made, the live map moves after the slide instead.
+  const relocation = split ? relocateMap({
+    nodes: [split, one('[data-role="map-attribution"]', root)].filter(Boolean),
+    host,
+    snapshot: animate && split.closest('[data-view-panel]') === previousPanel,
+    beforeSnapshot: flushMapFrame,
+    onMoved: () => { if (usesMap()) showMap(root, {onSelect:selectFromMap, onPinned:handlePin}); },
+  }) : null;
   for (const panel of all('[data-view-panel]', root)) {
     const active = panel.dataset.viewPanel === view;
     panel.classList.toggle('is-active', active);
@@ -274,8 +267,10 @@ function setView(view) {
   }
   if (view === 'schedule' && !state.week) loadWeek();
   // Resize the persistent map before motion begins; keep its camera unchanged.
-  if (usesMap()) showMap(root, {onSelect:selectFromMap, onPinned:handlePin});
-  slideViews(viewport, all('[data-view-panel]', root), view, previousView, () => snapshot?.remove());
+  if (usesMap() && !relocation?.deferred) showMap(root, {onSelect:selectFromMap, onPinned:handlePin});
+  // If the browser cannot copy a map frame, finish immediately so the new
+  // panel receives the live map without showing an empty incoming canvas.
+  slideViews(viewport, all('[data-view-panel]', root), view, relocation?.deferred ? null : previousView, () => relocation?.finish());
 }
 
 function originChanged() {

@@ -291,36 +291,32 @@ export default async function Home({ searchParams }: PageProps) {
             aria-labelledby="map-heading"
             hidden
           >
-            <h2 className="section-heading" id="map-heading">
-              Map
-            </h2>
+            <h2 className="visually-hidden" id="map-heading">Map</h2>
             <div className="map-workspace">
             <div className="map-side">
-            <section className="directions-controls" aria-label="Walking Directions">
-              <div className="directions-fields">
-                <div className="field">
-                  <label htmlFor="map-origin">From</label>
-                  <div className="combobox"><input className="control" id="map-origin" type="search" role="combobox" aria-expanded="false" aria-controls="map-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" defaultValue={displayText(reference.label)} /><ul className="combobox-list" id="map-origin-options" role="listbox" hidden /></div>
-                  <div className="field-tools">
-                    <button type="button" className="control-button icon-button" data-action="origin-gps" aria-label="Use My Location" title="Use My Location"><ActionIcon name="location" /></button>
-                    <button type="button" className="utility-action" data-action="origin-pin" aria-label="Set From on map"><ActionIcon name="pin" />Set From</button>
-                  </div>
+            <section className="directions-controls" aria-label="Walking directions">
+              <div className="endpoint-group">
+                <div className="endpoint-row">
+                  <label className="endpoint-label" htmlFor="map-origin">From</label>
+                  <div className="combobox endpoint-search"><input className="control" id="map-origin" type="search" role="combobox" aria-expanded="false" aria-controls="map-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" defaultValue={displayText(reference.label)} /><ul className="combobox-list" id="map-origin-options" role="listbox" hidden /></div>
+                  <button type="button" className="endpoint-action" data-action="origin-gps" aria-label="Use current location" title="Use current location"><ActionIcon name="location" /></button>
+                  <button type="button" className="endpoint-action" data-action="origin-pin" aria-label="Choose start point on map" title="Choose start point on map"><ActionIcon name="pin" /></button>
                 </div>
-                <div className="field">
-                  <label htmlFor="map-place-search">To</label>
-                  <div className="combobox"><input className="control" id="map-place-search" type="search" role="combobox" aria-expanded="false" aria-controls="map-place-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" /><ul className="combobox-list" id="map-place-options" role="listbox" hidden /></div>
-                  <div className="field-tools">
-                    <select className="control" id="map-destination" aria-label="Choose an event destination" defaultValue=""><option value="">Choose an event</option></select>
-                    <button type="button" className="utility-action" data-action="pin-destination" aria-label="Set To on map"><ActionIcon name="pin" />Set To</button>
-                  </div>
+                <div className="endpoint-row endpoint-row-to">
+                  <label className="endpoint-label" htmlFor="map-place-search">To</label>
+                  <div className="combobox endpoint-search"><input className="control" id="map-place-search" type="search" role="combobox" aria-expanded="false" aria-controls="map-place-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" /><ul className="combobox-list" id="map-place-options" role="listbox" hidden /></div>
+                  <button type="button" className="endpoint-action" data-action="pin-destination" aria-label="Choose destination on map" title="Choose destination on map"><ActionIcon name="pin" /></button>
                 </div>
-              </div>
-              <div className="directions-actions">
-                <a className="control-button directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer"><ActionIcon name="directions" />Open in Google Maps</a>
+                <div className="endpoint-event">
+                  <label htmlFor="map-destination">Destination event</label>
+                  <select className="control" id="map-destination" defaultValue=""><option value="">Choose an event</option></select>
+                </div>
+                <div className="directions-actions">
+                  <a className="control-button directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer"><ActionIcon name="directions" />Open in Google Map</a>
+                </div>
               </div>
               <p className="route-status" data-role="walking-route-status" aria-live="polite" />
               <p className="side-status" data-role="map-location-status" aria-live="polite" />
-              <p className="location-attribution">Map and Routes: <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener noreferrer">FOSSGIS</a> / <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer">Fix the Map</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> / <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></p>
             </section>
             <section className="map-events" aria-labelledby="mapped-events-heading"><h3 id="mapped-events-heading" className="section-heading">Events <span className="count" data-role="map-event-count" /></h3><ol className="map-list" data-role="map-list" aria-label="Events for the selected date" /></section>
             </div>
@@ -334,6 +330,7 @@ export default async function Home({ searchParams }: PageProps) {
                 </div>
                 <p className="map-selection" data-role="map-selection" aria-live="polite" />
               </div>
+              <footer className="map-attribution" data-role="map-attribution">Map and Routes: <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener noreferrer">FOSSGIS</a> / <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer">Fix the Map</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> / <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></footer>
             </div>
             </div>
           </section>

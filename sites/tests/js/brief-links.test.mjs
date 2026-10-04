@@ -21,7 +21,7 @@ test('table keeps published order and joins times to the correct event instead o
   {identity_key:'first',start:null,end:null,time_label:'Time not listed',cancelled:true},
   {identity_key:'second',start:'23:30:00',end:'01:00:00'},
  ];
- assert.deepEqual(BRIEF_COLUMNS,['Ranking','Activity','Time','Food','Location','Walk','Notes']);
+ assert.deepEqual(BRIEF_COLUMNS,['Rank','Activity','Time','Food','Location','Walk','Notes']);
  const rows=briefRows(brief,events,'12');
  assert.equal(rows[0].rank,1);
  assert.equal(rows[0].time,'11:30 PM – 1 AM next day');

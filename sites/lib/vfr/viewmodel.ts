@@ -381,7 +381,7 @@ export async function buildDayFeed(
     brief.items=cards.map(card=>briefItem(card,cards,context,brief.source==='gemini' ? ai?.recommendations?.find(item=>item.identityKey===card.identity_key)?.reason : undefined));
     if (brief.source!=='gemini') {
       brief.source='rules';
-      brief.text=`${cards.length} free-food ${cards.length===1 ? 'event is' : 'events are'} listed for ${date}; compare the ranked activities below by food, timing and participation requirements.`;
+      brief.text=ruleTakeaway(cards);
       brief.sentences=[brief.text];
     }
   }
@@ -434,6 +434,36 @@ export function scriptJson(value: unknown): string {
     .replace(/&/g, "\\u0026")
     .replace(/\u2028/g, "\\u2028")
     .replace(/\u2029/g, "\\u2029");
+}
+
+/** "a", "a and b", "a, b and c" for short source-derived lists. */
+function listPhrase(items:string[]):string {
+  return items.length<3 ? items.join(" and ") : `${items.slice(0,-1).join(", ")} and ${items[items.length-1]}`;
+}
+
+/**
+ * Rule-based opening when no matching model result exists: one concrete pick,
+ * the highest-ranked listing that is not cancelled, described only with
+ * published fields. Menus come from named source items and access conditions
+ * only from a stated RSVP requirement; nothing is inferred. Wording is
+ * date-neutral because the selected date need not be today.
+ */
+export function ruleTakeaway(cards:CardJson[]):string {
+  const pick=cards.find(card=>!card.cancelled);
+  if (!pick) return "Every listing for this date is marked cancelled, so there is no event to recommend.";
+  const place=pick.place ? pick.place.name+(pick.place.detail ? `, ${pick.place.detail}` : "") : pick.location_listed;
+  const start=pick.start ? formatClock(pick.start.slice(0,5)) : null;
+  const opening=`Top pick: ${pick.title}${place ? ` at ${place}` : ""}${start ? `, starting at ${start}` : ""}.`;
+  const named=specificFoodItems(pick.food_items?.length ? pick.food_items : namedFoodItems(pick.description));
+  const food=named.length ? `The listing names ${listPhrase(named.slice(0,3))}.`
+    : pick.food_category==="Full meal" ? "The listing advertises a meal."
+    : pick.food_category==="Snacks" ? "The listing advertises light refreshments." : "";
+  const overlap=pick.start && pick.end ? cards.find(other=>other.identity_key!==pick.identity_key && !other.cancelled &&
+    other.start && other.end && pick.start!<other.end && other.start<pick.end!) : undefined;
+  const tradeoff=pick.rsvp_label.startsWith("RSVP required") ? "RSVP is required, so register before you go."
+    : overlap ? `It overlaps ${overlap.title}, so you may need to choose.`
+    : pick.participation.level==="structured" ? "Plan to join the scheduled program rather than only stopping by for food." : "";
+  return [opening,food,tradeoff].filter(Boolean).join(" ");
 }
 
 function briefItem(card:CardJson, cards:CardJson[], context:ViewContext, aiReason?:string):BriefItemJson {
