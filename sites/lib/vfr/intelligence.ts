@@ -1,8 +1,9 @@
 /** Server-only Gemini enrichment. Source descriptions are untrusted data. */
 import type { Event, SourceRecord } from "./models.ts";
 import type { Config } from "./config.ts";
+import { localDateOf } from "./time.ts";
 
-export const AI_VERSION = "contextual-daily-brief-v6";
+export const AI_VERSION = "contextual-daily-brief-v7";
 export const AI_KEY_PREFIX = "ai:day:";
 export type AiTrait = { identityKey: string; level: string; note: string; evidence: string };
 /** Generic meal labels describe category, not a published menu. */
@@ -62,20 +63,21 @@ Use only supplied facts. Never invent menus, eligibility, addresses, RSVP, atten
 The Daily Brief layout is an opening assessment followed by a seven-column table: Ranking, Activity, Time, Food, Location, Walk, Notes.
 The application constructs the table from published events, preserves its recommendation order, and supplies Activity links, Time, Location and Walk. You supply brief for the opening assessment, foods for supported named menus, and recommendations[].reason for the corresponding Notes cells, joined strictly by identityKey. Never produce Markdown, HTML, table rows, column headers, ranking numbers or walking estimates in any generated string.
 Use your editorial judgment to decide what is distinctive and useful in the full event context. Write naturally, varying the emphasis and sentence structure with the day's actual offerings. You may compare activities and make reasoned judgments about their appeal or practical tradeoffs when the supplied facts support them. Keep factual claims tied to the sources and express uncertain interpretations tentatively.
-brief: a short opening paragraph, normally one or two sentences, at most 80 words. Choose the most useful angle yourself: an appealing option, an unusual activity, the day's variety, or a participation or timing tradeoff. Refer to concrete details when they strengthen the assessment. Avoid boilerplate event counts, mandatory date prefixes, lists of fields, and repeating Notes. The selected date is supplied as context; use "today" only if confirmed current. You have no personal calendar, so never claim calendar availability or the absence of conflicts.
+brief: a short opening paragraph, normally one or two sentences, at most 80 words. Choose the most useful angle yourself: an appealing option, an unusual activity, the day's variety, or a participation or timing tradeoff. Refer to concrete details when they strengthen the assessment. Avoid boilerplate event counts, mandatory date prefixes, lists of fields, and repeating Notes. Both date (selected date) and currentDate (actual local date) are supplied. Use "today" only when date equals currentDate; for other dates use neutral phrasing such as "The lineup". You have no personal calendar, so never claim calendar availability or the absence of conflicts.
 foods: extract specific food items the event promises to provide. Keep original source words. Omit generic Food, Dinner, Lunch, Snacks, Catering, or drinks with no named menu items. Never extract negated/paid/hypothetical food. Each entry has identityKey, items and an exact supporting source quotation evidence.
-recommendations: aim to cover every supplied event, even when events overlap. Each reason fills that event's Notes cell with a compact, original assessment, normally under 30 words and at most 45 words. You decide what matters: the activity's purpose, host, experience, format, named food, RSVP, eligibility, or tradeoffs with the supplied overlappingActivities. One or two short sentences are welcome. Explain why someone might choose the event or what they should account for, instead of restating table fields. Mention missing details only when they materially affect the assessment; avoid giving every row the same warning. Never infer unlimited portions, remaining availability, unrestricted entry or guaranteed food. Each entry has the exact supplied identityKey, reason and exact supporting evidence; omit entries lacking supporting evidence and let the application provide its fallback.
+recommendations: aim to cover every supplied event, even when events overlap. Each reason fills that event's Notes cell with a compact, original assessment, normally under 30 words and at most 45 words. You decide what matters: the activity's purpose, host, experience, format, named food, RSVP, eligibility, or tradeoffs with the supplied overlappingActivities. One or two short sentences are welcome. Explain why someone might choose the event or what they should account for, instead of restating table fields. Mention missing details only when they materially affect the assessment; avoid giving every row the same warning. For sparse descriptions, the title can support a tentative interpretation of the activity's theme; quote that exact title as evidence and avoid inventing format or access conditions. Never infer unlimited portions, remaining availability, unrestricted entry or guaranteed food. Each entry has the exact supplied identityKey, reason and exact supporting evidence; omit entries lacking supporting evidence and let the application provide its fallback.
 traits: concise English participation-format estimates (at most 35 words) describing whether a brief food-focused visit fits the published activity. Treat comfort as an inference, never a prediction of anyone's feelings. Never assign numerical awkwardness scores.
 level is drop_in, structured, restricted or unknown. Use drop_in only when the source explicitly welcomes drop-ins, come-and-go, grab-and-go or taking food away. Missing restrictions do not prove eligibility. Omit unsupported estimates or use unknown.
 Each trait has identityKey, level, note and evidence. All evidence quotes come verbatim from that event's title or description, 8-300 characters.
 Return JSON with brief, foods, recommendations and traits. All generated prose must be English.`;
 
 /** Reject malformed output and traits lacking a real source quotation. */
-export function validateIntelligence(value: unknown, inputs: AiInput[]): {brief: string; traits: AiTrait[]; foods:AiFood[]; recommendations:AiRecommendation[]} {
+export function validateIntelligence(value: unknown, inputs: AiInput[], date?:string, currentDate?:string): {brief: string; traits: AiTrait[]; foods:AiFood[]; recommendations:AiRecommendation[]} {
   if (!value || typeof value !== "object") throw new Error("invalid model response");
   const output = value as Record<string,unknown>;
   if (typeof output.brief !== "string" || !plainTableCopy(output.brief,80) ||
     !Array.isArray(output.traits)) throw new Error("invalid model response");
+  if (date && currentDate && date!==currentDate && /\btoday\b/i.test(output.brief)) throw new Error("unsupported relative model date");
   // Accept clock times in event fields or explicit source-description details.
   const allowedTimes = new Set(inputs.flatMap(i=>[i.start,i.end]).filter(Boolean));
   for (const input of inputs) {
@@ -142,11 +144,12 @@ export async function generateIntelligence(
   config: Config, date: string, inputs: AiInput[], hash: string, generatedAt: string,
   fetcher: typeof fetch = fetch,
 ): Promise<AiDay> {
+  const currentDate=localDateOf(Date.parse(generatedAt),config.timezone);
   const response = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${config.gemini.model}:generateContent`, {
     method:"POST", headers:{"content-type":"application/json","x-goog-api-key":config.gemini.apiKey},
     signal:AbortSignal.timeout(config.gemini.timeoutMs),
     body:JSON.stringify({systemInstruction:{parts:[{text:SYSTEM}]},
-      contents:[{role:"user",parts:[{text:JSON.stringify({date,events:inputs})}]}],
+      contents:[{role:"user",parts:[{text:JSON.stringify({date,currentDate,events:inputs})}]}],
       generationConfig:{temperature:0.5,maxOutputTokens:8192,responseMimeType:"application/json",
         responseSchema:{type:"OBJECT",properties:{brief:{type:"STRING",description:"A natural, context-specific opening assessment, usually one or two sentences and at most 80 words. Choose the angle; avoid event-count boilerplate."},traits:{type:"ARRAY",items:{type:"OBJECT",
           properties:{identityKey:{type:"STRING"},level:{type:"STRING",enum:LEVELS},note:{type:"STRING"},evidence:{type:"STRING"}},
@@ -161,6 +164,6 @@ export async function generateIntelligence(
   if (candidate?.finishReason !== "STOP") throw new Error("incomplete model response");
   const text = candidate.content?.parts?.map(p=>p.text || "").join("") || "";
   if (text.length > 45000) throw new Error("oversized model response");
-  const result = validateIntelligence(JSON.parse(text), inputs);
+  const result = validateIntelligence(JSON.parse(text), inputs,date,currentDate);
   return {date,hash,model:config.gemini.model,version:AI_VERSION,generatedAt,...result};
 }

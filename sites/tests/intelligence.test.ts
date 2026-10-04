@@ -38,6 +38,7 @@ test("Gemini uses a fixed server endpoint, key header, bounded structured respon
     assert.match(body.systemInstruction.parts[0].text,/Use your editorial judgment/);
     assert.match(body.generationConfig.responseSchema.properties.recommendations.items.properties.reason.description,/original Notes assessment/);
     assert.equal(body.generationConfig.temperature,0.5);
+    assert.equal(JSON.parse(body.contents[0].parts[0].text).currentDate,date);
     return new Response("secret provider message",{status:429});
   }),/Gemini request failed \(429\)/);
 });
@@ -63,6 +64,8 @@ test("editorial freedom accepts a contextual paragraph and source-described meal
  assert.match(result.brief,/4:30 PM/);
  assert.equal(result.recommendations.length,1);
  assert.throws(()=>validateIntelligence({brief:'Dinner starts at 5:30 PM.',traits:[]},[context]),/unsupported model time/);
+ assert.throws(()=>validateIntelligence({brief:'Today offers a field trip.',traits:[]},[context],'2026-10-04','2026-10-03'),/unsupported relative model date/);
+ assert.equal(validateIntelligence({brief:'Today offers a field trip.',traits:[]},[context],date,date).brief,'Today offers a field trip.');
 });
 
 test("model context identifies overlaps by event identity, excluding cancelled and boundary-touching activities",async()=>{
