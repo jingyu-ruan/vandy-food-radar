@@ -827,7 +827,7 @@ body { background:var(--surface); }
 .card { display:flex; flex-direction:column; padding:22px 22px 11px; }
 .card-top { align-items:flex-start; }
 .card-title { font-size:19px; line-height:1.35; font-weight:600; letter-spacing:-.025em; }
-.card-when { font-size:15px; margin:8px 0 18px; }
+.card-when { font-size:15px; margin:4px 0 18px; }
 .when-time { font-weight:550; }
 .card-facts { flex:1; gap:10px; font-size:14px; }
 .fact dt { font-size:13px; }
