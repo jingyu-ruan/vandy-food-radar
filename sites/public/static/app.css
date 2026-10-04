@@ -827,16 +827,16 @@ body { background:var(--surface); }
 .card { display:flex; flex-direction:column; padding:22px 22px 11px; }
 .card-top { align-items:flex-start; }
 .card-title { font-size:19px; line-height:1.35; font-weight:600; letter-spacing:-.025em; }
-.card-when { font-size:15px; margin:12px 0 18px; }
+.card-when { font-size:15px; margin:8px 0 18px; }
 .when-time { font-weight:550; }
 .card-facts { flex:1; gap:10px; font-size:14px; }
 .fact dt { font-size:13px; }
 .fact dd { line-height:1.55; }
-.fact-wide { grid-template-columns:1fr; gap:4px; border-top:1px solid var(--line); padding-top:12px; margin-top:5px; }
+.fact-wide { grid-template-columns:1fr; gap:4px; border-top:1px solid var(--line); padding-top:16px; margin-top:5px; }
 .fact-wide dt { font-size:12px; color:var(--ink-faint); }
 .chip { color:var(--ink-soft); background:var(--surface-sunken); font-size:12px; }
 .card-warnings, .card-details { font-size:14px; }
-.card-actions { margin-top:4px; gap:6px; }
+.card-actions { margin-top:8px; gap:6px; }
 .action { border:0; min-height:40px; padding:8px 10px; font-size:13px; }
 .action-save { color:var(--accent); background:var(--accent-soft); font-weight:550; }
 .action-save[aria-pressed="true"] { background:var(--accent-soft); color:var(--accent); }

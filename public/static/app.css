@@ -366,7 +366,7 @@ button { font: inherit; color: inherit; }
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 6px 0 10px;
+  margin: 4px 0 10px;
   font-size: 13px;
   color: var(--ink-soft);
 }
@@ -790,7 +790,7 @@ body, .workspace { background: var(--surface); }
 .card-title { font-size: 16px; font-weight: 550; line-height: 1.4; }
 .card-facts { flex: 1; gap: 7px; }
 .fact dt { font-size: 12px; }
-.fact-wide { grid-template-columns: 1fr; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--line); gap: 3px; }
+.fact-wide { grid-template-columns: 1fr; padding-top: 14px; margin-top: 4px; border-top: 1px solid var(--line); gap: 3px; }
 .fact-wide dt { color: var(--ink-faint); font-size: 11px; }
 .fact-wide dd { line-height: 1.45; }
 .place-link { color: var(--ink); text-decoration: none; }
@@ -799,7 +799,7 @@ body, .workspace { background: var(--surface); }
 .settings-contact-link:hover, .settings-contact-link:focus-visible { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .stars { padding-top: 4px; gap: 2px; }
 .star { width: 11px; height: 11px; border-radius: 0; clip-path: polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 93%,50% 72%,21% 93%,32% 57%,2% 35%,39% 35%); }
-.card-actions { display: grid; grid-template-columns: repeat(4, max-content); margin-top: 2px; gap: 4px; }
+.card-actions { display: grid; grid-template-columns: repeat(4, max-content); margin-top: 6px; gap: 4px; }
 .card-actions > .action, .card-actions .calendar-menu > summary { width: max-content; justify-content: center; }
 .action { border: 0; font-size: 12px; padding: 6px 7px; min-height: 34px; }
 .action-save { font-weight: 550; }
