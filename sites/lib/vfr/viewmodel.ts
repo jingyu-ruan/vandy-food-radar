@@ -481,9 +481,9 @@ function briefItem(card:CardJson, cards:CardJson[], context:ViewContext, aiReaso
   const peers=card.start && card.end && !card.cancelled ? cards.filter(other=>other.identity_key!==card.identity_key && !other.cancelled && other.start && other.end && card.start!<other.end && other.start<card.end!) : [];
   const hasCalendar=card.sources.some(source=>source.label==="Calendar");
   const sourceStatus=card.sources.length>1 && new Set(card.sources.map(source=>source.label)).size>1 ? (card.conflicts.length ? "Multiple Sources Have Conflicting Details" : "Multiple Sources; No Recorded Field Conflicts") : "AnchorLink Only; Second-Source Match Unverified";
-  const category=card.food_category==="Full meal" ? "A meal is advertised" : card.food_category==="Snacks" ? "Light refreshments are advertised" : named.length ? "The listing specifies the food offering" : "Free food is listed; menu details are unspecified";
+  const category=card.food_category==="Full meal" ? "Meal provided" : card.food_category==="Snacks" ? "Refreshments provided" : named.length ? "Food options listed" : "Free food; menu unspecified";
   const restricted=card.rsvp_label==="RSVP Required" || /\b(?:spaces? (?:are |is )?limited|limited spaces?|registration is required|rsvp is required)\b/i.test(card.description || "");
-  const fallback=card.cancelled ? "This event is cancelled" : `${category}${restricted ? "; check registration and eligibility" : card.participation.level==="structured" ? "; expect to join the scheduled activity" : ""}`;
+  const fallback=card.cancelled ? "This event is cancelled" : `${category}${restricted ? "; check registration and eligibility" : card.participation.level==="structured" ? " during the scheduled activity" : ""}`;
   const assessment=(aiReason || fallback).replace(/[.;\s]+$/,"");
   return {identity_key:card.identity_key,title:card.title,url:card.event_url,
     time:`${card.start?.slice(0,5) || "Start Time Not Listed"}–${card.end?.slice(0,5) || "End Time Not Listed"} (Nashville Local Time)${card.cancelled ? "; Cancelled" : ""}`,

@@ -36,7 +36,10 @@ test("Gemini uses a fixed server endpoint, key header, bounded structured respon
     assert.equal(body.generationConfig.responseMimeType,"application/json");
     assert.match(body.systemInstruction.parts[0].text,/Rank, Event, Time, Food, Location, Walk, Notes/);
     assert.match(body.systemInstruction.parts[0].text,/Use your editorial judgment/);
-    assert.match(body.generationConfig.responseSchema.properties.recommendations.items.properties.reason.description,/original Notes assessment/);
+    assert.match(body.systemInstruction.parts[0].text,/usually 6-10 words and at most 15 words/);
+    assert.match(body.systemInstruction.parts[0].text,/Omit speaker and host names, honorifics, job titles, credentials/);
+    assert.match(body.generationConfig.responseSchema.properties.recommendations.items.properties.reason.description,/simple food-first phrase/);
+    assert.match(body.generationConfig.responseSchema.properties.recommendations.items.properties.reason.description,/at most 15/);
     assert.equal(body.generationConfig.temperature,0.5);
     assert.equal(JSON.parse(body.contents[0].parts[0].text).currentDate,date);
     return new Response("secret provider message",{status:429});
@@ -50,16 +53,21 @@ test("table copy rejects model-generated markup and keeps valid event Notes by i
  const output=validateIntelligence({brief:'The selected day offers a casual snack event.',traits:[],recommendations:[
   {identityKey:input.identityKey,reason:'| 1 | Lunch |',evidence:'Drop in anytime'},
   {identityKey:'unknown:event',reason:'A short visit suits this format.',evidence:'Drop in anytime'},
-  {identityKey:input.identityKey,reason:Array(46).fill('word').join(' '),evidence:'Drop in anytime'},
-  {identityKey:input.identityKey,reason:'A brief visit fits the advertised drop-in format.',evidence:'Drop in anytime'},
+  {identityKey:input.identityKey,reason:Array(16).fill('word').join(' '),evidence:'Drop in anytime'},
+  {identityKey:input.identityKey,reason:'Snacks and conversation in a drop-in setting.',evidence:'Drop in anytime for snacks and conversation.'},
  ]},[input]);
- assert.deepEqual(output.recommendations,[{identityKey:input.identityKey,reason:'A brief visit fits the advertised drop-in format.',evidence:'Drop in anytime'}]);
+ assert.deepEqual(output.recommendations,[{identityKey:input.identityKey,reason:'Snacks and conversation in a drop-in setting.',evidence:'Drop in anytime for snacks and conversation.'}]);
+ const boundary='Snacks and conversation are offered at this event, with an advertised drop-in format for visitors.';
+ assert.equal(boundary.split(/\s+/).length,15);
+ assert.equal(validateIntelligence({brief:'Lunch offers snacks.',traits:[],recommendations:[
+  {identityKey:input.identityKey,reason:boundary,evidence:input.description},
+ ]},[input]).recommendations[0].reason,boundary);
 });
 
 test("editorial freedom accepts a contextual paragraph and source-described meal times",()=>{
  const context={...input,description:input.description+' Dinner is served at 4:30 PM.'};
  const result=validateIntelligence({brief:'A casual conversation offers a flexible way to meet classmates. Dinner follows at 4:30 PM.',traits:[],recommendations:[
-  {identityKey:input.identityKey,reason:'A short visit suits the drop-in format. Conversation is part of the experience.',evidence:'Drop in anytime for snacks and conversation.'},
+  {identityKey:input.identityKey,reason:'Snacks and conversation; drop in anytime.',evidence:'Drop in anytime for snacks and conversation.'},
  ]},[context]);
  assert.match(result.brief,/4:30 PM/);
  assert.equal(result.recommendations.length,1);
@@ -201,7 +209,7 @@ test("the opening is an editorial takeaway: prompt asks for a spotlight and coun
   assert.match(prompt,/Use must-go only with strong source support/);
   assert.match(prompt,/Never spotlight a cancelled event/);
   assert.match(body.generationConfig.responseSchema.properties.brief.description,/One to three plain-English food highlights/);
-  assert.equal(AI_VERSION,"food-highlights-priority-time-v12");
+  assert.equal(AI_VERSION,"food-highlights-short-notes-v13");
   for (const brief of ["There are 3 events on the calendar.","Two free-food events are listed for the selected date.","Compare the ranked activities below by food and timing.","The table below ranks every option."]) {
     assert.throws(()=>validateIntelligence({brief,traits:[]},[input]),/generic model brief/);
   }
