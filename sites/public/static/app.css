@@ -836,7 +836,7 @@ body { background:var(--surface); }
 .fact-wide dt { font-size:12px; color:var(--ink-faint); }
 .chip { color:var(--ink-soft); background:var(--surface-sunken); font-size:12px; }
 .card-warnings, .card-details { font-size:14px; }
-.card-actions { margin-top:16px; gap:6px; }
+.card-actions { margin-top:4px; gap:6px; }
 .action { border:0; min-height:40px; padding:8px 10px; font-size:13px; }
 .action-save { color:var(--accent); background:var(--accent-soft); font-weight:550; }
 .action-save[aria-pressed="true"] { background:var(--accent-soft); color:var(--accent); }
@@ -1440,12 +1440,16 @@ html.settings-open { overflow:hidden; }
 .brief-footer .brief-meta { margin:0; font-size:inherit; line-height:inherit; }
 .card-actions { display:grid; grid-template-columns:repeat(4,max-content); gap:4px; align-items:start; }
 .card-actions > .action, .card-actions .calendar-menu > summary { display:flex; align-items:center; justify-content:center; width:max-content; min-width:0; height:44px; padding:8px 10px; gap:6px; font-family:var(--font); font-size:15px; line-height:20px; font-weight:400; }
-.card-actions > .action span, .card-actions .calendar-menu > summary span { font:inherit; }
+/* Center the visible label glyphs rather than the font's unused line leading. */
+.card-actions > .action span, .card-actions .calendar-menu > summary span { font:inherit; transform:translateY(-.5px); }
 .card-actions .action-save { min-width:0; }
 .card-actions .action .ui-icon { width:18px; height:18px; flex:0 0 18px; }
+/* The star path's visible bounds sit 0.375px above the other 18px glyphs. */
+.card-actions .action-save .ui-icon { transform:translateY(.375px); }
 @media(max-width:600px) {
  .card-actions { grid-template-columns:repeat(2,max-content); gap:6px 8px; padding-top:10px; }
  .card-actions > .action, .card-actions .calendar-menu > summary { font-size:14px; }
+ .card-actions > .action span, .card-actions .calendar-menu > summary span { transform:none; }
  .card-actions .action-save { justify-content:center; }
 }
 .directions-link { flex:0 1 auto; }
@@ -1487,7 +1491,7 @@ html.settings-open { overflow:hidden; }
 .rating-panel tbody th, .rating-panel tbody td { padding-bottom:14px; }
 .host-profile { display:inline; }
 .host-trigger { padding:0; border:0; background:transparent; color:var(--ink-soft); font:inherit; text-align:left; cursor:pointer; text-underline-offset:3px; }
-.host-trigger:hover, .host-trigger:focus-visible { color:var(--accent); text-decoration:underline; }
+.host-trigger:hover, .host-trigger:focus-visible { color:var(--ink-soft); text-decoration:none; }
 .host-panel { display:block; position:fixed; z-index:1200; width:400px; max-width:calc(100vw - 32px); max-height:55dvh; padding:16px; overflow:auto; overscroll-behavior:contain; border:1px solid var(--line-strong); border-radius:14px; background:var(--surface); box-shadow:0 10px 32px #00000022; color:var(--ink-soft); font-size:14px; line-height:1.6; }
 .host-panel[hidden] { display:none; }
 .host-name, .host-description { display:block; }
@@ -1501,7 +1505,6 @@ html.settings-open { overflow:hidden; }
 }
 
 /* Optical sizing and quieter map controls. */
-.card-actions .action .ui-icon:has(use[href$="#external-link"]) { width:17px; height:17px; }
 .brief-highlight-time { display:inline; margin-right:8px; font:inherit; color:inherit; white-space:nowrap; }
 .endpoint-row, .endpoint-row-to { grid-template-columns:var(--endpoint-label) minmax(0,1fr); }
 .endpoint-row-to .endpoint-search { grid-column:2; }
