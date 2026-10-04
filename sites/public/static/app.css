@@ -590,8 +590,8 @@ button { font: inherit; color: inherit; }
   width: 12px;
   height: 12px;
   border-width: 2px;
-  background: #3b82f6;
-  box-shadow: 0 0 0 5px rgba(59, 130, 246, .22);
+  background: #647d8e;
+  box-shadow: 0 0 0 3px rgba(100, 125, 142, .16);
 }
 .map-canvas .vfr-pin-wrap:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 5px; border-radius: 50%; }
 .map-canvas.leaflet-container .leaflet-control-zoom {
@@ -1517,7 +1517,7 @@ html.settings-open { overflow:hidden; }
 .directions-link .ui-icon { width:16px; height:16px; }
 .vfr-pin-wrap, .vfr-campus-wrap { display:flex; align-items:center; justify-content:center; }
 .vfr-pin { width:20px; height:20px; flex:none; }
-.vfr-pin.is-origin { width:20px; height:20px; border-width:3px; background:#c44720; box-shadow:0 0 0 5px #c4472033; }
+.vfr-pin.is-origin { width:20px; height:20px; border-width:3px; }
 .vfr-pin.is-destination { width:20px; height:20px; }
 .vfr-campus-pin { width:20px; height:20px; margin:0; flex:none; }
 

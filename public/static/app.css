@@ -607,8 +607,8 @@ button { font: inherit; color: inherit; }
   width: 12px;
   height: 12px;
   border-width: 2px;
-  background: #3b82f6;
-  box-shadow: 0 0 0 5px rgba(59, 130, 246, .22);
+  background: #647d8e;
+  box-shadow: 0 0 0 3px rgba(100, 125, 142, .16);
 }
 .map-canvas .vfr-pin-wrap:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 5px; border-radius: 50%; }
 .map-canvas.leaflet-container .leaflet-control-zoom {
