@@ -7,12 +7,12 @@ export const metadata: Metadata = {
     "Vanderbilt events advertising free food: today's ranked cards, the week's schedule, a campus map, and a walking itinerary.",
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon-32.png", type: "image/png", sizes: "32x32" },
-      { url: "/favicon-16.png", type: "image/png", sizes: "16x16" },
+      { url: "/favicon.svg?v=beacon-20261003", type: "image/svg+xml" },
+      { url: "/favicon-32.png?v=beacon-20261003", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16.png?v=beacon-20261003", type: "image/png", sizes: "16x16" },
     ],
-    shortcut: "/favicon.svg",
-    apple: "/apple-touch-icon.png",
+    shortcut: "/favicon.svg?v=beacon-20261003",
+    apple: "/apple-touch-icon.png?v=beacon-20261003",
   },
 };
 

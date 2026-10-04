@@ -1,11 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-  <title>Vandy Food Radar</title>
-  <desc>A fork and spoon form a V inside an open radar ring, with one discovery point.</desc>
-  <g stroke="#F5F5F7" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M55.5 37A24 24 0 1 1 41.5 9.95" stroke-width="2.6"/>
-    <path d="M21 25 32 46 43 25" stroke-width="4.6"/>
-    <path d="M-4-10v6a4 4 0 0 0 8 0v-6M0-10v7" transform="translate(21 25) rotate(-28)" stroke-width="2.6"/>
-  </g>
-  <ellipse cx="0" cy="-4" rx="4.3" ry="7.3" transform="translate(43 25) rotate(28)" fill="#F5F5F7"/>
-  <circle cx="53" cy="11" r="3.3" fill="#CFAE70"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none"><title>餐叉信标</title><path d="M13 14v10a6 6 0 0 0 12 0V14M19 14v13M19 30v20" stroke="#F6F3EC" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 20c8 7 8 17 0 24M40 13c13 11 13 27 0 38" stroke="#F6F3EC" stroke-width="3.2" stroke-linecap="round"/><circle cx="52" cy="11" r="2.5" fill="#CFAE70"/></svg>

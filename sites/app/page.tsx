@@ -184,7 +184,7 @@ export default async function Home({ searchParams }: PageProps) {
               <div className="work-brand">
                 <a className="brand-home" href="/" aria-label="Free Bites at Vandy home">
                   {/* eslint-disable-next-line @next/next/no-img-element -- a local vector brand mark has fixed dimensions */}
-                  <img className="brand-icon" src="/static/brand/vfr-icon.svg" width="44" height="44" alt="" aria-hidden="true" />
+                  <img className="brand-icon" src="/static/brand/vfr-icon.svg?v=beacon-20261003" width="44" height="44" alt="" aria-hidden="true" />
                 </a>
                 <div className="work-brand-copy"><h1 className="work-title">Free Bites at Vandy</h1><p className="work-slogan">May the fork be with you.</p></div>
               </div>

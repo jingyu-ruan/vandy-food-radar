@@ -1,0 +1,34 @@
+[
+  {
+    "id": "table",
+    "name": "餐盘与餐叉",
+    "en": "The Table",
+    "meaning": "用餐叉和餐盘组成日常用餐的记号，侧重食物本身。",
+    "strength": "语义最直观，适合长期作为网站标识。",
+    "tradeoff": "餐饮意味更强，雷达和校园联系较含蓄。"
+  },
+  {
+    "id": "bite",
+    "name": "一口好味",
+    "en": "A Good Bite",
+    "meaning": "圆形中的咬痕呼应 Bites，散落的小点像刚咬下的碎屑。",
+    "strength": "更亲切，有较强的图形记忆点。",
+    "tradeoff": "容易让人想到饼干或点心，食物类别略窄。"
+  },
+  {
+    "id": "beacon",
+    "name": "餐叉信标",
+    "en": "Food Signal",
+    "meaning": "餐叉负责表达食物，两条向外展开的弧线表达发现与传播。",
+    "strength": "保留 Food Radar 的功能联系，结构较轻。",
+    "tradeoff": "信号弧线也常见于无线网络图标。"
+  },
+  {
+    "id": "place",
+    "name": "餐点坐标",
+    "en": "A Place to Eat",
+    "meaning": "把餐盘放进位置标记，强调找到餐点并前往现场。",
+    "strength": "与校园地图、活动地点和步行路线联系明确。",
+    "tradeoff": "定位符号比较常见，独特性依赖内部餐盘。"
+  }
+]

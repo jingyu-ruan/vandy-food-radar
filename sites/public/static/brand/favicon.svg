@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <title>Vandy Food Radar</title>
-  <rect width="32" height="32" rx="8" fill="#1C1C1C"/>
-  <path d="M28 19A12 12 0 1 1 20 4.7" stroke="#CFAE70" stroke-width="1.7" stroke-linecap="round" opacity=".8"/>
-  <path d="m10.5 11 5.5 12 5.5-12" stroke="#CFAE70" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="25.5" cy="8" r="2.3" fill="#CFAE70"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none"><title>餐叉信标</title><rect width="32" height="32" rx="8" fill="#242521"/><path d="M6 7v6a4 4 0 0 0 8 0V7M10 7v7M10 17v9" stroke="#CFAE70" stroke-width="2" stroke-linecap="round"/><path d="M18 10c5 4 5 8 0 12M23 6c8 6 8 14 0 20" stroke="#CFAE70" stroke-width="2" stroke-linecap="round"/></svg>
