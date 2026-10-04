@@ -1340,19 +1340,19 @@ html.settings-open { overflow:hidden; }
 
 /* Source-backed comparison table below the opening assessment. */
 .brief-assessments { margin-top:16px; min-width:0; }
-.brief-context { margin:0 0 10px; color:var(--ink-soft); font-size:13px; line-height:1.5; }
 .brief-table-scroll { max-width:100%; overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); overscroll-behavior-x:contain; }
-.brief-table { width:100%; min-width:1100px; table-layout:fixed; border-collapse:separate; border-spacing:0; font-size:14px; line-height:1.5; }
+.brief-table { width:100%; min-width:1000px; table-layout:fixed; border-collapse:separate; border-spacing:0; font-size:14px; line-height:1.5; }
 .brief-table th, .brief-table td { padding:12px; vertical-align:top; text-align:left; overflow-wrap:anywhere; border-bottom:1px solid var(--line); }
-.brief-table thead th { background:var(--surface-sunken); color:var(--ink-soft); font-size:12px; font-weight:600; white-space:nowrap; }
+.brief-table thead th { background:var(--surface-sunken); color:var(--ink); font-size:15px; font-weight:600; white-space:nowrap; }
 .brief-table tbody th, .brief-table tbody td { background:var(--surface); }
 .brief-table tbody tr:last-child > * { border-bottom:0; }
-.brief-table thead th:nth-child(1) { width:70px; }
+.brief-table thead th:nth-child(1) { width:90px; }
 .brief-table thead th:nth-child(2) { width:190px; }
-.brief-table thead th:nth-child(3) { width:140px; }
-.brief-table thead th:nth-child(4) { width:135px; }
+.brief-table thead th:nth-child(3) { width:135px; }
+.brief-table thead th:nth-child(4) { width:110px; }
 .brief-table thead th:nth-child(5) { width:150px; }
-.brief-table thead th:nth-child(6) { width:115px; }
+.brief-table thead th:nth-child(6) { width:80px; }
+.brief-table thead th:nth-child(1), .brief-table thead th:nth-child(6), .brief-table .brief-rank, .brief-table .brief-walk { text-align:right; }
 .brief-table .brief-rank { color:var(--ink-soft); font-variant-numeric:tabular-nums; }
 .brief-table .brief-activity { font-weight:500; }
 .brief-table .brief-time, .brief-table .brief-walk { font-variant-numeric:tabular-nums; }
@@ -1386,6 +1386,6 @@ html.settings-open { overflow:hidden; }
  .brief-table thead th:nth-child(2) { width:170px; }
 }
 @media(max-width:600px) {
- .brief-table { width:1040px; min-width:1040px; }
+ .brief-table { width:955px; min-width:955px; }
  .brief-table .brief-activity, .brief-table thead th:nth-child(2) { position:static; border-right:0; }
 }

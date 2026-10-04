@@ -267,16 +267,25 @@ calendar day. Attempts are stored before inference under the refresh lease.
 AI records age out with the feed retention window. A successful source refresh
 continues even when Gemini is unavailable or its response fails validation.
 
-The English Daily Brief shows one opening sentence followed by a semantic table with
+The English Daily Brief shows a contextual opening paragraph followed by a semantic table with
 Ranking, Activity, Time, Food, Location, Walk and Notes columns for every event.
 The table scrolls horizontally on narrow screens. Tablet layouts keep activity
 names visible; phone layouts give the Notes column room to be read in full.
 Linked event names scroll to and focus their corresponding cards. Its metadata identifies the generation
 date/time and actual model ID. The model's structured reasons are grounded in verbatim
-source evidence. Gemini returns bounded JSON prose for the opening sentence and
+source evidence. Gemini chooses the opening's angle and each event's assessment
+from the event purpose, organizer, participation format, food and known overlaps,
+returning bounded JSON prose for the opening paragraph and
 Notes cells; the application constructs all table markup and supplies source times,
 ranking, links and locations. Walk values update with the visitor's selected origin
 and remain labelled as estimates when a pedestrian route is unavailable.
+The table uses compact Walk values such as `~3 min`; hover and screen-reader text
+retain the estimate explanation. Missing menus display `Unspecified`, and unknown
+walks use a dash. Text columns align left, numeric columns align right, and column
+headings use 15px text. A `Source summary` label identifies the rule-based fallback
+when a matching model result is unavailable; Gemini results identify their actual
+model and generation time. Prompt upgrades regenerate the next seven days through
+the existing protected refresh workflow.
 Participation displays one evidence-backed explanation, with source-derived analysis
 as the fallback. An exact supporting quote remains accessible in the hover title.
 Changed source inputs invalidate cached AI immediately; a new prompt version starts

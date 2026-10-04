@@ -10,17 +10,14 @@ export function briefRows(brief, events = [], clock) {
       ...item,
       rank: index + 1,
       time: card ? eventTime(card, clock) : formatTimesInText(item.time || 'Time not listed', clock),
-      food: !item.food || item.food === 'Food/Menu Not Specified' ? 'Menu not specified' : item.food,
+      food: !item.food || item.food === 'Food/Menu Not Specified' ? 'Unspecified' : item.food,
       location: item.location || 'Location not listed',
-      walk: (item.walk || 'Unavailable').replace('Walking Time Unverified', 'Unverified').replace(/;.*$/, '').replace('straight-line estimate', 'estimate'),
+      walk: (item.walk || '—').replace('Walking Time Unverified', '—').replace(/;.*$/, '').replace(/\s+(?:straight-line )?estimate$/, ''),
       walk_detail: item.walk,
       reason: formatTimesInText(item.reason || 'Check the event details for participation requirements.', clock),
       cancelled: Boolean(card?.cancelled),
     };
   });
-}
-export function briefContext(origin) {
-  return `Recommended order. Nashville local time.${origin ? ` Walking from ${origin}.` : ''}`;
 }
 export function eventAnchor(identityKey) {
   return `event-${encodeURIComponent(identityKey)}`;
@@ -33,18 +30,18 @@ export function participationText(participation) {
   return (participation?.ai_note || participation?.note || '').replace(/^(?:Inferred|AI Estimate):\s*/i,'');
 }
 export function generatedLabel(brief, timezone='America/Chicago') {
+  if (brief?.source==='rules') return 'Source summary';
   if (brief?.source!=='gemini' || !brief.generated_at || !brief.model) return '';
   const date=new Intl.DateTimeFormat('en-US',{timeZone:timezone,year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date(brief.generated_at));
   return `Generated ${date} by ${brief.model}`;
 }
-export function renderBriefAssessments(root, brief, events = [], origin) {
+export function renderBriefAssessments(root, brief, events = []) {
   const node=one('[data-role="brief-assessments"]',root);
   if (!node) return;
   const rows = briefRows(brief, events);
   node.hidden = !rows.length;
   if (!rows.length) { replace(node, []); return; }
   replace(node, [
-    el('p', {class:'brief-context',dataset:{role:'brief-context'},text:briefContext(origin || brief.origin)}),
     el('div', {class:'brief-table-scroll',tabindex:0,role:'region','aria-label':'Daily Brief activity table'}, [
       el('table', {class:'brief-table'}, [
         el('caption', {class:'visually-hidden',text:'Ranked free-food activities for the selected date'}),
@@ -55,7 +52,7 @@ export function renderBriefAssessments(root, brief, events = [], origin) {
           el('td', {class:'brief-time',text:item.time}),
           el('td', {text:item.food}),
           el('td', {text:item.location}),
-          el('td', {class:'brief-walk',dataset:{role:'brief-walking'},text:item.walk,title:item.walk_detail}),
+          el('td', {class:'brief-walk',dataset:{role:'brief-walking'},text:item.walk,title:item.walk_detail,'aria-label':item.walk_detail || 'Walking time unavailable'}),
           el('td', {class:'brief-notes',text:item.reason}),
         ]))),
       ]),

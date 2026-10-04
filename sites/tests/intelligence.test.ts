@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { configFromEnv, defaultConfig } from "../lib/vfr/config.ts";
-import { AI_VERSION, validateIntelligence, generateIntelligence } from "../lib/vfr/intelligence.ts";
+import { AI_VERSION, validateIntelligence, generateIntelligence, intelligenceInputs } from "../lib/vfr/intelligence.ts";
 import { runRefresh } from "../lib/vfr/pipeline.ts";
 import { Repository } from "../lib/vfr/repository.ts";
 import { loadDayFeed } from "../lib/vfr/workspace.ts";
@@ -35,23 +35,47 @@ test("Gemini uses a fixed server endpoint, key header, bounded structured respon
     const body=JSON.parse(String(options?.body));
     assert.equal(body.generationConfig.responseMimeType,"application/json");
     assert.match(body.systemInstruction.parts[0].text,/Ranking, Activity, Time, Food, Location, Walk, Notes/);
-    assert.match(body.systemInstruction.parts[0].text,/exactly one concise English opening sentence/);
-    assert.match(body.generationConfig.responseSchema.properties.recommendations.items.properties.reason.description,/Notes sentence/);
+    assert.match(body.systemInstruction.parts[0].text,/Use your editorial judgment/);
+    assert.match(body.generationConfig.responseSchema.properties.recommendations.items.properties.reason.description,/original Notes assessment/);
+    assert.equal(body.generationConfig.temperature,0.5);
     return new Response("secret provider message",{status:429});
   }),/Gemini request failed \(429\)/);
 });
 
 test("table copy rejects model-generated markup and keeps valid event Notes by identity",()=>{
- for (const brief of ['Opening.\n| Ranking | Activity |','```json','<table>Events</table>','1. First event',Array(41).fill('word').join(' ')]) {
+ for (const brief of ['Opening.\n| Ranking | Activity |','```json','<table>Events</table>','1. First event',Array(81).fill('word').join(' ')]) {
   assert.throws(()=>validateIntelligence({brief,traits:[]},[input]));
  }
  const output=validateIntelligence({brief:'The selected day offers a casual snack event.',traits:[],recommendations:[
   {identityKey:input.identityKey,reason:'| 1 | Lunch |',evidence:'Drop in anytime'},
   {identityKey:'unknown:event',reason:'A short visit suits this format.',evidence:'Drop in anytime'},
-  {identityKey:input.identityKey,reason:Array(31).fill('word').join(' '),evidence:'Drop in anytime'},
+  {identityKey:input.identityKey,reason:Array(46).fill('word').join(' '),evidence:'Drop in anytime'},
   {identityKey:input.identityKey,reason:'A brief visit fits the advertised drop-in format.',evidence:'Drop in anytime'},
  ]},[input]);
  assert.deepEqual(output.recommendations,[{identityKey:input.identityKey,reason:'A brief visit fits the advertised drop-in format.',evidence:'Drop in anytime'}]);
+});
+
+test("editorial freedom accepts a contextual paragraph and source-described meal times",()=>{
+ const context={...input,description:input.description+' Dinner is served at 4:30 PM.'};
+ const result=validateIntelligence({brief:'A casual conversation offers a flexible way to meet classmates. Dinner follows at 4:30 PM.',traits:[],recommendations:[
+  {identityKey:input.identityKey,reason:'A short visit suits the drop-in format. Conversation is part of the experience.',evidence:'Drop in anytime for snacks and conversation.'},
+ ]},[context]);
+ assert.match(result.brief,/4:30 PM/);
+ assert.equal(result.recommendations.length,1);
+ assert.throws(()=>validateIntelligence({brief:'Dinner starts at 5:30 PM.',traits:[]},[context]),/unsupported model time/);
+});
+
+test("model context identifies overlaps by event identity, excluding cancelled and boundary-touching activities",async()=>{
+ const s=setup(); s.config.gemini.apiKey='';
+ await runRefresh({...s,trigger:'context-test',nowMs});
+ const base=(await s.repository.readFeed(date))!.events[0];
+ const event=(identityKey:string,start:string,end:string,state=base.event.verificationState)=>({...base,event:{...base.event,identityKey,title:identityKey,startTime:start,endTime:end,verificationState:state}});
+ const rows=[event('a','13:00','14:00'),event('b','13:30','14:30'),event('touch','14:00','15:00'),event('cancelled','13:30','14:30','cancelled')];
+ const inputs=intelligenceInputs(rows);
+ assert.deepEqual(inputs.find(input=>input.identityKey==='a')?.overlappingActivities,[{identityKey:'b',title:'b'}]);
+ const overnight=intelligenceInputs([event('late','23:30','00:30'),event('night','23:45','01:00')]);
+ assert.deepEqual(overnight[0].overlappingActivities,[{identityKey:'night',title:'night'}]);
+ s.db.close();
 });
 
 function setup() {
@@ -83,7 +107,7 @@ test("enrichment survives repository recreation, GETs never infer, changed sourc
   assert.equal(calls,1);
   s.changeTitle();
   await runRefresh({...s,trigger:"test",nowMs:nowMs+3600001,geminiFetcher:async()=>new Response("quota exhausted",{status:429})});
-  assert.equal((await loadDayFeed(recreated,s.config,date,nowMs)).brief.source,undefined);
+  assert.equal((await loadDayFeed(recreated,s.config,date,nowMs)).brief.source,'rules');
   s.db.close();
 });
 

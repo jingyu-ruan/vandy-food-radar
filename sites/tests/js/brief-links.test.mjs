@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {BRIEF_COLUMNS,briefContext,briefRows,eventAnchor,eventHref,participationText} from '../../public/static/js/brief.js';
+import {BRIEF_COLUMNS,briefRows,eventAnchor,eventHref,generatedLabel,participationText} from '../../public/static/js/brief.js';
 
 test('brief links resolve to exactly one stable card ID and preserve the selected day',()=>{
  const identities=['source|anchorlink:123','A/B #?中文','event:other'];
@@ -25,16 +25,19 @@ test('table keeps published order and joins times to the correct event instead o
  const rows=briefRows(brief,events,'12');
  assert.equal(rows[0].rank,1);
  assert.equal(rows[0].time,'11:30 PM – 1 AM next day');
- assert.equal(rows[0].walk,'~6 min estimate');
+ assert.equal(rows[0].walk,'~6 min');
+ assert.match(rows[0].walk_detail,/straight-line estimate/);
  assert.equal(rows[0].food,'Pizza');
  assert.equal(rows[1].rank,2);
  assert.equal(rows[1].time,'Time not listed');
  assert.equal(rows[1].cancelled,true);
- assert.equal(rows[1].food,'Menu not specified');
+ assert.equal(rows[1].food,'Unspecified');
+ assert.equal(rows[1].walk,'—');
  assert.equal(rows[0].location,'Location not listed');
  assert.equal(briefRows(brief,events,'24')[0].time,'23:30 – 01:00 next day');
  assert.deepEqual(briefRows(null,events),[]);
- assert.match(briefContext('Rand Hall'),/Walking from Rand Hall/);
+ assert.equal(generatedLabel({source:'rules'}),'Source summary');
+ assert.match(generatedLabel({source:'gemini',model:'gemini-3.5-flash-lite',generated_at:'2026-10-04T00:36:38Z'}),/by gemini-3.5-flash-lite/);
 });
 test('participation displays one supported explanation, falling back to source analysis',()=>{
  assert.equal(participationText({note:'Inferred: Discussion is expected.',ai_note:'RSVP is required; a brief visit may be impractical.'}),'RSVP is required; a brief visit may be impractical.');

@@ -110,10 +110,11 @@ function renderBrief() {
   if (!node) return;
   const meta = one('[data-role="brief-meta"]', root);
   if (meta) {
-    meta.hidden = !!state.error || state.brief?.source !== 'gemini';
-    if (!meta.hidden) meta.textContent = generatedLabel(state.brief,state.config.timezone);
+    const label = generatedLabel(state.brief,state.config.timezone);
+    meta.hidden = !!state.error || !label;
+    if (!meta.hidden) meta.textContent = label;
   }
-  renderBriefAssessments(root,state.error ? null : {...state.brief,date:state.selectedDate},state.events,state.origin?.label);
+  renderBriefAssessments(root,state.error ? null : {...state.brief,date:state.selectedDate},state.events);
   if (state.error) {
     node.textContent = `The feed could not be loaded: ${state.error}`;
     return;

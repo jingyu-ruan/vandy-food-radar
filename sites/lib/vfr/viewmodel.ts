@@ -380,6 +380,7 @@ export async function buildDayFeed(
     brief.origin=context.config.referenceLocation.label;
     brief.items=cards.map(card=>briefItem(card,cards,context,brief.source==='gemini' ? ai?.recommendations?.find(item=>item.identityKey===card.identity_key)?.reason : undefined));
     if (brief.source!=='gemini') {
+      brief.source='rules';
       brief.text=`${cards.length} free-food ${cards.length===1 ? 'event is' : 'events are'} listed for ${date}; compare the ranked activities below by food, timing and participation requirements.`;
       brief.sentences=[brief.text];
     }
@@ -447,9 +448,9 @@ function briefItem(card:CardJson, cards:CardJson[], context:ViewContext, aiReaso
   const peers=card.start && card.end && !card.cancelled ? cards.filter(other=>other.identity_key!==card.identity_key && !other.cancelled && other.start && other.end && card.start!<other.end && other.start<card.end!) : [];
   const hasCalendar=card.sources.some(source=>source.label==="Calendar");
   const sourceStatus=card.sources.length>1 && new Set(card.sources.map(source=>source.label)).size>1 ? (card.conflicts.length ? "Multiple Sources Have Conflicting Details" : "Multiple Sources; No Recorded Field Conflicts") : "AnchorLink Only; Second-Source Match Unverified";
-  const category=card.food_category==="Full meal" ? "The advertised meal gives this stronger food value" : card.food_category==="Snacks" ? "This is a promising stop for light refreshments" : "Food is advertised, although the menu and portions are unclear";
+  const category=card.food_category==="Full meal" ? "A meal is advertised" : card.food_category==="Snacks" ? "Light refreshments are advertised" : named.length ? "The listing specifies the food offering" : "Free food is listed; menu details are unspecified";
   const restricted=card.rsvp_label==="RSVP required" || /\b(?:spaces? (?:are |is )?limited|limited spaces?|registration is required|rsvp is required)\b/i.test(card.description || "");
-  const fallback=card.cancelled ? "This event is cancelled" : `${category}${restricted ? "; plan ahead because attendance has limited availability or requires registration" : card.participation.level==="structured" ? "; the program suggests a visit that includes participation" : card.participation.level==="unknown" ? "; confirm the participation requirements" : ""}`;
+  const fallback=card.cancelled ? "This event is cancelled" : `${category}${restricted ? "; check registration and eligibility" : card.participation.level==="structured" ? "; expect to join the scheduled activity" : ""}`;
   const assessment=(aiReason || fallback).replace(/[.;\s]+$/,"");
   return {identity_key:card.identity_key,title:card.title,url:card.event_url,
     time:`${card.start?.slice(0,5) || "Start Time Not Listed"}–${card.end?.slice(0,5) || "End Time Not Listed"} (Nashville Local Time)${card.cancelled ? "; Cancelled" : ""}`,
@@ -459,6 +460,6 @@ function briefItem(card:CardJson, cards:CardJson[], context:ViewContext, aiReaso
     participation:card.participation.ai_note ? card.participation.ai_note : ({open:"Open attendance is explicitly stated; suitability for a food-only visit remains unverified",structured:"The activity has a planned format; suitability for a brief food-only visit remains unverified",restricted:"The source lists participation restrictions; verify eligibility",unknown:"Eligibility and participation format are unstated or unverified"}[card.participation.level] || "Consult the official participation requirements; suitability for a brief food-only visit is unverified"),
     sources:sourceStatus+(hasCalendar ? "; See event links for the calendar source" : "; Personal calendar is not connected; calendar time/location differences unverified"),
     conflicts:[...card.conflicts.map(c=>`${c.field}: ${c.values.join(" / ")}`),...(peers.length ? [`Overlaps ${peers.map(p=>p.title).join("; ")}; all events retained`] : ["No overlap found among listed event times"])].join("; "),
-    reason:`${card.cancelled ? 'This event is cancelled' : assessment}.${peers.length ? ' Overlaps another listed event.' : ''}${card.conflicts.length ? ' Source details conflict.' : ''}`,
+    reason:`${card.cancelled ? 'This event is cancelled' : assessment}.${card.conflicts.length ? ' Source details conflict.' : ''}`,
   };
 }
