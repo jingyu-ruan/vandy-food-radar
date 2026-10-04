@@ -3,8 +3,8 @@ export function briefColumnWidths(containerWidth, contentWidths, timePartWidth =
   const compact = containerWidth < 720;
   // Rank, Event, Time, Food, Location, Walk, Notes.
   const limits = compact
-    ? [[52,52,0],[160,200,3],[110,132,0],[110,140,1.4],[120,160,1.6],[60,68,0],[150,180,0]]
-    : [[52,52,0],[220,440,3],[132,220,0],[120,230,1.4],[140,260,1.6],[64,80,0],[170,240,0]];
+    ? [[52,52,0],[150,180,1],[110,132,0],[110,140,1.4],[120,160,1.6],[60,68,0],[170,230,3]]
+    : [[52,52,0],[200,300,1],[132,220,0],[120,230,1.4],[140,260,1.6],[64,80,0],[190,340,3]];
   const lines = [1,compact ? 3 : 2,1,2,2,1,2];
   const padding = compact ? 20 : 24;
   const widths = limits.map(([min,max],index) => {
@@ -13,7 +13,7 @@ export function briefColumnWidths(containerWidth, contentWidths, timePartWidth =
     return Math.max(min,Math.min(max,Math.ceil(content / lines[index] + padding + timeInset)));
   });
   let remaining = Math.floor(containerWidth) - widths.reduce((sum,width)=>sum+width,0);
-  // Distribute spare space to the descriptive columns; Notes keeps its measured width.
+  // Notes has first priority for spare space; titles stay within a narrower cap.
   while (remaining > 0) {
     const active = limits.map(([,,weight],index)=>({index,weight}))
       .filter(({index,weight})=>weight && widths[index] < limits[index][1]);
