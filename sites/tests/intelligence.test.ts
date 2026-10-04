@@ -198,8 +198,8 @@ test("the opening is an editorial takeaway: prompt asks for a spotlight and coun
   assert.match(prompt,/Lead with the best supported food option/);
   assert.match(prompt,/Use must-go only with strong source support/);
   assert.match(prompt,/Never spotlight a cancelled event/);
-  assert.match(body.generationConfig.responseSchema.properties.brief.description,/naming the best supported food option/);
-  assert.equal(AI_VERSION,"food-first-plain-brief-v9");
+  assert.match(body.generationConfig.responseSchema.properties.brief.description,/naming exactly one recommended food option/);
+  assert.equal(AI_VERSION,"food-first-plain-brief-v10");
   for (const brief of ["There are 3 events on the calendar.","Two free-food events are listed for the selected date.","Compare the ranked activities below by food and timing.","The table below ranks every option."]) {
     assert.throws(()=>validateIntelligence({brief,traits:[]},[input]),/generic model brief/);
   }
