@@ -8,13 +8,20 @@ export function searchPlaces(query, places, limit = 8) {
     return {place, rank};
   }).filter(item => item.rank < 2).sort((a, b) => a.rank - b.rank).slice(0, limit).map(item => item.place);
 }
+/** Keep endpoint groups together, with alphabetical names inside each group. */
+export function groupedSearchPlaces(query, places) {
+  const groupOrder = {event:0, campus:1, address:2};
+  return searchPlaces(query, places, Infinity).sort((a,b) =>
+    (groupOrder[a.kind] ?? 3) - (groupOrder[b.kind] ?? 3) ||
+    a.name.localeCompare(b.name, 'en', {sensitivity:'base',numeric:true}));
+}
 export async function searchAddresses(query, signal) {
   const response=await fetch(`/api/search?${new URLSearchParams({q:query})}`,{signal});
   if (!response.ok) throw new Error('Address search unavailable');
   return response.json();
 }
 /** Typing never commits an endpoint; stale responses cannot replace current choices. */
-export function bindPlaceSearch(input, list, {places, choose, currentLabel, remote, onFocus, onChoose, onCancel, openOnFocus=false}) {
+export function bindPlaceSearch(input, list, {places, choose, currentLabel, remote, onFocus, onChoose, onCancel, openOnFocus=false, alphabetical=false}) {
   let active=-1, matches=[], timer, controller, revision=0, status='', local=[], query='';
   const stop=()=>{clearTimeout(timer);controller?.abort();revision+=1;};
   const close=()=>{
@@ -46,7 +53,7 @@ export function bindPlaceSearch(input, list, {places, choose, currentLabel, remo
     else input.removeAttribute('aria-activedescendant');
   };
   const search=(value=input.value)=>{
-    stop();active=-1;query=value.trim();local=searchPlaces(query,places(),16);matches=local;
+    stop();active=-1;query=value.trim();local=alphabetical ? groupedSearchPlaces(query,places()) : searchPlaces(query,places(),16);matches=local;
     status=remote && query.length>=3 ? 'Searching addresses…' : '';render();
     if (!remote || query.length<3 || query.length>160) return;
     const token=revision;
@@ -58,7 +65,7 @@ export function bindPlaceSearch(input, list, {places, choose, currentLabel, remo
         if (result.status==='busy' && retry) {timer=setTimeout(()=>lookup(false),1200);return;}
         const addresses=(result.results || []).filter(point=>!local.some(place=>
           Math.abs(place.lat-point.lat)<0.0001 && Math.abs(place.lng-point.lng)<0.0001));
-        matches=[...local,...addresses];
+        matches=alphabetical ? groupedSearchPlaces('',[...local,...addresses]) : [...local,...addresses];
         status=result.status==='ok' ? (matches.length ? '' : 'No matching address. Choose a point on the map.') : result.status==='busy' ? 'Address search is busy. Try again or choose a point on the map.' : 'Address search is unavailable. Campus places and map selection still work.';
         render();
       } catch(error) {

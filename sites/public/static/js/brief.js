@@ -42,10 +42,8 @@ export function renderBriefAssessments(root, brief, events = []) {
   const node=one('[data-role="brief-assessments"]',root);
   if (!node) return;
   const rows = briefRows(brief, events);
-  const linkHint=one('.brief-link-hint',root);
-  if (linkHint) linkHint.hidden=!rows.length;
   node.hidden = !rows.length;
-  if (!rows.length) { replace(node, []); updateBriefOverflow(root); return; }
+  if (!rows.length) { replace(node, []); return; }
   replace(node, [
     el('div', {class:'brief-table-scroll',tabindex:0,role:'region','aria-label':'Daily Brief event table'}, [
       el('table', {class:'brief-table'}, [
@@ -63,13 +61,8 @@ export function renderBriefAssessments(root, brief, events = []) {
       ]),
     ]),
   ]);
-  requestAnimationFrame(()=>updateBriefOverflow(root));
 }
 export function bindBriefLinks(root) {
-  const holder=one('[data-role="brief-assessments"]',root);
-  if(holder && typeof ResizeObserver!=='undefined') new ResizeObserver(()=>updateBriefOverflow(root)).observe(holder);
-  window.addEventListener('resize',()=>updateBriefOverflow(root));
-  updateBriefOverflow(root);
   root.addEventListener('click',event=>{
     const link=event.target.closest('.brief-card-link');
     if (!link || event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -81,10 +74,6 @@ export function bindBriefLinks(root) {
   });
 }
 
-export function updateBriefOverflow(root) {
-  const scroll=one('.brief-table-scroll',root), hint=one('.brief-scroll-hint',root);
-  if(hint) hint.hidden=!scroll || (scroll.scrollHeight<=scroll.clientHeight+1 && scroll.scrollWidth<=scroll.clientWidth+1);
-}
 /** Newlines carry distinct highlights; the application supplies list markup. */
 export function briefLines(text) {
   return String(text || '').split(/[\r\n]+/).map(line=>line.trim().replace(/^[-•]\s*/, '')).filter(Boolean);

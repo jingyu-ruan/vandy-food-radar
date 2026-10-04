@@ -246,7 +246,7 @@ button { font: inherit; color: inherit; }
 }
 
 .combobox-list li[aria-selected="true"],
-.combobox-list li:hover { background: var(--surface-sunken); }
+.combobox-list li[role="option"]:hover { background: var(--surface-sunken); }
 
 /* ----------------------------------------------------------- workspace */
 
@@ -1376,7 +1376,7 @@ html.settings-open { overflow:hidden; }
 .directions-actions { margin-left:var(--endpoint-inset); margin-right:0; }
 .combobox-list [role="option"] { display:flex; flex-direction:column; gap:3px; }
 .combobox-list [role="option"] small { color:var(--ink-faint); font-size:12px; line-height:1.4; }
-.combobox-list .search-group { padding:8px 12px 4px; color:var(--ink-faint); font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; cursor:default; }
+.combobox-list .search-group { min-height:0; padding:8px 12px 4px; color:var(--ink-faint); font-size:12px; font-weight:600; cursor:default; }
 .combobox-list .search-status { padding:10px 12px; color:var(--ink-soft); font-size:13px; cursor:default; }
 .view-map .map-canvas { height:560px; min-height:560px; }
 .brief-event { display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
@@ -1433,10 +1433,10 @@ html.settings-open { overflow:hidden; }
 
 /* Shared brief footer and event actions. */
 .brief-footer { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 16px; margin-top:10px; color:var(--ink-faint); font-size:12px; line-height:1.5; }
-.brief-footer .brief-link-hint, .brief-footer .brief-scroll-hint, .brief-footer .brief-meta { margin:0; font-size:inherit; line-height:inherit; }
-.card-actions .action-save { font-weight:400; }
-.card-actions .action .ui-icon { width:18px; height:18px; }
-.card-actions .action-save .ui-icon { width:18px; height:18px; }
+.brief-footer .brief-meta { margin:0; font-size:inherit; line-height:inherit; }
+.card-actions .action, .card-actions .calendar-menu > summary { height:44px; font-weight:400; }
+.card-actions .action-save { min-width:92px; flex-shrink:0; }
+.card-actions .action .ui-icon { width:18px; height:18px; flex:0 0 18px; }
 .directions-link { flex:0 1 auto; }
 @media(min-width:801px) {
  .map-side { display:flex; grid-column:1; grid-row:1; position:static; height:560px; }
@@ -1447,7 +1447,8 @@ html.settings-open { overflow:hidden; }
  .directions-actions { grid-column:1; grid-row:auto; margin:0 0 0 var(--endpoint-inset); align-self:auto; }
  .directions-link { font-size:14px; padding-inline:12px; }
  .map-events { flex:1; display:flex; flex-direction:column; min-height:0; gap:12px; }
- .view-map .map-events .map-list { flex:1; height:auto; min-height:0; max-height:none; overflow:auto; }
+ .map-events-scroll { position:relative; flex:1; min-height:0; }
+ .view-map .map-events .map-list { height:100%; min-height:0; max-height:none; overflow:auto; padding-bottom:48px; }
  .map-instructions { grid-column:2; grid-row:1; align-self:start; z-index:1000; margin:12px; }
 }
 

@@ -1,7 +1,9 @@
-/** A visible, keyboard-accessible cue for the independently scrolling week. */
+/** Shared cue for independently scrolling event lists. */
 export function bindScrollHint(root) {
-  const agenda = root.querySelector('[data-role="agenda"]');
-  const hint = root.querySelector('[data-action="scroll-agenda"]');
+  bindListHint(root.querySelector('[data-role="agenda"]'), root.querySelector('[data-action="scroll-agenda"]'));
+  bindListHint(root.querySelector('[data-role="map-list"]'), root.querySelector('[data-action="scroll-map-events"]'));
+}
+function bindListHint(agenda, hint) {
   if (!agenda || !hint) return;
   const update = () => {
     hint.hidden = agenda.clientHeight === 0 || agenda.scrollHeight - agenda.clientHeight - agenda.scrollTop <= 8;

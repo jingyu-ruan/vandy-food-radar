@@ -48,7 +48,7 @@ export function invalidateWalkingRoute() {
 }
 export function bindDirections(root,{onOriginChange,onPinRequest,onDestinationChange}) {
   const campus=()=>state.places.map(place=>({...place,kind:'campus'}));
-  const common={remote:searchAddresses,openOnFocus:true,onChoose:cancelPinMode,onCancel:cancelPinMode};
+  const common={remote:searchAddresses,openOnFocus:true,alphabetical:true,onChoose:cancelPinMode,onCancel:cancelPinMode};
   bindPlaceSearch(one('#map-origin',root),one('#map-origin-options',root),{
     ...common,places:campus,currentLabel:()=>state.origin?.label || '',onFocus:()=>onPinRequest('origin',true),
     choose:place=>{setOrigin({label:place.kind==='address' && place.detail ? `${place.name}, ${place.detail}` : place.name,lat:place.lat,lng:place.lng,kind:'place'});onOriginChange();},
