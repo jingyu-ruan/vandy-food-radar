@@ -1424,7 +1424,7 @@ html.settings-open { overflow:hidden; }
 .brief-text > p { margin:0; }
 .brief-highlights { margin:0; padding-left:22px; }
 .brief-highlights li + li { margin-top:8px; }
-.chip-quiet { background:var(--surface-sunken); color:var(--ink-soft); font-size:12px; line-height:1.5; white-space:normal; }
+.chip-quiet { background:var(--surface-sunken); color:var(--ink-soft); white-space:normal; }
 @media(max-width:800px) {
  .brief-table-scroll { max-height:min(440px,58dvh); }
  .brief-table .brief-rank { vertical-align:middle; }
