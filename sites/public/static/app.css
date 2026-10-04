@@ -1434,15 +1434,15 @@ html.settings-open { overflow:hidden; }
 /* Shared brief footer and event actions. */
 .brief-footer { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 16px; margin-top:10px; color:var(--ink-faint); font-size:12px; line-height:1.5; }
 .brief-footer .brief-meta { margin:0; font-size:inherit; line-height:inherit; }
-.card-actions { display:grid; grid-template-columns:repeat(4,minmax(0,100px)); gap:4px; align-items:start; }
-.card-actions > .action, .card-actions .calendar-menu > summary { display:flex; align-items:center; justify-content:flex-start; width:100%; min-width:0; height:44px; padding:8px 6px; gap:6px; font-family:var(--font); font-size:15px; line-height:20px; font-weight:400; }
+.card-actions { display:grid; grid-template-columns:repeat(4,max-content); gap:4px; align-items:start; }
+.card-actions > .action, .card-actions .calendar-menu > summary { display:flex; align-items:center; justify-content:center; width:max-content; min-width:0; height:44px; padding:8px 10px; gap:6px; font-family:var(--font); font-size:15px; line-height:20px; font-weight:400; }
 .card-actions > .action span, .card-actions .calendar-menu > summary span { font:inherit; }
 .card-actions .action-save { min-width:0; }
 .card-actions .action .ui-icon { width:18px; height:18px; flex:0 0 18px; }
 @media(max-width:600px) {
- .card-actions { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 8px; }
+ .card-actions { grid-template-columns:repeat(2,max-content); gap:6px 8px; }
  .card-actions > .action, .card-actions .calendar-menu > summary { font-size:14px; }
- .card-actions .action-save { justify-content:flex-start; }
+ .card-actions .action-save { justify-content:center; }
 }
 .directions-link { flex:0 1 auto; }
 @media(min-width:801px) {

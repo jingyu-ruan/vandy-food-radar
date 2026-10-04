@@ -795,8 +795,8 @@ body, .workspace { background: var(--surface); }
 .fact-wide dd { line-height: 1.45; }
 .stars { padding-top: 4px; gap: 2px; }
 .star { width: 11px; height: 11px; border-radius: 0; clip-path: polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 93%,50% 72%,21% 93%,32% 57%,2% 35%,39% 35%); }
-.card-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 76px)); margin-top: 12px; gap: 4px; }
-.card-actions > .action, .card-actions .calendar-menu > summary { width: 100%; justify-content: flex-start; }
+.card-actions { display: grid; grid-template-columns: repeat(4, max-content); margin-top: 12px; gap: 4px; }
+.card-actions > .action, .card-actions .calendar-menu > summary { width: max-content; justify-content: center; }
 .action { border: 0; font-size: 12px; padding: 6px 7px; min-height: 34px; }
 .action-save { font-weight: 550; }
 .detail-description { color: var(--ink-soft); white-space: pre-line; }
