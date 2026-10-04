@@ -25,7 +25,7 @@ export function bindHosts(root) {
     const id=host.dataset.eventId;
     if(!profiles.has(id))profiles.set(id,fetch(`/api/organization?event=${encodeURIComponent(id)}`,{credentials:'same-origin'}).then(async response=>{if(!response.ok)throw new Error();return (await response.json()).profile;}).catch(()=>{profiles.delete(id);return null;}));
     const profile=await profiles.get(id);
-    replace(panel,profile ? [el('strong',{class:'host-name',text:profile.name}),el('span',{class:'host-description',text:profile.description || 'This organization has no published introduction'}),profile.url ? el('a',{class:'host-source',href:profile.url,target:'_blank',rel:'noopener noreferrer'},[el('span',{text:'View Organization'}),icon('external-link')]) : null] : el('span',{class:'host-description',text:'The host introduction is temporarily unavailable. Try again shortly'}));
+    replace(panel,profile ? [el('span',{class:'host-header'},[el('strong',{class:'host-name',text:profile.name}),profile.url ? el('a',{class:'host-source',href:profile.url,target:'_blank',rel:'noopener noreferrer'},[el('span',{text:'View Organization'}),icon('external-link')]) : null]),el('span',{class:'host-description',text:profile.description || 'This organization has no published introduction'})] : el('span',{class:'host-description',text:'The host introduction is temporarily unavailable. Try again shortly'}));
     panel.dataset.loaded=String(Boolean(profile));
     if(!panel.hidden)position(host);
   };

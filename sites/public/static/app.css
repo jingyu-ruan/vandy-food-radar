@@ -1495,8 +1495,9 @@ html.settings-open { overflow:hidden; }
 .host-panel { display:block; position:fixed; z-index:1200; width:400px; max-width:calc(100vw - 32px); max-height:55dvh; padding:16px; overflow:auto; overscroll-behavior:contain; border:1px solid var(--line-strong); border-radius:14px; background:var(--surface); box-shadow:0 10px 32px #00000022; color:var(--ink-soft); font-size:14px; line-height:1.6; }
 .host-panel[hidden] { display:none; }
 .host-name, .host-description { display:block; }
-.host-name { color:var(--ink); margin-bottom:8px; font-weight:600; }
-.host-source { display:inline-flex; align-items:center; gap:6px; margin-top:12px; color:var(--accent); text-decoration:none; }
+.host-header { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:6px 12px; margin-bottom:8px; }
+.host-name { flex:1 1 180px; min-width:0; color:var(--ink); font-weight:600; overflow-wrap:anywhere; }
+.host-source { display:inline-flex; flex:none; align-items:center; gap:6px; color:var(--accent); font-size:13px; white-space:nowrap; text-decoration:none; }
 .host-source:hover { text-decoration:underline; }
 .host-source .ui-icon { width:16px; height:16px; }
 @media(max-width:800px) {
