@@ -444,7 +444,7 @@ button { font: inherit; color: inherit; }
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding-top: 8px;
+  padding-top: 11px;
   border-top: 1px solid var(--line);
 }
 
@@ -785,7 +785,7 @@ body, .workspace { background: var(--surface); }
 .sidebar { background: var(--surface-sunken); }
 .work-title { font-size: 22px; font-weight: 550; letter-spacing: -.025em; }
 .card-grid { align-items: stretch; }
-.card { display: flex; flex-direction: column; padding: 18px 20px 12px; }
+.card { display: flex; flex-direction: column; padding: 18px 20px 9px; }
 .card-top { align-items: flex-start; }
 .card-title { font-size: 16px; font-weight: 550; line-height: 1.4; }
 .card-facts { flex: 1; gap: 7px; }
@@ -823,7 +823,7 @@ body, .workspace { background: var(--surface); }
   .work-head-row { gap: 12px; }
   .mobile-settings { width: 100%; justify-content: flex-end; padding: 0; background: transparent; border: 0; color: var(--ink-soft); }
   .work-title { font-size: 21px; }
-  .card { padding: 16px; }
+  .card { padding: 16px 16px 13px; }
   .action { min-height: 44px; padding: 8px; }
   .mobile-nav { grid-template-columns: repeat(3,1fr); }
   .schedule-toggle { display: flex; gap: 4px; }

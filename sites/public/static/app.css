@@ -427,7 +427,7 @@ button { font: inherit; color: inherit; }
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding-top: 8px;
+  padding-top: 11px;
   border-top: 1px solid var(--line);
 }
 
@@ -824,7 +824,7 @@ body { background:var(--surface); }
 .brief .section-heading { color:var(--ink); font-size:15px; font-weight:600; margin-bottom:16px; }
 .brief-text { font-size:16px; line-height:1.65; max-width:80ch; color:var(--ink-soft); }
 .card-grid { align-items:stretch; }
-.card { display:flex; flex-direction:column; padding:22px 22px 14px; }
+.card { display:flex; flex-direction:column; padding:22px 22px 11px; }
 .card-top { align-items:flex-start; }
 .card-title { font-size:19px; line-height:1.35; font-weight:600; letter-spacing:-.025em; }
 .card-when { font-size:15px; margin:12px 0 18px; }
@@ -917,7 +917,7 @@ body { background:var(--surface); }
   .toolbar-display { width:100%; justify-content:space-between; gap:8px; }
   .segmented button { min-height:38px; padding:8px 14px; }
   .card-grid { grid-template-columns:1fr; }
-  .card { padding:20px 18px 12px; }
+  .card { padding:20px 18px 9px; }
   .card-title { font-size:18px; }
   .control, .control-button, .action { min-height:44px; }
   .schedule-layout { display:block; }
@@ -990,7 +990,7 @@ body { font-size:17px; }
  .settings-button span { display:none; }
  .settings-button { width:44px; justify-content:center; }
  .card-title { font-size:20px; }
- .card { padding:20px 18px 14px; }
+ .card { padding:20px 18px 11px; }
  .action { gap:5px; padding:8px; }
  .card-actions { gap:3px; }
 }
@@ -1211,7 +1211,7 @@ html.settings-open { overflow:hidden; }
   .settings-head { padding-inline:18px; }
   .settings-body { padding:18px; }
   .sidebar .control, html input, html select, html textarea { font-size:16px; }
-  .card { padding:18px 14px 12px; }
+  .card { padding:18px 14px 10px; }
   .card-actions { gap:2px; }
   .card-actions .action { font-size:13px; gap:3px; padding:8px 2px; }
   .card-actions .action .ui-icon { width:16px; height:16px; }
@@ -1440,7 +1440,7 @@ html.settings-open { overflow:hidden; }
 .card-actions .action-save { min-width:0; }
 .card-actions .action .ui-icon { width:18px; height:18px; flex:0 0 18px; }
 @media(max-width:600px) {
- .card-actions { grid-template-columns:repeat(2,max-content); gap:6px 8px; }
+ .card-actions { grid-template-columns:repeat(2,max-content); gap:6px 8px; padding-top:10px; }
  .card-actions > .action, .card-actions .calendar-menu > summary { font-size:14px; }
  .card-actions .action-save { justify-content:center; }
 }
