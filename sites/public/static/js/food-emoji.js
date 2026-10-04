@@ -2,21 +2,23 @@
 const FOODS = [
   [/\b(?:matcha|tea|chai)\b/gi, '🍵'], [/\blattes?\b/gi, '☕'],
   [/\b(?:pastries|croissants?)\b/gi, '🥐'], [/\bbrownies?\b/gi, '🍫'],
-  [/\b(?:fruit|apples?)\b/gi, '🍎'], [/\b(?:chicken|chicken nuggets?)\b/gi, '🍗'],
+  [/\b(?:fruit|apples?)\b/gi, '🍎'],
   [/\b(?:soup|chili)\b/gi, '🥣'], [/\b(?:bread|toast)\b/gi, '🍞'],
   [/\bcheese\b/gi, '🧀'], [/\bchips\b/gi, '🥔'],
   [/\bchick[-\s]?fil[-\s]?a\b/gi, '🍔'], [/\b(?:chipotle|burrito bowls?)\b/gi, '🌯'],
   [/\bvegetarian(?: options?)?\b/gi, '🥗'], [/\bvegan(?: options?)?\b/gi, '🌱'],
-  [/\bhalal(?: options?)?\b/gi, '🍽️'], [/\bkosher(?: options?)?\b/gi, '🍽️'],
-  [/\b(?:boba|bubble tea)\b/gi, '🧋'], [/\b(?:dumplings?|falafel)\b/gi, '🥟'],
-  [/\b(?:rice|curry)\b/gi, '🍛'], [/\b(?:breakfast|brunch)\b/gi, '🍳'],
-  [/\b(?:lunch|dinner|buffet|catered meals?)\b/gi, '🍽️'],
+  [/\b(?:boba|bubble tea)\b/gi, '🧋'], [/\bdumplings?\b/gi, '🥟'], [/\bfalafel\b/gi, '🧆'],
+  [/\bcurry\b/gi, '🍛'], [/\brice\b/gi, '🍚'],
   [/\bpizzas?\b/gi, '🍕'], [/\btacos?\b/gi, '🌮'], [/\bburritos?\b/gi, '🌯'],
-  [/\b(?:hamburgers?|burgers?)\b/gi, '🍔'], [/\bsandwich(?:es)?\b/gi, '🥪'],
+  [/\b(?:hamburgers?|cheeseburgers?|burgers?)\b/gi, '🍔'], [/\bsandwich(?:es)?\b/gi, '🥪'],
   [/\bsushi\b/gi, '🍣'], [/\b(?:doughnuts?|donuts?)\b/gi, '🍩'],
   [/\bcookies?\b/gi, '🍪'], [/\bice cream\b/gi, '🍦'], [/\bcupcakes?\b/gi, '🧁'],
   [/\bcakes?\b/gi, '🍰'], [/\b(?:pasta|spaghetti)\b/gi, '🍝'], [/\bramen\b/gi, '🍜'],
-  [/\bfried chicken\b/gi, '🍗'], [/\bsalads?\b/gi, '🥗'], [/\bpopcorn\b/gi, '🍿'],
+  [/\bsalads?\b/gi, '🥗'], [/\bpopcorn\b/gi, '🍿'],
+  [/\b(?:fried chicken|chicken nuggets?|chicken wings?|chicken)\b/gi, '🍗'],
+  [/\b(?:bagels?)\b/gi, '🥯'], [/\bpancakes?\b/gi, '🥞'], [/\bwaffles?\b/gi, '🧇'],
+  [/\b(?:hot dogs?)\b/gi, '🌭'], [/\bsteaks?\b/gi, '🥩'], [/\b(?:shrimp|prawns?)\b/gi, '🍤'],
+  [/\b(?:grapes?)\b/gi, '🍇'], [/\b(?:strawberr(?:y|ies))\b/gi, '🍓'], [/\bbananas?\b/gi, '🍌'],
   [/\bpretzels?\b/gi, '🥨'], [/\b(?:french )?fries\b/gi, '🍟'], [/\bcoffee\b/gi, '☕'],
 ];
 export function foodSourceText(events = []) {
@@ -26,14 +28,24 @@ export function foodSourceText(events = []) {
 }
 /** An empty source string adds nothing; repeated calls preserve existing accents. */
 export function foodEmojiText(text, source = '') {
-  let result = String(text || '');
+  let result = String(text || '').replace(/(\b(?:halal|kosher)(?: options?)?)\s*🍽️/gi,'$1');
+  const matches=[];
   for (const [pattern, emoji] of FOODS) {
-    pattern.lastIndex = 0;
+    pattern.lastIndex=0;
     if (!pattern.test(source)) continue;
-    pattern.lastIndex = 0;
-    result = result.replace(pattern, (word, offset, whole) =>
-      whole.slice(offset + word.length).trimStart().startsWith(emoji) ? word : `${word} ${emoji}`);
+    pattern.lastIndex=0;
+    for (const match of result.matchAll(pattern)) matches.push({start:match.index,end:match.index+match[0].length,emoji});
   }
+  // A full phrase such as bubble tea wins over tea; each food gets one accent.
+  matches.sort((a,b)=>a.start-b.start || b.end-a.end);
+  let output='', cursor=0;
+  for (const match of matches) {
+    if (match.start<cursor) continue;
+    const alreadyAccented=/^\p{Extended_Pictographic}/u.test(result.slice(match.end).trimStart());
+    output+=result.slice(cursor,match.end)+(alreadyAccented ? '' : ` ${match.emoji}`);
+    cursor=match.end;
+  }
+  result=output+result.slice(cursor);
   return result;
 }
 

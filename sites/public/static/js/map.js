@@ -176,8 +176,8 @@ function markerFor(L, event) {
   const icon = L.divIcon({
     className: 'vfr-pin-wrap',
     html: `<span class="vfr-pin${saved ? ' is-saved' : ''}${state.selectedKey === event.identity_key ? ' is-selected' : ''}"></span>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
   });
   const marker = L.marker([event.place.lat, event.place.lng], {
     icon,
@@ -323,8 +323,8 @@ export function syncMarkers(root, onSelect) {
       icon: L.divIcon({
         className: 'vfr-pin-wrap',
         html: '<span class="vfr-pin is-origin"></span>',
-        iconSize: [12, 12],
-        iconAnchor: [6, 6],
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
       }),
       title: origin.label,
       alt: origin.label,
@@ -341,7 +341,7 @@ export function syncMarkers(root, onSelect) {
     destinationKey = nextDestinationKey;
   }
   if(!destinationMarker && Number.isFinite(destination?.lat) && Number.isFinite(destination?.lng)) {
-    destinationMarker=L.marker([destination.lat,destination.lng],{icon:L.divIcon({className:'vfr-pin-wrap',html:'<span class="vfr-pin is-destination"></span>',iconSize:[16,16],iconAnchor:[8,8]}),title:`Destination: ${destination.label}`,alt:`Destination: ${destination.label}`}).addTo(map);
+    destinationMarker=L.marker([destination.lat,destination.lng],{icon:L.divIcon({className:'vfr-pin-wrap',html:'<span class="vfr-pin is-destination"></span>',iconSize:[32,32],iconAnchor:[16,16]}),title:`Destination: ${destination.label}`,alt:`Destination: ${destination.label}`}).addTo(map);
     destinationMarker.bindTooltip(el('span',{text:`Destination: ${destination.label}`}));
   }
   if(pinMode) drawCampusChoices();
@@ -447,7 +447,7 @@ function drawCampusChoices() {
   campusLayer.clearLayers();
   for(const place of state.places || []) {
     const label=`Choose ${place.name} as ${pinMode==='origin' ? 'starting point' : 'destination'}`;
-    const marker=window.L.marker([place.lat,place.lng],{keyboard:true,title:label,alt:label,icon:window.L.divIcon({className:'vfr-campus-wrap',html:'<span class="vfr-campus-pin"></span>',iconSize:[24,24],iconAnchor:[12,12]})});
+    const marker=window.L.marker([place.lat,place.lng],{keyboard:true,title:label,alt:label,icon:window.L.divIcon({className:'vfr-campus-wrap',html:'<span class="vfr-campus-pin"></span>',iconSize:[32,32],iconAnchor:[16,16]})});
     marker.bindTooltip(el('span',{text:place.name}));
     marker.on('add',()=>{
       const element=marker.getElement();

@@ -122,7 +122,7 @@ function renderBrief() {
     node.textContent = `The feed could not be loaded: ${state.error}`;
     return;
   }
-  if (state.brief) renderBriefCopy(node,displayText(state.brief.text),state.events);
+  if (state.brief) renderBriefCopy(node,displayText(state.brief.text),state.events,state.brief.highlights);
 }
 
 function renderScope() {

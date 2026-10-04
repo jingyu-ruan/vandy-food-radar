@@ -14,6 +14,19 @@ test('provider and dietary accents preserve source facts and surface options out
  const chick={food_label:'Food confirmed',food_description:'Chick-fil-A',food_items:['Chick-fil-A']};
  assert.equal(foodEmojiText('Chick-fil-A',foodSourceText([chick])),'Chick-fil-A 🍔');
  const event={food_label:'Food confirmed',food_description:'Dinner is provided.',description:'Dinner is provided, always including vegetarian and halal options.'};
- assert.match(foodDescriptionText(event),/Vegetarian Options 🥗; Halal Options 🍽️/);
+ assert.match(foodDescriptionText(event),/Vegetarian Options 🥗; Halal Options$/);
  assert.equal(foodDescriptionText({...event,food_label:'Food disputed'}),'Dinner is provided.');
+});
+
+test('specific foods get distinct accents while dietary conditions and generic meals stay plain',()=>{
+ const source='Halal options, kosher food, falafel, dumplings, rice, curry, pancakes and chicken wings. Dinner included.';
+ assert.equal(foodEmojiText('Halal Options 🍽️ and Kosher Options 🍽️. Dinner.',source),'Halal Options and Kosher Options. Dinner.');
+ assert.equal(foodEmojiText('Falafel, dumplings, rice, curry, pancakes and chicken wings.',source),'Falafel 🧆, dumplings 🥟, rice 🍚, curry 🍛, pancakes 🥞 and chicken wings 🍗.');
+});
+
+test('multiword foods get a single matching emoji and remain stable on rerender',()=>{
+ const text='Bubble tea, fried chicken and cheeseburgers.';
+ const accented='Bubble tea 🧋, fried chicken 🍗 and cheeseburgers 🍔.';
+ assert.equal(foodEmojiText(text,text),accented);
+ assert.equal(foodEmojiText(accented,text),accented);
 });

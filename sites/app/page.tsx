@@ -1,6 +1,5 @@
-import {foodEmojiText, foodSourceText} from "@/public/static/js/food-emoji.js";
 import {BriefAssessments} from "@/components/vfr/brief-assessments";
-import {generatedLabel, briefLines} from "@/public/static/js/brief.js";
+import {generatedLabel, briefHighlights} from "@/public/static/js/brief.js";
 /**
  * Free Bites at Vandy — the campus workspace for one selected local date.
  *
@@ -82,6 +81,7 @@ export default async function Home({ searchParams }: PageProps) {
   const briefText = feed
     ? feed.brief.text
     : "Event data is temporarily unavailable. The last published listing could not be read.";
+  const highlights = briefHighlights(displayText(briefText), cards, '12', feed?.brief.highlights);
   const emptyText =
     feed?.state === "uninitialized"
       ? "No listing has been published for this date yet."
@@ -252,7 +252,7 @@ export default async function Home({ searchParams }: PageProps) {
             data-view-panel="cards"
             aria-labelledby="cards-heading"
           >
-            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily Brief</h2><div className="brief-text" data-role="brief-text" lang="en">{briefLines(briefText).length>1 ? <ul className="brief-highlights">{briefLines(briefText).map((line,index)=><li key={index}>{foodEmojiText(displayText(line),foodSourceText(feed?.events || []))}</li>)}</ul> : <p>{foodEmojiText(displayText(briefText), foodSourceText(feed?.events || []))}</p>}</div><BriefAssessments brief={feed?.brief} date={selected} events={feed?.events} /><div className="brief-footer"><span className="brief-meta" data-role="brief-meta" hidden={!generatedLabel(feed?.brief,config.timezone)}>{generatedLabel(feed?.brief,config.timezone)}</span></div></section>
+            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily Brief</h2><div className="brief-text" data-role="brief-text" lang="en">{highlights.length>1 ? <ul className="brief-highlights">{highlights.map((row,index)=><li key={row.identityKey || index}>{row.time && <span className="brief-highlight-time">{row.time}{" "}</span>}<span>{row.text}</span></li>)}</ul> : <p>{highlights[0]?.time && <span className="brief-highlight-time">{highlights[0].time}{" "}</span>}<span>{highlights[0]?.text}</span></p>}</div><BriefAssessments brief={feed?.brief} date={selected} events={feed?.events} /><div className="brief-footer"><span className="brief-meta" data-role="brief-meta" hidden={!generatedLabel(feed?.brief,config.timezone)}>{generatedLabel(feed?.brief,config.timezone)}</span></div></section>
             <div className="events-heading"><h2 className="section-heading" id="cards-heading">
               Events{" "}
               <span className="count" data-role="card-count">
@@ -302,15 +302,14 @@ export default async function Home({ searchParams }: PageProps) {
               <div className="endpoint-group">
                 <div className="endpoint-row">
                   <label className="endpoint-label" htmlFor="map-origin">From</label>
-                  <div className="combobox endpoint-search"><input className="control" id="map-origin" type="search" role="combobox" aria-expanded="false" aria-controls="map-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search events, places or addresses" defaultValue={displayText(reference.label)} /><ul className="combobox-list" id="map-origin-options" role="listbox" hidden /></div>
-                  <button type="button" className="endpoint-action" data-action="origin-gps" aria-label="Use current location" title="Use current location"><ActionIcon name="location" /></button>
+                  <div className="combobox endpoint-search endpoint-search-origin"><input className="control" id="map-origin" type="search" role="combobox" aria-expanded="false" aria-controls="map-origin-options" aria-autocomplete="list" autoComplete="off" placeholder="Search events, places or addresses" defaultValue={displayText(reference.label)} /><ul className="combobox-list" id="map-origin-options" role="listbox" hidden /><button type="button" className="endpoint-action" data-action="origin-gps" aria-label="Use current location" title="Use current location"><ActionIcon name="location" /></button></div>
                 </div>
                 <div className="endpoint-row endpoint-row-to">
                   <label className="endpoint-label" htmlFor="map-place-search">To</label>
-                  <div className="combobox endpoint-search"><input className="control" id="map-place-search" type="search" role="combobox" aria-expanded="false" aria-controls="map-place-options" aria-autocomplete="list" autoComplete="off" placeholder="Search campus buildings" /><ul className="combobox-list" id="map-place-options" role="listbox" hidden /></div>
+                  <div className="combobox endpoint-search"><input className="control" id="map-place-search" type="search" role="combobox" aria-expanded="false" aria-controls="map-place-options" aria-autocomplete="list" autoComplete="off" placeholder="Search events, places or addresses" /><ul className="combobox-list" id="map-place-options" role="listbox" hidden /></div>
                 </div>
                 <div className="directions-actions">
-                  <a className="control-button directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer"><ActionIcon name="directions" />Open In Google Map</a>
+                  <a className="directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer">Open In Google Map<ActionIcon name="external-link" /></a>
                 </div>
               </div>
               <p className="route-status" data-role="walking-route-status" aria-live="polite" />

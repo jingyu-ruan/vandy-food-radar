@@ -213,7 +213,7 @@ export function bindOrigin(root, { onPinRequest, onChange }) {
         const label = await labelForPoint(point);
         if (generation !== requestGeneration || state.origin.kind !== 'gps' || state.origin.lat !== point.lat || state.origin.lng !== point.lng) {finish();return;}
         apply({...point,label:label ? `Near ${label}` : fallback,kind:'gps'});
-        locationStatus(label ? `Starting point: near ${label}` : `Address lookup is unavailable. Starting point: ${fallback}`);
+        locationStatus('');
         finish();
       }, error => {if(generation===requestGeneration)locationStatus(`Location unavailable: ${error.message}`);finish();}, {enableHighAccuracy:true,timeout:10000,maximumAge:60000});
     });

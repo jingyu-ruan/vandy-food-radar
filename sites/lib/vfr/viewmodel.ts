@@ -130,7 +130,7 @@ export type DayFeedJson = {
   state: DayState;
   published_at: string | null;
   event_count: number;
-  brief: { headline: string; sentences: string[]; text: string; content_hash: string; source?: string; generated_at?: string; model?:string; origin?:string; items?:BriefItemJson[] };
+  brief: { headline: string; sentences: string[]; text: string; content_hash: string; source?: string; generated_at?: string; model?:string; origin?:string; highlights?:{identityKey:string; text:string}[]; items?:BriefItemJson[] };
   events: CardJson[];
 };
 
@@ -367,7 +367,7 @@ export async function buildDayFeed(
     const ai = context.aiState?.result;
     if (ai && ai.date === date && ai.model === context.config.gemini.model &&
       ai.hash === await intelligenceHash(date,intelligenceInputs(events))) {
-      brief = {...brief,text:ai.brief,sentences:[ai.brief],content_hash:ai.hash,source:"gemini",generated_at:ai.generatedAt,model:ai.model};
+      brief = {...brief,text:ai.brief,highlights:ai.highlights,sentences:[ai.brief],content_hash:ai.hash,source:"gemini",generated_at:ai.generatedAt,model:ai.model};
       for (const card of cards) {
         const food = ai.foods?.find(f=>f.identityKey===card.identity_key);
         if (food) {card.food_items=specificFoodItems(food.items);if (card.food_items.length) card.food_description=card.food_items.join(", ");}
@@ -383,6 +383,8 @@ export async function buildDayFeed(
     if (brief.source!=='gemini') {
       brief.source='rules';
       brief.text=ruleTakeaway(cards);
+      const pick=cards.find(card=>!card.cancelled);
+      brief.highlights=pick ? [{identityKey:pick.identity_key,text:brief.text.replace(/, starting at [^.]+\./,'.')}] : [];
       brief.sentences=[brief.text];
     }
   }

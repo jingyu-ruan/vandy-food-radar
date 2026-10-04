@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {BRIEF_COLUMNS,briefRows,eventAnchor,eventHref,generatedLabel,participationText} from '../../public/static/js/brief.js';
+import {BRIEF_COLUMNS,briefRows,eventAnchor,eventHref,generatedLabel,participationText,briefHighlights} from '../../public/static/js/brief.js';
 
 test('brief links resolve to exactly one stable card ID and preserve the selected day',()=>{
  const identities=['source|anchorlink:123','A/B #?中文','event:other'];
@@ -49,4 +49,15 @@ test('table rank follows full published scores even when brief rows arrived out 
  const events=[{identity_key:'low',score:.61,start:'12:00',title:'Low'},{identity_key:'high',score:.88,start:'18:00',title:'High'},{identity_key:'cancelled',score:1,start:'12:00',title:'Cancelled',cancelled:true}];
  const rows=briefRows({items:events.map(e=>({identity_key:e.identity_key,title:e.title}))},events);
  assert.deepEqual(rows.map(row=>row.identity_key),['high','low','cancelled']);assert.deepEqual(rows.map(row=>row.rank),[1,2,3]);
+});
+
+test('food highlights follow published priority and obtain times from their own event',()=>{
+ const events=[{identity_key:'snacks',title:'Snack Hour',score:.5,start:'13:00',end:'14:00'},{identity_key:'meal',title:'Dinner Club',score:.9,start:'18:00',end:'19:00'},{identity_key:'cancelled',title:'Cancelled',score:1,cancelled:true}];
+ const highlights=[{identityKey:'snacks',text:'Snack Hour has cookies.'},{identityKey:'cancelled',text:'Cancelled has food.'},{identityKey:'meal',text:'Dinner Club serves a meal.'}];
+ const rows=briefHighlights('',events,'12',highlights);
+ assert.deepEqual(rows.map(r=>r.identityKey),['meal','snacks']);
+ assert.deepEqual(rows.map(r=>r.time),['6 PM – 7 PM','1 PM – 2 PM']);
+ assert.equal(briefHighlights('',events,'24',highlights)[0].time,'18:00 – 19:00');
+ assert.deepEqual(briefHighlights('Snack Hour has cookies.\nDinner Club serves a meal.',events,'12').map(r=>r.identityKey),['meal','snacks']);
+ assert.equal(briefHighlights('A reception has cookies.',events,'12')[0].time,'');
 });

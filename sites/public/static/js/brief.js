@@ -78,7 +78,26 @@ export function bindBriefLinks(root) {
 export function briefLines(text) {
   return String(text || '').split(/[\r\n]+/).map(line=>line.trim().replace(/^[-•]\s*/, '')).filter(Boolean);
 }
-export function renderBriefCopy(node,text,events=[]) {
-  const lines=briefLines(foodEmojiText(formatTimesInText(text),foodSourceText(events)));
-  replace(node, lines.length>1 ? el('ul',{class:'brief-highlights'},lines.map(line=>el('li',{text:line}))) : el('p',{text:lines[0] || ''}));
+/** Bind each food recommendation to its published event before ordering or timing it. */
+export function briefHighlights(text, events=[], clock, highlights=[]) {
+  const normalize=value=>String(value || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const available=events.filter(event=>!event.cancelled);
+  const rows=highlights.length ? highlights.map(highlight=>({text:highlight.text,event:available.find(event=>event.identity_key===highlight.identityKey)})).filter(row=>row.event)
+    : briefLines(text).map(line=>{
+      const exact=available.filter(event=>normalize(line).includes(normalize(event.title)));
+      // Older saved briefs sometimes omit punctuation or a short parenthetical subtitle.
+      const named=exact.length ? exact : available.filter(event=>{
+        const title=normalize(event.title.replace(/\([^)]*\)/g,''));
+        return title.length>8 && normalize(line).includes(title);
+      });
+      return {text:line,event:named.length===1 ? named[0] : null};
+    });
+  return rows.sort((a,b)=>a.event && b.event ? compareEventCards(a.event,b.event) : a.event ? -1 : b.event ? 1 : 0)
+    .map(row=>({text:foodEmojiText(formatTimesInText(row.text,clock),foodSourceText(row.event ? [row.event] : available)),
+      time:row.event ? eventTime(row.event,clock) : '',identityKey:row.event?.identity_key}));
+}
+export function renderBriefCopy(node,text,events=[],highlights=[]) {
+  const rows=briefHighlights(text,events,undefined,highlights);
+  const copy=row=>[row.time ? el('span',{class:'brief-highlight-time',text:row.time+' '}) : null,el('span',{text:row.text})];
+  replace(node, rows.length>1 ? el('ul',{class:'brief-highlights'},rows.map(row=>el('li',{},copy(row)))) : el('p',{},rows.length ? copy(rows[0]) : []));
 }

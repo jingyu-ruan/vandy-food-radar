@@ -97,7 +97,7 @@ test("enrichment survives repository recreation, GETs never infer, changed sourc
   const geminiFetcher: typeof fetch = async(_url,options)=>{
     calls++;
     const event = JSON.parse(JSON.parse(String(options?.body)).contents[0].parts[0].text).events[0];
-    return Response.json({candidates:[{finishReason:"STOP",content:{parts:[{text:JSON.stringify({brief:"A campus lunch is listed for today.",traits:[
+    return Response.json({candidates:[{finishReason:"STOP",content:{parts:[{text:JSON.stringify({brief:"A campus lunch is listed for today.",highlights:[{identityKey:event.identityKey,text:`${event.title} offers snacks and conversation.`}],traits:[
       {identityKey:event.identityKey,level:"drop_in",note:"A brief visit may suit the advertised drop-in format.",evidence:"Drop in anytime"},
     ]})}]}}]});
   };
@@ -105,6 +105,8 @@ test("enrichment survives repository recreation, GETs never infer, changed sourc
   const recreated = new Repository(new SqliteD1(s.db),s.config);
   const feed=await loadDayFeed(recreated,s.config,date,nowMs);
   assert.equal(feed.brief.source,"gemini"); assert.ok(feed.events[0].participation.ai_note);
+  assert.equal(feed.brief.highlights?.[0].identityKey,feed.events[0].identity_key);
+  assert.equal(feed.brief.highlights?.[0].text,"Campus lunch offers snacks and conversation.");
   await loadDayFeed(recreated,s.config,date,nowMs);
   await runRefresh({...s,repository:recreated,trigger:"test",nowMs:nowMs+3600000,geminiFetcher});
   assert.equal(calls,1);
@@ -199,7 +201,7 @@ test("the opening is an editorial takeaway: prompt asks for a spotlight and coun
   assert.match(prompt,/Use must-go only with strong source support/);
   assert.match(prompt,/Never spotlight a cancelled event/);
   assert.match(body.generationConfig.responseSchema.properties.brief.description,/One to three plain-English food highlights/);
-  assert.equal(AI_VERSION,"food-highlights-meal-ranking-v11");
+  assert.equal(AI_VERSION,"food-highlights-priority-time-v12");
   for (const brief of ["There are 3 events on the calendar.","Two free-food events are listed for the selected date.","Compare the ranked activities below by food and timing.","The table below ranks every option."]) {
     assert.throws(()=>validateIntelligence({brief,traits:[]},[input]),/generic model brief/);
   }
@@ -214,4 +216,14 @@ test('food highlights accept separate plain lines and reject excessive lines or 
  assert.equal(validateIntelligence({brief,traits:[]},[input]).brief,brief);
  assert.throws(()=>validateIntelligence({brief:'One.\nTwo.\nThree.\nFour.',traits:[]},[input]));
  assert.throws(()=>validateIntelligence({brief:'- Pizza at Lunch.',traits:[]},[input]));
+});
+
+test('structured highlights retain exact event identity and leave times to published fields',()=>{
+ const value={brief:'Lunch has pizza.',traits:[],highlights:[
+ {identityKey:input.identityKey,text:'Lunch has pizza.'},
+ {identityKey:'invented',text:'Imaginary Lunch has pizza.'},
+ {identityKey:input.identityKey,text:'Lunch has snacks.'},
+ ]};
+ assert.deepEqual(validateIntelligence(value,[input]).highlights,[{identityKey:input.identityKey,text:'Lunch has pizza.'}]);
+ assert.deepEqual(validateIntelligence({...value,highlights:[{identityKey:input.identityKey,text:'Lunch at 7 PM has pizza.'}]},[input]).highlights,[]);
 });
