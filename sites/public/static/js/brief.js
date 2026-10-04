@@ -3,6 +3,7 @@ import {foodEmojiText, foodSourceText, dietaryOptions} from './food-emoji.js';
 import {compareEventCards} from './event-order.js';
 import { el, one, replace } from './dom.js';
 import { eventTime, formatTimesInText } from './preferences.js';
+import { bindBriefLayout } from './brief-layout.js';
 export const BRIEF_COLUMNS = ['Rank', 'Event', 'Time', 'Food', 'Location', 'Walk', 'Notes'];
 export function briefRows(brief, events = [], clock) {
   const cards = new Map(events.map(event => [event.identity_key, event]));
@@ -43,7 +44,7 @@ export function renderBriefAssessments(root, brief, events = []) {
   if (!node) return;
   const rows = briefRows(brief, events);
   node.hidden = !rows.length;
-  if (!rows.length) { replace(node, []); return; }
+  if (!rows.length) { replace(node, []); bindBriefLayout(node); return; }
   replace(node, [
     el('div', {class:'brief-table-scroll',tabindex:0,role:'region','aria-label':'Daily Brief event table'}, [
       el('table', {class:'brief-table'}, [
@@ -60,7 +61,9 @@ export function renderBriefAssessments(root, brief, events = []) {
         ]))),
       ]),
     ]),
+    el('p', {class:'brief-scroll-hint',text:'Scroll horizontally to view all columns.',hidden:true}),
   ]);
+  bindBriefLayout(node);
 }
 export function bindBriefLinks(root) {
   root.addEventListener('click',event=>{

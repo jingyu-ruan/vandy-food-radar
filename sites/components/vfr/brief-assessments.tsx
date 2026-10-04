@@ -18,6 +18,7 @@ export function BriefAssessments({brief,date,events=[]}:{brief:DayFeedJson['brie
      </tr>)}</tbody>
     </table>
    </div>
+   <p className="brief-scroll-hint" hidden>Scroll horizontally to view all columns.</p>
   </>}
  </div>;
 }
