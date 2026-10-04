@@ -17,17 +17,17 @@ import { FACT_ICONS } from './fact-icons.js';
  * `dom.el`; no event field is ever interpolated into markup.
  */
 
+import {hostFor,bindHosts} from './host.js';
 import { all, el, one, replace } from './dom.js';
 import { findEvent, isSaved, state, toggleSaved } from './state.js';
 
 function ratingFor(event) {
   const rating = ratingPresentation(event);
-  const panel = el('div', {class:'rating-panel', id:rating.id, role:'region', 'aria-label':`Rating breakdown for ${event.title}`, tabindex:'0', hidden:true}, [el('p', {class:'rating-total', text:`Published Total ${rating.total}`})]);
+  const panel = el('div', {class:'rating-panel', id:rating.id, role:'region', 'aria-label':`Rating breakdown for ${event.title}`, tabindex:'0', hidden:true}, [el('p', {class:'rating-total', text:`Total Score: ${rating.total}`})]);
   if (rating.rows.length) {
     const body = el('tbody');
     for (const row of rating.rows) body.append(
-      el('tr', {}, [el('th', {scope:'row', text:row.label}), ...[row.weight, row.value, row.points].map(text=>el('td',{text}))]),
-      el('tr', {class:'rating-note'}, [el('td', {colspan:'4', text:row.note})]),
+      el('tr', {}, [el('th', {scope:'row'},[el('span',{text:row.label}),el('span',{class:'rating-factor-note',text:row.note})]), ...[row.weight, row.value, row.points].map(text=>el('td',{text}))]),
     );
     panel.append(el('table', {}, [el('thead', {}, [el('tr', {}, ['Factor','Weight','Value','Points'].map(text=>el('th', {text})))]), body]));
   } else panel.append(el('p', {text:'Score breakdown is unavailable for this published event.'}));
@@ -65,12 +65,12 @@ function actionsFor(event) {
   const actions = el('footer', { class: 'card-actions' }, [
     el('button', {
       type: 'button',
-      class: 'action action-save icon-button',
+      class: 'action action-save',
       'aria-label': `${isSaved(event.date, event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
       title: `${isSaved(event.date, event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
       'data-action': 'toggle-save',
       'aria-pressed': String(isSaved(event.date, event.identity_key)),
-    }, [icon('star')]),
+    }, [icon('star'),el('span',{dataset:{role:'save-label'},text:isSaved(event.date,event.identity_key) ? 'Saved' : 'Save'})]),
   ]);
   if (!event.cancelled) {
     const options = el('div',{class:'calendar-options'});
@@ -208,7 +208,7 @@ export function renderCard(event) {
     ]),
   );
   facts.append(
-    fact('Host', [el('span', { class: 'fact-text', text: event.organizer || 'Not Listed' })]),
+    fact('Host', [hostFor(event)]),
   );
   const accessChildren = [el('span', {class:'fact-text',text:participationText(event.participation),title:event.participation.ai_evidence ? `Source: ${event.participation.ai_evidence}` : null})];
   facts.append(fact('Participation', accessChildren, true));
@@ -255,6 +255,8 @@ export function syncCardChrome(root) {
       button.setAttribute('aria-pressed', String(saved));
       button.setAttribute('aria-label', `${saved ? 'Unsave' : 'Save'} ${one('.card-title', card).textContent}`);
       button.title = button.getAttribute('aria-label');
+      const label = one('[data-role="save-label"]', button);
+      if (label) label.textContent = saved ? 'Saved' : 'Save';
     }
     card.classList.toggle('is-selected', state.selectedKey === key);
   }
@@ -342,6 +344,7 @@ function bindRatings(root) {
 
 export function bindCardEvents(root, { onSelect } = {}) {
   bindRatings(root);
+  bindHosts(root);
   root.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;

@@ -214,12 +214,15 @@ export default async function Home({ searchParams }: PageProps) {
                 <label className="visually-hidden" htmlFor="date-input">
                   Selected date
                 </label>
+                <div className="date-picker" data-role="date-picker">
                 <input
                   id="date-input"
                   className="control control-date"
                   type="date"
                   defaultValue={selected}
                 />
+                  <button type="button" className="control control-date date-picker-trigger" data-role="date-picker-trigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="desktop-date-picker" hidden><span data-role="date-picker-label" /><ActionIcon name="calendar" /></button>
+                </div>
                 <button
                   type="button"
                   className="control-button"
@@ -249,7 +252,7 @@ export default async function Home({ searchParams }: PageProps) {
             data-view-panel="cards"
             aria-labelledby="cards-heading"
           >
-            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily Brief</h2><div className="brief-text" data-role="brief-text" lang="en">{briefLines(briefText).length>1 ? <ul className="brief-highlights">{briefLines(briefText).map((line,index)=><li key={index}>{foodEmojiText(displayText(line),foodSourceText(feed?.events || []))}</li>)}</ul> : <p>{foodEmojiText(displayText(briefText), foodSourceText(feed?.events || []))}</p>}</div><BriefAssessments brief={feed?.brief} date={selected} events={feed?.events} /><p className="brief-meta" data-role="brief-meta" hidden={!generatedLabel(feed?.brief,config.timezone)}>{generatedLabel(feed?.brief,config.timezone)}</p></section>
+            <section className="brief" aria-labelledby="brief-heading" data-role="brief"><h2 className="section-heading" id="brief-heading">Daily Brief</h2><div className="brief-text" data-role="brief-text" lang="en">{briefLines(briefText).length>1 ? <ul className="brief-highlights">{briefLines(briefText).map((line,index)=><li key={index}>{foodEmojiText(displayText(line),foodSourceText(feed?.events || []))}</li>)}</ul> : <p>{foodEmojiText(displayText(briefText), foodSourceText(feed?.events || []))}</p>}</div><BriefAssessments brief={feed?.brief} date={selected} events={feed?.events} /><div className="brief-footer"><span className="brief-link-hint" hidden={!feed?.brief.items?.length}>Rank: event card. Event: source.</span><span className="brief-scroll-hint" hidden>Scroll for more events and columns.</span><span className="brief-meta" data-role="brief-meta" hidden={!generatedLabel(feed?.brief,config.timezone)}>{generatedLabel(feed?.brief,config.timezone)}</span></div></section>
             <div className="events-heading"><h2 className="section-heading" id="cards-heading">
               Events{" "}
               <span className="count" data-role="card-count">

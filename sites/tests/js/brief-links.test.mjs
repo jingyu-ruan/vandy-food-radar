@@ -25,7 +25,7 @@ test('table keeps published order and joins times to the correct event instead o
  const rows=briefRows(brief,events,'12');
  assert.equal(rows[0].rank,1);
  assert.equal(rows[0].time,'11:30 PM – 1 AM next day');
- assert.equal(rows[0].walk,'~6 min');
+ assert.equal(rows[0].walk,'6 min');
  assert.match(rows[0].walk_detail,/straight-line estimate/);
  assert.equal(rows[0].food,'Pizza');
  assert.equal(rows[1].rank,2);

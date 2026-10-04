@@ -112,7 +112,7 @@ test("a refresh publishes and reads back through real SQL", async () => {
   assert.match(first.explanation, /Ranked/);
   // "Sarratt Student Center 216" resolves through the campus dataset, so the
   // walk is a labelled estimate from the reference point rather than unknown.
-  assert.match(first.walkingLabel, /^~\d+ min walk$/);
+  assert.match(first.walkingLabel, /^\d+ min walk$/);
   assert.equal(second.walkingLabel, first.walkingLabel);
   assert.equal(first.event.verificationState, "partially_verified");
   assert.equal(first.event.confidence, 0.3);

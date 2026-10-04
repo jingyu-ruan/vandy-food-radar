@@ -18,8 +18,6 @@ export function BriefAssessments({brief,date,events=[]}:{brief:DayFeedJson['brie
      </tr>)}</tbody>
     </table>
    </div>
-   <p className="brief-link-hint">Select Rank to view the event card. Select Event to open its source.</p>
-   <p className="brief-scroll-hint" hidden>Scroll inside the table for more events and columns.</p>
   </>}
  </div>;
 }

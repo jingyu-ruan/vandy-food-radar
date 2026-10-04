@@ -222,7 +222,7 @@ function walkingLabelFor(config: Config, place: PlaceJson | null): string {
   const minutes = minutesForMetres(
     haversineMetres({ lat: reference.lat, lng: reference.lng }, place),
   );
-  return `~${minutes} min estimate from ${reference.label}`;
+  return `${minutes} min estimate from ${reference.label}`;
 }
 
 /** The change worth labelling on a card, if any. "New" never is. */
@@ -485,7 +485,7 @@ function briefItem(card:CardJson, cards:CardJson[], context:ViewContext, aiReaso
   const assessment=(aiReason || fallback).replace(/[.;\s]+$/,"");
   return {identity_key:card.identity_key,title:card.title,url:card.event_url,
     time:`${card.start?.slice(0,5) || "Start Time Not Listed"}–${card.end?.slice(0,5) || "End Time Not Listed"} (Nashville Local Time)${card.cancelled ? "; Cancelled" : ""}`,
-    food:menu,location,address,walk:walk===null ? "Walking Time Unverified" : `~${walk} min straight-line estimate; actual pedestrian route/time unverified`,
+    food:menu,location,address,walk:walk===null ? "Walking Time Unverified" : `${walk} min straight-line estimate; actual pedestrian route/time unverified`,
     route_url:params ? `https://www.google.com/maps/dir/?${params}` : null,
     rsvp:card.rsvp_label==="RSVP Not Stated" ? (/\b(?:rsvp|register|registration|sign[- ]?up)\b/i.test(card.description || "") ? "The source mentions RSVP/registration; check requirements, eligibility and remaining availability" : "RSVP/Registration Not Stated") : card.rsvp_label==="No RSVP Needed" ? "The source explicitly states no RSVP is needed" : "RSVP Required; Check Availability and Eligibility",
     participation:card.participation.ai_note ? card.participation.ai_note : ({open:"Open attendance is explicitly stated; suitability for a food-only visit remains unverified",structured:"The activity has a planned format; suitability for a brief food-only visit remains unverified",restricted:"The source lists participation restrictions; verify eligibility",unknown:"Eligibility and participation format are unstated or unverified"}[card.participation.level] || "Consult the official participation requirements; suitability for a brief food-only visit is unverified"),

@@ -37,7 +37,7 @@ export async function refreshWalking(root) {
       if (!node || !event?.place) continue;
       const briefNode = briefRows.get(event.identity_key)?.querySelector('[data-role="brief-walking"]');
       if (briefNode) {
-        briefNode.textContent = `~${estimateMinutes(origin,event.place)} min`;
+        briefNode.textContent = `${estimateMinutes(origin,event.place)} min`;
         briefNode.title = 'Straight-line distance at 80 metres/minute; paths and entrances can add time.';
         briefNode.setAttribute('aria-label', `${briefNode.textContent} estimated from ${origin.label}. ${briefNode.title}`);
       }
@@ -45,10 +45,10 @@ export async function refreshWalking(root) {
       if (current !== generation) return;
       node.textContent = result.mode === 'routed'
         ? `${result.minutes} min walk from ${origin.label}`
-        : `~${result.minutes} min estimate from ${origin.label}`;
+        : `${result.minutes} min estimate from ${origin.label}`;
       node.title = result.mode === 'routed' ? 'Pedestrian route' : 'Straight-line distance at 80 metres/minute; paths and entrances can add time.';
       if (briefNode) {
-        briefNode.textContent = `${result.mode === 'routed' ? '' : '~'}${result.minutes} min`;
+        briefNode.textContent = `${result.minutes} min`;
         briefNode.title = node.title;
         briefNode.setAttribute('aria-label', `${result.minutes} minutes ${result.mode === 'routed' ? 'walking' : 'estimated'} from ${origin.label}. ${node.title}`);
       }

@@ -15,6 +15,7 @@ import { bindCardEvents, renderCards, syncCardChrome } from './cards.js';
 import { all, one } from './dom.js';
 import { slideViews } from './view-motion.js';
 import { bindSegmented } from './segmented.js';
+import {bindDatePicker, syncDatePicker} from './date-picker.js';
 import { bindScrollHint } from './scroll-hint.js';
 import { armPinMode, cancelPinMode, clearRoute, flushMapFrame, openTooltip, panTo, prepareMap, showMap, syncMarkers } from './map.js';
 import { relocateMap } from './map-snapshot.js';
@@ -66,6 +67,7 @@ async function loadDay(isoDate, { pushHistory = true } = {}) {
   state.selectedDate = isoDate;
   const input = one('#date-input', root);
   if (input && input.value !== isoDate) input.value = isoDate;
+  syncDatePicker(root,isoDate);
   if (pushHistory) {
     const url = new URL(window.location.href);
     url.searchParams.set('date', isoDate);
@@ -398,6 +400,7 @@ function start() {
     if (usesMap()) syncMarkers(root, selectFromMap);
   });
   bindNavigation();
+  bindDatePicker(root,{today:state.config.today,onSelect:date=>loadDay(date)});
   bindSegmented(root);
   bindAgendaMenus(root);
   // Wire the agenda selection handler through the module API

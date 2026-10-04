@@ -194,7 +194,7 @@ export function walkingFactorValue(
 /** Human-readable walking label. Unknown stays explicitly unavailable. */
 export function walkingLabel(result: WalkingResult): string {
   if (result.status === WalkingStatus.OK && result.minutes !== null) {
-    return `~${result.minutes} min walk`;
+    return `${result.minutes} min walk`;
   }
   return "Walking time unavailable";
 }

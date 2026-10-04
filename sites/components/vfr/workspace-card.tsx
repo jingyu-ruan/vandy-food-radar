@@ -1,3 +1,4 @@
+import {hostEventId,hostPanelId} from '@/public/static/js/host.js';
 import {foodDescriptionText} from "@/public/static/js/food-emoji.js";
 /**
  * One event card, server-rendered from the same `CardJson` the browser modules
@@ -81,8 +82,8 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
         <div className="rating">
           <button type="button" className="rating-trigger" data-action="toggle-rating" aria-label={`Rating ${rating.score} of 5. Show score breakdown for ${card.title}`} aria-expanded="false" aria-controls={rating.id}><span>Rating</span><span className="rating-score">{rating.score} / 5.0</span></button>
           <div className="rating-panel" id={rating.id} role="region" aria-label={`Rating breakdown for ${card.title}`} tabIndex={0} hidden>
-            <p className="rating-total">Published Total {rating.total}</p>
-            {rating.rows.length ? <table><thead><tr><th>Factor</th><th>Weight</th><th>Value</th><th>Points</th></tr></thead><tbody>{rating.rows.map((row, index) => <Fragment key={index}><tr><th scope="row">{row.label}</th><td>{row.weight}</td><td>{row.value}</td><td>{row.points}</td></tr><tr className="rating-note"><td colSpan={4}>{row.note}</td></tr></Fragment>)}</tbody></table> : <p>Score breakdown is unavailable for this published event.</p>}
+            <p className="rating-total">Total Score: {rating.total}</p>
+            {rating.rows.length ? <table><thead><tr><th>Factor</th><th>Weight</th><th>Value</th><th>Points</th></tr></thead><tbody>{rating.rows.map((row, index) => <Fragment key={index}><tr><th scope="row"><span>{row.label}</span><span className="rating-factor-note">{row.note}</span></th><td>{row.weight}</td><td>{row.value}</td><td>{row.points}</td></tr></Fragment>)}</tbody></table> : <p>Score breakdown is unavailable for this published event.</p>}
             <p className="rating-context">{rating.scale} {rating.context}</p>
           </div>
         </div>
@@ -130,7 +131,7 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
           </Fact>
         ) : null}
         <Fact label="Host">
-          <span className="fact-text">{card.organizer || "Not Listed"}</span>
+          {card.organizer && hostEventId(card.event_url) ? <span className="host-profile" data-event-id={hostEventId(card.event_url)}><button type="button" className="host-trigger" aria-expanded="false" aria-controls={hostPanelId(card)} aria-label={`About ${card.organizer}`}>{card.organizer}</button><span className="host-panel" id={hostPanelId(card)} role="region" aria-label={`Host introduction for ${card.organizer}`} hidden><span className="host-description">Loading introduction…</span></span></span> : <span className="fact-text">{card.organizer || "Not Listed"}</span>}
         </Fact>
         <Fact label="Participation" wide>
           <span className="fact-text" title={card.participation.ai_evidence ? `Source: ${card.participation.ai_evidence}` : undefined}>{participationText(card.participation)}</span>
@@ -148,13 +149,13 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
       <footer className="card-actions">
         <button
           type="button"
-          className="action action-save icon-button"
+          className="action action-save"
           aria-label={`Save ${card.title}`}
           title={`Save ${card.title}`}
           data-action="toggle-save"
           aria-pressed="false"
         >
-          <ActionIcon name="star" />
+          <ActionIcon name="star" /><span data-role="save-label">Save</span>
         </button>
         {!card.cancelled ? (
           <details className="calendar-menu">

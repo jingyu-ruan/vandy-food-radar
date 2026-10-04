@@ -15,7 +15,7 @@ export function briefRows(brief, events = [], clock) {
       time: card ? eventTime(card, clock) : formatTimesInText(item.time || 'Time Not Listed', clock),
       food: foodEmojiText(!item.food || ['Food/Menu Not Specified','Unspecified'].includes(item.food) ? (card ? dietaryOptions(card).join(', ') || 'Unspecified' : 'Unspecified') : item.food,foodSourceText(card ? [card] : [])),
       location: item.location || 'Location not listed',
-      walk: (item.walk || '—').replace('Walking Time Unverified', '—').replace(/;.*$/, '').replace(/\s+(?:straight-line )?estimate$/, ''),
+      walk: (item.walk || '—').replace(/^~/,'').replace('Walking Time Unverified', '—').replace(/;.*$/, '').replace(/\s+(?:straight-line )?estimate$/, ''),
       walk_detail: item.walk,
       reason: formatTimesInText(item.reason || 'Check the event details for participation requirements.', clock),
       cancelled: Boolean(card?.cancelled),
@@ -42,8 +42,10 @@ export function renderBriefAssessments(root, brief, events = []) {
   const node=one('[data-role="brief-assessments"]',root);
   if (!node) return;
   const rows = briefRows(brief, events);
+  const linkHint=one('.brief-link-hint',root);
+  if (linkHint) linkHint.hidden=!rows.length;
   node.hidden = !rows.length;
-  if (!rows.length) { replace(node, []); return; }
+  if (!rows.length) { replace(node, []); updateBriefOverflow(root); return; }
   replace(node, [
     el('div', {class:'brief-table-scroll',tabindex:0,role:'region','aria-label':'Daily Brief event table'}, [
       el('table', {class:'brief-table'}, [
@@ -60,8 +62,6 @@ export function renderBriefAssessments(root, brief, events = []) {
         ]))),
       ]),
     ]),
-    el('p',{class:'brief-link-hint',text:'Select Rank to view the event card. Select Event to open its source.'}),
-    el('p', {class:'brief-scroll-hint',text:'Scroll inside the table for more events and columns.'}),
   ]);
   requestAnimationFrame(()=>updateBriefOverflow(root));
 }
@@ -83,7 +83,7 @@ export function bindBriefLinks(root) {
 
 export function updateBriefOverflow(root) {
   const scroll=one('.brief-table-scroll',root), hint=one('.brief-scroll-hint',root);
-  if(scroll && hint) hint.hidden=scroll.scrollHeight<=scroll.clientHeight+1 && scroll.scrollWidth<=scroll.clientWidth+1;
+  if(hint) hint.hidden=!scroll || (scroll.scrollHeight<=scroll.clientHeight+1 && scroll.scrollWidth<=scroll.clientWidth+1);
 }
 /** Newlines carry distinct highlights; the application supplies list markup. */
 export function briefLines(text) {
