@@ -62,16 +62,7 @@ function placeFact(event) {
 }
 
 function actionsFor(event) {
-  const actions = el('footer', { class: 'card-actions' }, [
-    el('button', {
-      type: 'button',
-      class: 'action action-save',
-      'aria-label': `${isSaved(event.date, event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
-      title: `${isSaved(event.date, event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
-      'data-action': 'toggle-save',
-      'aria-pressed': String(isSaved(event.date, event.identity_key)),
-    }, [icon('star'),el('span',{dataset:{role:'save-label'},text:isSaved(event.date,event.identity_key) ? 'Saved' : 'Save'})]),
-  ]);
+  const actions = el('footer', { class: 'card-actions' });
   if (!event.cancelled) {
     const options = el('div',{class:'calendar-options'});
     if (event.calendar && event.calendar.google) {
@@ -109,6 +100,14 @@ function actionsFor(event) {
       'data-action': 'toggle-details',
       'aria-expanded': 'false',
     }, [icon('info'), el('span', {dataset:{role:'action-label'}, text:'Details'})]),
+    el('button', {
+      type: 'button',
+      class: 'action action-save',
+      'aria-label': `${isSaved(event.date, event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
+      title: `${isSaved(event.date, event.identity_key) ? 'Unsave' : 'Save'} ${event.title}`,
+      'data-action': 'toggle-save',
+      'aria-pressed': String(isSaved(event.date, event.identity_key)),
+    }, [icon('star'),el('span',{dataset:{role:'save-label'},text:isSaved(event.date,event.identity_key) ? 'Saved' : 'Save'})]),
   );
   return actions;
 }

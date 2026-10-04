@@ -147,16 +147,6 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
       ) : null}
 
       <footer className="card-actions">
-        <button
-          type="button"
-          className="action action-save"
-          aria-label={`Save ${card.title}`}
-          title={`Save ${card.title}`}
-          data-action="toggle-save"
-          aria-pressed="false"
-        >
-          <ActionIcon name="star" /><span data-role="save-label">Save</span>
-        </button>
         {!card.cancelled ? (
           <details className="calendar-menu">
             <summary className="action"><ActionIcon name="calendar" /><span>Calendar</span></summary>
@@ -186,6 +176,16 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
         ) : null}
         <button type="button" className="action" data-action="toggle-details" aria-expanded="false">
           <ActionIcon name="info" /><span data-role="action-label">Details</span>
+        </button>
+        <button
+          type="button"
+          className="action action-save"
+          aria-label={`Save ${card.title}`}
+          title={`Save ${card.title}`}
+          data-action="toggle-save"
+          aria-pressed="false"
+        >
+          <ActionIcon name="star" /><span data-role="save-label">Save</span>
         </button>
       </footer>
 

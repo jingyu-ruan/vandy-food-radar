@@ -102,12 +102,6 @@
   {% endif %}
 
   <footer class="card-actions">
-    <button
-      type="button"
-      class="action action-save"
-      data-action="toggle-save"
-      aria-pressed="false"
-    >Save</button>
     {% if not card.cancelled %}
       <details class="calendar-menu"><summary class="action">Calendar</summary><div class="calendar-options">
       {% if card.google_calendar_url %}
@@ -132,6 +126,12 @@
       >Source</a>
     {% endif %}
     <button type="button" class="action" data-action="toggle-details">Details</button>
+    <button
+      type="button"
+      class="action action-save"
+      data-action="toggle-save"
+      aria-pressed="false"
+    >Save</button>
   </footer>
 
   <div class="card-details" hidden>

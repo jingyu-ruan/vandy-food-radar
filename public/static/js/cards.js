@@ -53,15 +53,7 @@ function placeFact(event) {
 }
 
 function actionsFor(event) {
-  const actions = el('footer', { class: 'card-actions' }, [
-    el('button', {
-      type: 'button',
-      class: 'action action-save',
-      'data-action': 'toggle-save',
-      'aria-pressed': String(isSaved(event.date, event.identity_key)),
-      text: isSaved(event.date, event.identity_key) ? 'Saved' : 'Save',
-    }),
-  ]);
+  const actions = el('footer', { class: 'card-actions' });
   if (!event.cancelled) {
     const options = el('div',{class:'calendar-options'});
     if (event.calendar && event.calendar.google) {
@@ -99,6 +91,13 @@ function actionsFor(event) {
       class: 'action',
       'data-action': 'toggle-details',
       text: 'Details',
+    }),
+    el('button', {
+      type: 'button',
+      class: 'action action-save',
+      'data-action': 'toggle-save',
+      'aria-pressed': String(isSaved(event.date, event.identity_key)),
+      text: isSaved(event.date, event.identity_key) ? 'Saved' : 'Save',
     }),
   );
   return actions;
