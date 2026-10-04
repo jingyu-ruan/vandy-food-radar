@@ -61,3 +61,12 @@ test('food highlights follow published priority and obtain times from their own 
  assert.deepEqual(briefHighlights('Snack Hour has cookies.\nDinner Club serves a meal.',events,'12').map(r=>r.identityKey),['meal','snacks']);
  assert.equal(briefHighlights('A reception has cookies.',events,'12')[0].time,'');
 });
+
+test('cached highlights recover omitted punctuation or parenthetical titles without duplicate picks',()=>{
+ const events=[{identity_key:'coffee',title:'Canterbury Cafe Hours!',score:.82,start:'13:00'},{identity_key:'dinner',title:"International 'Dores",score:.84,start:'19:00'},{identity_key:'books',title:'Silent Book Club (with the Graduate School!!)',score:.46,start:'15:00'}];
+ const text="Canterbury Cafe Hours has coffee.\nInternational 'Dores provides dinner.\nSilent Book Club has snacks.";
+ const structured=[{identityKey:'dinner',text:"International 'Dores provides dinner."}];
+ const rows=briefHighlights(text,events,'12',structured);
+ assert.deepEqual(rows.map(row=>row.identityKey),['dinner','coffee','books']);
+ assert.deepEqual(rows.map(row=>row.time),['7 PM','1 PM','3 PM']);
+});

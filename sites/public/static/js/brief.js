@@ -82,8 +82,8 @@ export function briefLines(text) {
 export function briefHighlights(text, events=[], clock, highlights=[]) {
   const normalize=value=>String(value || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   const available=events.filter(event=>!event.cancelled);
-  const rows=highlights.length ? highlights.map(highlight=>({text:highlight.text,event:available.find(event=>event.identity_key===highlight.identityKey)})).filter(row=>row.event)
-    : briefLines(text).map(line=>{
+  const structured=highlights.map(highlight=>({text:highlight.text,event:available.find(event=>event.identity_key===highlight.identityKey)})).filter(row=>row.event);
+  const fallback=briefLines(text).map(line=>{
       const exact=available.filter(event=>normalize(line).includes(normalize(event.title)));
       // Older saved briefs sometimes omit punctuation or a short parenthetical subtitle.
       const named=exact.length ? exact : available.filter(event=>{
@@ -92,7 +92,8 @@ export function briefHighlights(text, events=[], clock, highlights=[]) {
       });
       return {text:line,event:named.length===1 ? named[0] : null};
     });
-  return rows.sort((a,b)=>a.event && b.event ? compareEventCards(a.event,b.event) : a.event ? -1 : b.event ? 1 : 0)
+  const rows=structured.length ? [...structured,...fallback.filter(row=>row.event && !structured.some(pick=>pick.event.identity_key===row.event.identity_key))] : fallback;
+  return rows.sort((a,b)=>a.event && b.event ? compareEventCards(a.event,b.event) : a.event ? -1 : b.event ? 1 : 0).slice(0,3)
     .map(row=>({text:foodEmojiText(formatTimesInText(row.text,clock),foodSourceText(row.event ? [row.event] : available)),
       time:row.event ? eventTime(row.event,clock) : '',identityKey:row.event?.identity_key}));
 }

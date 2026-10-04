@@ -227,3 +227,9 @@ test('structured highlights retain exact event identity and leave times to publi
  assert.deepEqual(validateIntelligence(value,[input]).highlights,[{identityKey:input.identityKey,text:'Lunch has pizza.'}]);
  assert.deepEqual(validateIntelligence({...value,highlights:[{identityKey:input.identityKey,text:'Lunch at 7 PM has pizza.'}]},[input]).highlights,[]);
 });
+
+test('highlight identity joins tolerate punctuation and parenthetical subtitle omissions',()=>{
+ const events=[{...input,title:'Cafe Hours!'},{...input,identityKey:'books',title:'Silent Book Club (with the Graduate School!!)'}];
+ const highlights=[{identityKey:input.identityKey,text:'Cafe Hours serves coffee.'},{identityKey:'books',text:'Silent Book Club provides snacks.'}];
+ assert.deepEqual(validateIntelligence({brief:'Cafe Hours serves coffee.',traits:[],highlights},events).highlights,highlights);
+});

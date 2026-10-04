@@ -141,10 +141,17 @@ export function validateIntelligence(value: unknown, inputs: AiInput[], date?:st
     if (!input || input.status==='cancelled' || highlights.some(h=>h.identityKey===input.identityKey) ||
       typeof row.text!=='string' || !plainTableCopy(row.text,50) || genericOpening(row.text) ||
       /\b\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i.test(row.text) ||
-      !row.text.toLowerCase().includes(input.title.toLowerCase())) continue;
+      !highlightNamesEvent(row.text,input.title)) continue;
     highlights.push({identityKey:input.identityKey,text:row.text.trim()});
   }
   return {brief:output.brief.trim(),traits,foods,recommendations,highlights};
+}
+
+/** Identity remains exact; punctuation and a parenthetical subtitle are display details. */
+function highlightNamesEvent(text:string,title:string):boolean {
+  const normalize=(value:string)=>value.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const full=normalize(title), core=normalize(title.replace(/\([^)]*\)/g,''));
+  return normalize(text).includes(full) || (core.length>8 && normalize(text).includes(core));
 }
 
 /**
