@@ -46,13 +46,16 @@
     <div class="fact">
       <dt>Place</dt>
       <dd>
+        {% set walking_origin = client_config.reference.lat|string ~ ',' ~ client_config.reference.lng|string %}
         {% if card.place %}
-          <span class="fact-strong">{{ card.place.name }}</span>
+          {% set walking_destination = card.place.lat|string ~ ',' ~ card.place.lng|string %}
+          <a class="fact-strong place-link" data-role="place-directions" href="https://www.google.com/maps/dir/?api=1&amp;origin={{ walking_origin|urlencode }}&amp;destination={{ walking_destination|urlencode }}&amp;travelmode=walking" target="_blank" rel="noopener noreferrer" aria-label="Walking directions to {{ card.place.name }} in Google Maps">{{ card.place.name }}</a>
           {% if card.place.detail %}
             <span class="fact-text">{{ card.place.detail }}</span>
           {% endif %}
         {% elif card.location_listed %}
-          <span class="fact-strong">{{ card.location_listed }}</span>
+          {% set walking_destination = card.location_listed ~ ', Vanderbilt University, Nashville, TN' %}
+          <a class="fact-strong place-link" data-role="place-directions" data-destination-address="{{ walking_destination }}" href="https://www.google.com/maps/dir/?api=1&amp;origin={{ walking_origin|urlencode }}&amp;destination={{ walking_destination|urlencode }}&amp;travelmode=walking" target="_blank" rel="noopener noreferrer" aria-label="Walking directions to {{ card.location_listed }} in Google Maps">{{ card.location_listed }}</a>
           <span class="fact-muted">not matched to a campus building</span>
         {% else %}
           <span class="fact-muted">Not listed</span>

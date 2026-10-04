@@ -176,6 +176,12 @@ export default async function Home({ searchParams }: PageProps) {
             </p>
             {config.ownerPrivate && <RefreshButton />}
           </section>
+          <section className="side-block" aria-labelledby="contact-heading">
+            <h2 className="side-heading" id="contact-heading">Contact</h2>
+            <a className="settings-contact-link" href="https://github.com/jingyu-ruan/vandy-food-radar" target="_blank" rel="noopener noreferrer">
+              <ActionIcon name="external-link" /><span>GitHub Repository</span>
+            </a>
+          </section>
           </div>
         </dialog>
 
@@ -262,7 +268,7 @@ export default async function Home({ searchParams }: PageProps) {
             <p className="selected-date-label" data-role="selected-date-label">{longDate(selected, { weekday: "long", month: "long", day: "numeric" })}</p></div>
             <div className="card-grid" data-role="card-grid">
               {cards.length ? (
-                cards.map((card) => <WorkspaceCard key={card.identity_key} card={card} />)
+                cards.map((card) => <WorkspaceCard key={card.identity_key} card={card} origin={reference} />)
               ) : (
                 <p className="empty">{feed ? emptyText : briefText}</p>
               )}

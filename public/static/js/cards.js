@@ -12,6 +12,7 @@
 
 import { all, el, one, replace } from './dom.js';
 import { findEvent, isSaved, state, toggleSaved } from './state.js';
+import { destinationFor, googleWalkingUrl } from './maps-links.js';
 
 function stars(count) {
   const wrap = el('span', {
@@ -34,8 +35,16 @@ function fact(label, children, wide = false) {
 }
 
 function placeFact(event) {
+  const destination = destinationFor(event);
+  const url = googleWalkingUrl(state.origin, destination);
+  const name = event.place?.name || event.location_listed;
+  const placeName = url ? el('a', {
+    class:'fact-strong place-link', text:name, href:url, target:'_blank', rel:'noopener noreferrer',
+    'data-role':'place-directions', 'data-destination-address':destination.address || '',
+    'aria-label':`Walking directions to ${name} in Google Maps`,
+  }) : el('span', {class:'fact-strong', text:name});
   if (event.place) {
-    const children = [el('span', { class: 'fact-strong', text: event.place.name })];
+    const children = [placeName];
     if (event.place.detail) {
       children.push(' ');
       children.push(el('span', { class: 'fact-text', text: event.place.detail }));
@@ -44,7 +53,7 @@ function placeFact(event) {
   }
   if (event.location_listed) {
     return fact('Place', [
-      el('span', { class: 'fact-strong', text: event.location_listed }),
+      placeName,
       ' ',
       el('span', { class: 'fact-muted', text: 'not matched to a campus building' }),
     ]);

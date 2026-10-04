@@ -16,6 +16,7 @@ import { ActionIcon } from "./action-icon";
 import { foodPresentation } from "@/public/static/js/food-presentation.js";
 import { ratingPresentation } from "@/public/static/js/rating.js";
 import { FACT_ICONS } from "@/public/static/js/fact-icons.js";
+import { destinationFor, googleWalkingUrl } from "@/public/static/js/maps-links.js";
 
 import type { CardJson } from "@/lib/vfr/viewmodel.ts";
 
@@ -36,11 +37,21 @@ function Fact({
   );
 }
 
-function PlaceFact({ card }: { card: CardJson }) {
+type WalkingOrigin = { label: string; lat: number; lng: number };
+
+function PlaceFact({ card, origin }: { card: CardJson; origin: WalkingOrigin }) {
+  const destination = destinationFor(card);
+  const url = googleWalkingUrl(origin, destination);
+  const name = card.place?.name || card.location_listed;
+  const placeName = url ? (
+    <a className="fact-strong place-link" href={url} target="_blank" rel="noopener noreferrer"
+      data-role="place-directions" data-destination-address={destination?.address || ""}
+      aria-label={`Walking directions to ${name} in Google Maps`}>{name}</a>
+  ) : <span className="fact-strong">{name}</span>;
   if (card.place) {
     return (
       <Fact label="Place">
-        <span className="fact-strong">{card.place.name}</span>
+        {placeName}
         {card.place.detail ? (
           <>
             {" "}
@@ -53,7 +64,7 @@ function PlaceFact({ card }: { card: CardJson }) {
   if (card.location_listed) {
     return (
       <Fact label="Place">
-        <span className="fact-strong">{card.location_listed}</span>{" "}
+        {placeName}{" "}
         <span className="chip chip-quiet">Unmapped</span>
       </Fact>
     );
@@ -65,7 +76,7 @@ function PlaceFact({ card }: { card: CardJson }) {
   );
 }
 
-export function WorkspaceCard({ card }: { card: CardJson }) {
+export function WorkspaceCard({ card, origin }: { card: CardJson; origin: WalkingOrigin }) {
   const food = foodPresentation(card);
   const rating = ratingPresentation(card);
   return (
@@ -103,7 +114,7 @@ export function WorkspaceCard({ card }: { card: CardJson }) {
             <span className="fact-text">{foodDescriptionText(card)}</span>
           ) : null}
         </Fact>
-        <PlaceFact card={card} />
+        <PlaceFact card={card} origin={origin} />
         {card.place && card.location_listed ? (
           <Fact label="Listed As">
             <span className="fact-text">{card.location_listed}</span>

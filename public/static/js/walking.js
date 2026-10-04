@@ -1,6 +1,7 @@
 /** Labelled walking estimates, refreshed when the origin or date changes. */
 import { fetchWalking } from './api.js';
 import { state } from './state.js';
+import { googleWalkingUrl } from './maps-links.js';
 
 let generation = 0;
 const routeCache = new Map();
@@ -26,6 +27,15 @@ export async function walkingLeg(from, to) {
 export async function refreshWalking(root) {
   const current = ++generation;
   const origin = {...state.origin};
+  for (const link of root.querySelectorAll('[data-role="place-directions"]')) {
+    const card = link.closest('.card');
+    const destination = card.dataset.lat !== undefined
+      ? {lat:Number(card.dataset.lat),lng:Number(card.dataset.lng)}
+      : {address:link.dataset.destinationAddress};
+    const url = googleWalkingUrl(origin,destination);
+    if (url) link.href=url;
+    else link.removeAttribute('href');
+  }
   const cards = Array.from(root.querySelectorAll('.card'));
   let cursor = 0;
   await Promise.all(Array.from({length:3},async()=> {
