@@ -263,6 +263,11 @@ export function syncCardChrome(root) {
  * no extra binding.
  */
 export function bindCardEvents(root, { onSelect } = {}) {
+  root.ownerDocument.addEventListener('click', event => {
+    for (const menu of all('.calendar-menu[open]', root)) {
+      if (!menu.contains(event.target)) menu.open = false;
+    }
+  }, true);
   root.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;

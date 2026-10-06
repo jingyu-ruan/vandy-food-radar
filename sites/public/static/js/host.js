@@ -11,7 +11,6 @@ export function hostFor(event) {
   return el('span',{class:'host-profile',dataset:{eventId:id}},[el('button',{type:'button',class:'host-trigger','aria-expanded':'false','aria-controls':hostPanelId(event),'aria-label':`About ${event.organizer}`,text:event.organizer}),el('span',{class:'host-panel',id:hostPanelId(event),role:'region','aria-label':`Host introduction for ${event.organizer}`,hidden:true},[el('span',{class:'host-description',text:'Loading introduction…'})])]);
 }
 export function bindHosts(root) {
-  const leaveTimers=new WeakMap();
   const position=host=>{
     const panel=one('.host-panel',host), box=one('.host-trigger',host).getBoundingClientRect(), rect=panel.getBoundingClientRect();
     panel.style.left=`${Math.max(16,Math.min(box.left,innerWidth-rect.width-16))}px`;
@@ -29,8 +28,8 @@ export function bindHosts(root) {
     panel.dataset.loaded=String(Boolean(profile));
     if(!panel.hidden)position(host);
   };
-  root.addEventListener('pointerover',event=>{if(!matchMedia('(hover:hover)').matches)return;const host=event.target.closest?.('.host-profile');if(host){clearTimeout(leaveTimers.get(host));if(!host.contains(event.relatedTarget))open(host);}});
-  root.addEventListener('pointerout',event=>{const host=event.target.closest?.('.host-profile');if(host && !host.contains(event.relatedTarget))leaveTimers.set(host,setTimeout(()=>{if(!host.contains(document.activeElement) && !host.classList.contains('is-pinned'))close(host);},180));});
+  root.addEventListener('pointerover',event=>{if(!matchMedia('(hover:hover)').matches)return;const host=event.target.closest?.('.host-profile');if(host && !host.contains(event.relatedTarget))open(host);});
+  root.addEventListener('pointerout',event=>{const host=event.target.closest?.('.host-profile');if(host && !host.contains(event.relatedTarget) && !host.contains(document.activeElement) && !host.classList.contains('is-pinned'))close(host);});
   root.addEventListener('focusin',event=>{const host=event.target.closest?.('.host-profile');if(host)open(host);});
   root.addEventListener('focusout',event=>{const host=event.target.closest?.('.host-profile');if(host)requestAnimationFrame(()=>{if(!host.contains(document.activeElement))close(host);});});
   root.addEventListener('click',event=>{const trigger=event.target.closest?.('.host-trigger');if(!trigger)return;const host=trigger.closest('.host-profile');if(host.classList.contains('is-pinned'))close(host);else{host.classList.add('is-pinned');open(host);}});
