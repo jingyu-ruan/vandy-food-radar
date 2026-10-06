@@ -263,6 +263,31 @@ export function syncCardChrome(root) {
  * no extra binding.
  */
 export function bindCardEvents(root, { onSelect } = {}) {
+  root.addEventListener('pointerover', event => {
+    if (!window.matchMedia('(hover:hover)').matches) return;
+    const menu = event.target.closest?.('.calendar-menu');
+    if (!menu || menu.contains(event.relatedTarget)) return;
+    for (const other of all('.calendar-menu[open]', root)) {
+      if (other !== menu) other.open = false;
+    }
+    menu.open = true;
+  });
+  root.addEventListener('pointerout', event => {
+    const menu = event.target.closest?.('.calendar-menu');
+    if (menu && !menu.contains(event.relatedTarget)) menu.open = false;
+  });
+  root.addEventListener('focusout', event => {
+    const menu = event.target.closest?.('.calendar-menu');
+    if (menu && !menu.contains(event.relatedTarget)) menu.open = false;
+  });
+  root.addEventListener('keydown', event => {
+    const menu = event.target.closest?.('.calendar-menu');
+    if (menu && event.key === 'Escape') {
+      event.preventDefault();
+      menu.open = false;
+      one('summary', menu).focus({preventScroll:true});
+    }
+  });
   root.ownerDocument.addEventListener('click', event => {
     for (const menu of all('.calendar-menu[open]', root)) {
       if (!menu.contains(event.target)) menu.open = false;
