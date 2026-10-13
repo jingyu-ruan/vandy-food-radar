@@ -58,10 +58,12 @@ function setScope() {
 }
 
 async function loadDay(isoDate, { pushHistory = true } = {}) {
+  if(isoDate<state.config.today) isoDate=state.config.today;
   const generation = ++dayRequest;
   state.selectedDate = isoDate;
   const input = one('#date-input', root);
   if (input && input.value !== isoDate) input.value = isoDate;
+  renderScope();
   if (pushHistory) {
     const url = new URL(window.location.href);
     url.searchParams.set('date', isoDate);
@@ -112,6 +114,8 @@ function renderBrief() {
 }
 
 function renderScope() {
+  const previous=one('[data-action="prev-day"]',root);
+  if(previous && state.config) previous.disabled=state.selectedDate<=state.config.today;
   const node = one('[data-role="scope"]', root);
   if (!node || !state.config) return;
   const date = new Date(`${state.selectedDate}T00:00:00`);

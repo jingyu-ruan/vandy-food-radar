@@ -100,6 +100,8 @@ export function WorkspaceCard({ card, origin }: { card: CardJson; origin: Walkin
         </div>
       </header>
 
+      <div className={`card-content${card.poster ? " has-poster" : ""}`}>
+      <div className="card-info">
       <p className="card-when">
         <span className="when-time">{card.time_label}</span>
         {card.badge ? <span className="tag tag-alert">{card.badge}</span> : null}
@@ -148,6 +150,14 @@ export function WorkspaceCard({ card, origin }: { card: CardJson; origin: Walkin
           <span className="fact-text" title={card.participation.ai_evidence ? `Source: ${card.participation.ai_evidence}` : undefined}>{participationText(card.participation)}</span>
         </Fact>
       </dl>
+      </div>
+      {card.poster ? (
+        <a className="card-poster" href={card.poster.image_url} target="_blank" rel="noopener noreferrer" aria-label={`View event poster for ${card.title}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- original AnchorLink poster, lazily loaded without an image proxy */}
+          <img src={card.poster.image_url} alt={`Event poster for ${card.title}`} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+        </a>
+      ) : null}
+      </div>
 
       {card.warnings.length ? (
         <ul className="card-warnings">
@@ -202,6 +212,8 @@ export function WorkspaceCard({ card, origin }: { card: CardJson; origin: Walkin
 
       <div className="card-details" hidden>
         {card.description ? <p className="detail-description">{card.description}</p> : null}
+        {card.poster?.text ? <section className="poster-details"><h4>Event Poster Text</h4><p>{card.poster.text}</p>
+          {card.poster.visual_summary ? <p className="fact-muted">Image description: {card.poster.visual_summary}</p> : null}</section> : null}
         <p className="detail-why">{card.explanation}</p>
         {card.sources.length ? (
           <p className="detail-sources">

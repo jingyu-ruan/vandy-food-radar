@@ -126,6 +126,10 @@ function detailsFor(event) {
     el('p', { class: 'detail-why', text: event.explanation }),
   ]);
   if (event.description) details.prepend(el('p', {class:'detail-description', text:event.description}));
+  if (event.poster?.text) details.append(el('section',{class:'poster-details'},[
+    el('h4',{text:'Event Poster Text'}),el('p',{text:event.poster.text}),
+    event.poster.visual_summary ? el('p',{class:'fact-muted',text:`Image description: ${event.poster.visual_summary}`}) : null,
+  ]));
   if (event.sources && event.sources.length) {
     const sources = el('p', { class: 'detail-sources' });
     event.sources.forEach((source, index) => {
@@ -186,7 +190,13 @@ export function renderCard(event) {
   ]);
   if (event.badge) when.append(el('span', { class: 'tag tag-alert', text: event.badge }));
   if (event.change) when.append(el('span', { class: 'tag tag-change', text: event.change }));
-  card.append(when);
+  const content = el('div',{class:`card-content${event.poster ? ' has-poster' : ''}`});
+  const info = el('div',{class:'card-info'},[when]);
+  content.append(info);
+  if (event.poster) content.append(el('a',{class:'card-poster',href:event.poster.image_url,target:'_blank',rel:'noopener noreferrer','aria-label':`View event poster for ${event.title}`},[
+    el('img',{src:event.poster.image_url,alt:`Event poster for ${event.title}`,loading:'lazy',decoding:'async',referrerpolicy:'no-referrer'}),
+  ]));
+  card.append(content);
 
   const food = foodPresentation(event);
   const foodChildren = [el('span', {class:`chip chip-${food.tone}`}, [food.label])];
@@ -220,7 +230,7 @@ export function renderCard(event) {
   );
   const accessChildren = [el('span', {class:'fact-text',text:participationText(event.participation),title:event.participation.ai_evidence ? `Source: ${event.participation.ai_evidence}` : null})];
   facts.append(fact('Participation', accessChildren, true));
-  card.append(facts);
+  info.append(facts);
 
   if (event.warnings && event.warnings.length) {
     const warnings = el('ul', { class: 'card-warnings' });
@@ -351,6 +361,13 @@ function bindRatings(root) {
 }
 
 export function bindCardEvents(root, { onSelect } = {}) {
+  root.addEventListener('error',event=>{
+    const poster=event.target.closest?.('.card-poster');
+    if(poster){poster.hidden=true;poster.closest('.card-content')?.classList.remove('has-poster');}
+  },true);
+  for (const img of all('.card-poster img',root)) {
+    if(img.complete && !img.naturalWidth){img.closest('.card-poster').hidden=true;img.closest('.card-content').classList.remove('has-poster');}
+  }
   bindRatings(root);
   bindHosts(root);
   root.addEventListener('pointerover', event => {
@@ -378,7 +395,7 @@ export function bindCardEvents(root, { onSelect } = {}) {
       one('summary', menu).focus({preventScroll:true});
     }
   });
-  root.ownerDocument.addEventListener('click', event => {
+  (root.ownerDocument || root).addEventListener('click', event => {
     for (const menu of all('.calendar-menu[open]', root)) {
       if (!menu.contains(event.target)) menu.open = false;
     }

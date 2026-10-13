@@ -22,7 +22,7 @@ import type { Metadata } from "next";
 import { RefreshButton } from "@/components/vfr/refresh-button";
 import { WorkspaceBoot } from "@/components/vfr/workspace-boot";
 import { WorkspaceCard } from "@/components/vfr/workspace-card";
-import { parseSelectedDate } from "@/lib/vfr/feed.ts";
+import { parseBrowsingDate } from "@/lib/vfr/feed.ts";
 import type { LastSuccess } from "@/lib/vfr/repository.ts";
 import { getConfig, getRepository, getRouter } from "@/lib/vfr/runtime.ts";
 import { localDateOf } from "@/lib/vfr/time.ts";
@@ -48,7 +48,7 @@ function longDate(isoDate: string, options: Intl.DateTimeFormatOptions): string 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const config = getConfig();
   const today = localDateOf(Date.now(), config.timezone);
-  const selected = parseSelectedDate(firstValue((await searchParams).date), today);
+  const selected = parseBrowsingDate(firstValue((await searchParams).date), today);
   return {
     title: `Free Bites at Vandy \u2014 ${longDate(selected, { weekday: "short", month: "short", day: "numeric" })}`,
   };
@@ -60,7 +60,7 @@ export default async function Home({ searchParams }: PageProps) {
   // eslint-disable-next-line react-hooks/purity
   const nowMs = Date.now();
   const today = localDateOf(nowMs, config.timezone);
-  const selected = parseSelectedDate(firstValue((await searchParams).date), today);
+  const selected = parseBrowsingDate(firstValue((await searchParams).date), today);
 
   let feed: DayFeedJson | null = null;
   let lastSuccess: LastSuccess | null = null;
@@ -212,6 +212,7 @@ export default async function Home({ searchParams }: PageProps) {
                   type="button"
                   className="control-button"
                   data-action="prev-day"
+                  disabled={selected <= today}
                   aria-label="Previous day"
                   title="Previous day"
                 >
@@ -225,6 +226,7 @@ export default async function Home({ searchParams }: PageProps) {
                   id="date-input"
                   className="control control-date"
                   type="date"
+                  min={today}
                   defaultValue={selected}
                 />
                   <button type="button" className="control control-date date-picker-trigger" data-role="date-picker-trigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="desktop-date-picker" hidden><span data-role="date-picker-label" /><ActionIcon name="calendar" /></button>

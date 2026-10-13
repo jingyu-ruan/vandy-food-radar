@@ -83,12 +83,13 @@
           <h1 class="work-title">Free food on campus</h1>
         </div>
         <div class="date-nav" data-module="date-nav">
-          <button type="button" class="control-button" data-action="prev-day" aria-label="Previous day">‹</button>
+          <button type="button" class="control-button" data-action="prev-day" aria-label="Previous day" {% if selected_date <= today %}disabled{% endif %}>‹</button>
           <label class="visually-hidden" for="date-input">Selected date</label>
           <input
             id="date-input"
             class="control control-date"
             type="date"
+            min="{{ today.isoformat() }}"
             value="{{ selected_date.isoformat() }}"
           />
           <button type="button" class="control-button" data-action="next-day" aria-label="Next day">›</button>

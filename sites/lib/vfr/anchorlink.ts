@@ -23,6 +23,7 @@ import type { AnchorLinkConfig } from "./config.ts";
 import { ParseStatus, SourceId } from "./models.ts";
 import type { SourceRecord } from "./models.ts";
 import { htmlToPlainText } from "./text.ts";
+import { posterImageUrl } from "./poster.ts";
 import {
   formatLocalTime,
   localDateOf,
@@ -349,6 +350,7 @@ export class LiveAnchorLinkAdapter {
         source_identity: `anchorlink:${externalId}`,
         food_confirmed: "confirmed",
         food_description: description ?? "AnchorLink Free Food perk",
+        poster_image_url: posterImageUrl(row["imagePath"]),
         status,
         cancelled: false,
       },

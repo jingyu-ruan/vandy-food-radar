@@ -302,7 +302,7 @@ def create_app(
     @app.get("/")
     def index() -> str | Response:
         today = today_fn()
-        selected = parse_iso_date(request.args.get("date"), default=today)
+        selected = max(today, parse_iso_date(request.args.get("date"), default=today))
         try:
             feed = _feed(selected)
             last_success = _last_success()

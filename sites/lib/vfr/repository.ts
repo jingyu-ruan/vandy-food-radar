@@ -23,6 +23,8 @@ import type { ChangeRecord } from "./changes.ts";
 import type { Config } from "./config.ts";
 import { AI_KEY_PREFIX } from "./intelligence.ts";
 import type { AiState } from "./intelligence.ts";
+import { POSTER_KEY_PREFIX } from "./poster.ts";
+import type { PosterState } from "./poster.ts";
 import {
   batchRows,
   boolToInt,
@@ -304,6 +306,24 @@ export class Repository {
     const row = await this.db.prepare("SELECT value FROM app_state WHERE key = ?")
       .bind(`${AI_KEY_PREFIX}${date}`).first<{value: string}>();
     return safeJsonParse<AiState | null>(row?.value ?? null, null);
+  }
+
+  async readPosterState(key: string): Promise<PosterState | null> {
+    const row = await this.db.prepare("SELECT value FROM app_state WHERE key = ?")
+      .bind(`${POSTER_KEY_PREFIX}${key}`).first<{value: string}>();
+    return safeJsonParse<PosterState | null>(row?.value ?? null,null);
+  }
+
+  async savePosterState(key: string, state: PosterState, holder: string): Promise<void> {
+    await this.db.batch([
+      this.db.prepare(`INSERT INTO app_state (key,value,updated_at)
+        VALUES (?, (SELECT holder FROM refresh_lease WHERE name = ? AND holder = ? AND expires_at > 0), ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+        .bind(PUBLISH_FENCE_KEY,LEASE_NAME,holder,state.attemptedAt),
+      this.db.prepare(`INSERT INTO app_state (key,value,updated_at) VALUES (?,?,?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`)
+        .bind(`${POSTER_KEY_PREFIX}${key}`,JSON.stringify(state),state.attemptedAt),
+    ]);
   }
 
   /** Persist attempts before inference, fenced by the existing refresh lease. */
@@ -1065,6 +1085,8 @@ export class Repository {
     ];
     const asOfIso = payload.publishedAt;
     statements.push(this.db.prepare("DELETE FROM app_state WHERE key LIKE 'ai:day:%' AND substr(key,8) NOT IN (SELECT target_date FROM feeds)"));
+    statements.push(this.db.prepare("DELETE FROM app_state WHERE key LIKE 'poster:image:%' AND updated_at < ?")
+      .bind(`${shiftIsoDate(payload.todayDate,-30)}T00:00:00.000Z`));
     for (const table of [
       "events",
       "source_records",

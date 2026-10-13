@@ -123,7 +123,10 @@ export function normalize(record: SourceRecord): NormalizedRecord {
   const parsedStart = parseLocalTime(fields["start_time"]);
   const parsedEnd = parseLocalTime(fields["end_time"]);
 
-  const foodDescription = asText(fields["food_description"]);
+  const listingDescription = asText(fields["food_description"]);
+  const posterEvidence = Array.isArray(fields.poster_food_evidence)
+    ? fields.poster_food_evidence.filter((value): value is string => typeof value === "string") : [];
+  const foodDescription = [listingDescription, ...posterEvidence].filter(Boolean).join("\n") || null;
   const classification = classifyFood(foodDescription);
 
   return {

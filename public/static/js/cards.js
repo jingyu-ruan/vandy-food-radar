@@ -288,7 +288,7 @@ export function bindCardEvents(root, { onSelect } = {}) {
       one('summary', menu).focus({preventScroll:true});
     }
   });
-  root.ownerDocument.addEventListener('click', event => {
+  (root.ownerDocument || root).addEventListener('click', event => {
     for (const menu of all('.calendar-menu[open]', root)) {
       if (!menu.contains(event.target)) menu.open = false;
     }

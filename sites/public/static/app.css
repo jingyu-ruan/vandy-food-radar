@@ -411,6 +411,11 @@ button { font: inherit; color: inherit; }
 .chip-quiet { background: var(--surface-sunken); color: var(--ink-soft); }
 
 .card-warnings {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
   margin: 0 0 8px;
   padding: 7px 10px;
   list-style: none;
@@ -1483,7 +1488,7 @@ html.settings-open { overflow:hidden; }
 .calendar-day.is-outside { color:var(--ink-faint); }
 .calendar-day[aria-current="date"] { color:var(--accent); font-weight:600; }
 .calendar-day.is-selected { background:var(--accent); color:white; font-weight:600; }
-.calendar-day:hover:not(.is-selected), .calendar-month-button:hover { background:var(--surface-sunken); }
+.calendar-day:hover:not(:disabled):not(.is-selected), .calendar-month-button:hover:not(:disabled) { background:var(--surface-sunken); }
 .calendar-day:focus-visible, .calendar-month-button:focus-visible, .calendar-today:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .calendar-footer { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
 .calendar-today { border:0; border-radius:8px; padding:8px 12px; background:var(--accent-soft); color:var(--accent); font:inherit; font-size:14px; font-weight:500; cursor:pointer; }
@@ -1523,3 +1528,24 @@ html.settings-open { overflow:hidden; }
 .vfr-campus-pin { width:20px; height:20px; margin:0; flex:none; }
 
 .brief-card-link:focus-visible { outline-offset:0; }
+
+/* Original event posters sit beneath the rating, beside the event facts. */
+.card-content { min-width:0; }
+.card-content.has-poster { display:grid; grid-template-columns:minmax(0,1fr) minmax(160px,26%); gap:24px; align-items:start; }
+.card-info { min-width:0; }
+.card-poster { display:flex; align-items:center; justify-content:center; margin:8px 0 16px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--surface-sunken); }
+.card-poster img { display:block; width:100%; height:auto; max-height:360px; object-fit:contain; }
+.card-poster[hidden] { display:none; }
+.card-poster:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.poster-details { margin-block:14px; }
+.poster-details h4 { margin-bottom:6px; font-size:14px; }
+.poster-details p { white-space:pre-line; overflow-wrap:anywhere; }
+.calendar-day:disabled, .calendar-month-button:disabled { color:var(--ink-faint); opacity:.45; cursor:default; }
+.calendar-day:disabled:hover, .calendar-month-button:disabled:hover { background:transparent; }
+@media(max-width:600px) {
+ .card-content.has-poster { grid-template-columns:minmax(0,1fr); grid-template-areas:"time" "poster" "facts"; gap:4px; }
+ .card-content.has-poster .card-info { display:contents; }
+ .card-content.has-poster .card-when { grid-area:time; }
+ .card-content.has-poster .card-facts { grid-area:facts; }
+ .card-poster { grid-area:poster; width:min(100%,280px); justify-self:center; }
+}

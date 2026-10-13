@@ -428,6 +428,11 @@ button { font: inherit; color: inherit; }
 .chip-quiet { background: var(--surface-sunken); color: var(--ink-soft); }
 
 .card-warnings {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
   margin: 0 0 8px;
   padding: 7px 10px;
   list-style: none;

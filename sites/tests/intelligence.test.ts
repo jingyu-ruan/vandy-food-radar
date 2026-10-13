@@ -209,7 +209,7 @@ test("the opening is an editorial takeaway: prompt asks for a spotlight and coun
   assert.match(prompt,/Use must-go only with strong source support/);
   assert.match(prompt,/Never spotlight a cancelled event/);
   assert.match(body.generationConfig.responseSchema.properties.brief.description,/One to three plain-English food highlights/);
-  assert.equal(AI_VERSION,"food-highlights-short-notes-v13");
+  assert.equal(AI_VERSION,"poster-evidence-food-notes-v14");
   for (const brief of ["There are 3 events on the calendar.","Two free-food events are listed for the selected date.","Compare the ranked activities below by food and timing.","The table below ranks every option."]) {
     assert.throws(()=>validateIntelligence({brief,traits:[]},[input]),/generic model brief/);
   }

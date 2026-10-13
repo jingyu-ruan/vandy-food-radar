@@ -31,6 +31,7 @@ import { ChangeKind, FoodCategory, FoodConfirmed, VerificationState } from "./mo
 import type { Conflict, Event } from "./models.ts";
 import { assessParticipation, participationInputFor, participationWarnings } from "./participation.ts";
 import { placeDisplayName } from "./places.ts";
+import { sourcePosterUrl } from "./poster.ts";
 import type { PlaceDataset } from "./places.ts";
 import { recommendationStars } from "./ranking.ts";
 import type { FeedSnapshot, StoredEvent, StoredSource } from "./repository.ts";
@@ -97,6 +98,7 @@ export type CardJson = {
   food_category: string;
   food_description: string | null;
   food_items?: string[];
+  poster?: {image_url:string; text:string; visual_summary:string};
   description: string | null;
   location_listed: string | null;
   place: PlaceJson | null;
@@ -284,6 +286,12 @@ export function buildCard(stored: StoredEvent, context: ViewContext): CardJson {
   }
 
   const calendarLocation = resolved ? placeDisplayName(resolved) : event.location;
+  const posterSource = stored.sources.find(source=>sourcePosterUrl(source));
+  const poster = posterSource ? {
+    image_url:sourcePosterUrl(posterSource)!,
+    text:String(posterSource.parsedFields.poster_text || ""),
+    visual_summary:String(posterSource.parsedFields.poster_visual_summary || ""),
+  } : undefined;
   return displayFields({
     identity_key: event.identityKey,
     title: event.title,
@@ -297,6 +305,7 @@ export function buildCard(stored: StoredEvent, context: ViewContext): CardJson {
     food_label: FOOD_LABELS[event.foodConfirmed] ?? "Food unconfirmed",
     food_category: CATEGORY_LABELS[event.foodCategory] ?? "Unspecified",
     food_description: foodExcerpt(event.foodDescription),
+    poster,
     description: event.foodDescription,
     location_listed: event.location,
     place,

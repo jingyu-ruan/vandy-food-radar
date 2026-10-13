@@ -43,6 +43,7 @@ import { StorageError } from "./d1.ts";
 import { ChangeKind, VerificationState } from "./models.ts";
 import type { Event, EventHistoryEntry, SourceRecord } from "./models.ts";
 import { normalize } from "./normalize.ts";
+import { enrichPosters } from "./poster.ts";
 import { assessParticipation, participationInputFor } from "./participation.ts";
 import type { PlaceDataset } from "./places.ts";
 import { buildExplanation, orderEvents, scoreEvent } from "./ranking.ts";
@@ -104,6 +105,7 @@ export type RefreshOptions = {
   holder?: string;
   /** Gemini requests are injected separately from AnchorLink requests in tests. */
   geminiFetcher?: typeof fetch;
+  posterImageFetcher?: typeof fetch;
 };
 
 function randomId(): string {
@@ -236,6 +238,7 @@ async function executeRefresh(options: ExecuteOptions): Promise<RefreshResult> {
   const places = options.places ?? campusPlaces();
 
   const computed: ComputedDay[] = [];
+  const posterBudget = {remaining:4};
   for (const targetDate of targetDates) {
     // The previous publication is needed before anything is replaced, both for
     // change classification and to carry forward creation timestamps.
@@ -260,6 +263,9 @@ async function executeRefresh(options: ExecuteOptions): Promise<RefreshResult> {
       await recordFailure(repository, error, { ...failureContext, status: "source_error" });
       return { ok: false, kind: "source", message: `${targetDate}: ${message}` };
     }
+
+    await enrichPosters(records, {config,repository,holder,nowIso,todayIso:options.todayIso,
+      budget:posterBudget,geminiFetcher:options.geminiFetcher,imageFetcher:options.posterImageFetcher});
 
     computed.push(
       await computeDay({

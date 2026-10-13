@@ -39,6 +39,12 @@ export function parseSelectedDate(raw: string | null | undefined, fallback: stri
   return trimmed;
 }
 
+/** Browsing starts on the current campus-local day. */
+export function parseBrowsingDate(raw: string | null | undefined, today: string): string {
+  const date = parseSelectedDate(raw,today);
+  return date < today ? today : date;
+}
+
 export type FeedView = {
   state: FeedState;
   targetDate: string;

@@ -15,7 +15,7 @@ import { bindCardEvents, renderCards, syncCardChrome } from './cards.js';
 import { all, one } from './dom.js';
 import { slideViews } from './view-motion.js';
 import { bindSegmented } from './segmented.js';
-import {bindDatePicker, syncDatePicker} from './date-picker.js';
+import {bindDatePicker, syncDatePicker, upcomingDate} from './date-picker.js';
 import { bindScrollHint } from './scroll-hint.js';
 import { armPinMode, cancelPinMode, clearRoute, flushMapFrame, openTooltip, panTo, prepareMap, showMap, syncMarkers } from './map.js';
 import { relocateMap } from './map-snapshot.js';
@@ -63,11 +63,13 @@ function setScope() {
 }
 
 async function loadDay(isoDate, { pushHistory = true } = {}) {
+  isoDate=upcomingDate(isoDate,state.config.today);
   const generation = ++dayRequest;
   state.selectedDate = isoDate;
   const input = one('#date-input', root);
   if (input && input.value !== isoDate) input.value = isoDate;
   syncDatePicker(root,isoDate);
+  renderScope();
   if (pushHistory) {
     const url = new URL(window.location.href);
     url.searchParams.set('date', isoDate);
@@ -127,6 +129,8 @@ function renderBrief() {
 
 function renderScope() {
   if (!state.config) return;
+  const previous=one('[data-action="prev-day"]',root);
+  if(previous) previous.disabled=state.selectedDate<=state.config.today;
   setScope();
   const today = one('[data-action="today"]', root);
   if (today) {

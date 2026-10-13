@@ -298,6 +298,33 @@ the Google Maps link and an explicit coordinate limitation.
 
 Official reference: https://ai.google.dev/gemini-api/docs/pricing
 
+## Event posters and date browsing
+
+Cards display the original AnchorLink poster below the rating, beside event facts
+on larger screens and above the facts on phones. Images keep their original
+proportions and open at full size. Existing saved source payloads provide the
+image immediately; displaying it requires no model request.
+
+With the existing `GEMINI_API_KEY`, protected refreshes also extract legible poster
+text using Gemini's image input. Printed food promises supplement the source
+description before food classification and scoring, and OCR text is passed to
+Daily Brief analysis. A tentative visual description stays separate from printed
+evidence; illustrations alone cannot establish an offered menu. The Details panel
+exposes the poster text. Published times, location and status retain their authority
+when a poster differs.
+
+The entire refresh recognizes at most four new images, with two concurrent tasks.
+Additional images are picked up by subsequent refreshes. D1 caches results by image
+URL, model and OCR version. Failures have a one-hour cooldown and at most three
+attempts per image per campus-local day; source publication continues. Cache entries
+expire after 30 days. Images are limited to 2 MiB and fetched only from AnchorLink
+and its image hosts. Visitor GET requests never perform recognition. See the
+[Gemini image documentation](https://ai.google.dev/gemini-api/docs/image-understanding).
+
+Date browsing starts today in the configured campus timezone. Past days are disabled
+in the desktop calendar and native date input, and previous-day navigation stops at
+today. Past page date parameters select today.
+
 ## Food-focused ratings
 
 Ratings use Food Confirmed (20%), Full Meal (30%), Menu Specificity (25%), Meal Timing (15%), and Walking (10%). Description length, source-verification confidence, RSVP likelihood and participation estimates do not contribute to the score. Specific dishes receive full menu credit, a named provider receives 75%, dietary options receive 40%, and a generic meal claim receives no menu-specificity credit. Meal timing favors starts during breakfast (7–10), lunch (11–14) and dinner (17–20) in the configured local timezone, with a two-hour linear falloff outside those windows. Unknown time or walking information stays neutral.

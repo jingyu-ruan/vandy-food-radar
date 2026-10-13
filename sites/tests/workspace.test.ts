@@ -4,7 +4,7 @@ import { test } from "node:test";
 import type { HttpFetcher } from "../lib/vfr/anchorlink.ts";
 import { campusPlaces } from "../lib/vfr/campus-places.ts";
 import { defaultConfig, parseRefreshDays } from "../lib/vfr/config.ts";
-import { parseSelectedDate } from "../lib/vfr/feed.ts";
+import { parseSelectedDate, parseBrowsingDate } from "../lib/vfr/feed.ts";
 import { runRefresh } from "../lib/vfr/pipeline.ts";
 import { scoreEvent } from "../lib/vfr/ranking.ts";
 import { Repository } from "../lib/vfr/repository.ts";
@@ -20,6 +20,12 @@ import { freshDatabase, SqliteD1 } from "./sqlite-d1.ts";
 const TODAY = "2025-03-12";
 const TOMORROW = "2025-03-13";
 const NOW = Date.UTC(2025, 2, 12, 18);
+
+test("page date parameters select today when the requested date has passed",()=>{
+  assert.equal(parseBrowsingDate("2025-03-11",TODAY),TODAY);
+  assert.equal(parseBrowsingDate(TODAY,TODAY),TODAY);
+  assert.equal(parseBrowsingDate(TOMORROW,TODAY),TOMORROW);
+});
 
 function source(rows: Record<string, unknown[]>): HttpFetcher {
   return {
