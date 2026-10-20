@@ -317,7 +317,7 @@ export default async function Home({ searchParams }: PageProps) {
                   <div className="combobox endpoint-search"><input className="control" id="map-place-search" type="search" role="combobox" aria-expanded="false" aria-controls="map-place-options" aria-autocomplete="list" autoComplete="off" placeholder="Search events, places or addresses" /><ul className="combobox-list" id="map-place-options" role="listbox" hidden /></div>
                 </div>
                 <div className="directions-actions">
-                  <a className="directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer">Open In Google Map<ActionIcon name="external-link" /></a>
+                  <a className="directions-link" data-role="google-directions" aria-disabled="true" tabIndex={-1} target="_blank" rel="noopener noreferrer">Open In Google Maps<ActionIcon name="external-link" /></a>
                 </div>
               </div>
               <p className="route-status" data-role="walking-route-status" aria-live="polite" />

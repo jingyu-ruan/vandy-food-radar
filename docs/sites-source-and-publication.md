@@ -200,4 +200,4 @@ The desktop Map list sits beneath its endpoint controls. Mobile controls appear
 in normal flow above the map. Week lists scroll independently of their map, and
 their markers use the same today-and-future date range. Coordinate changes pan
 the persistent map; label updates and save actions retain its camera. The walking
-action reads Open in Google Map. The page title and slogan remain pending review.
+action reads Open in Google Maps. The page title and slogan remain pending review.

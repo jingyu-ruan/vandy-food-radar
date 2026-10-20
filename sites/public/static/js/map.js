@@ -492,7 +492,7 @@ export function syncWalkingRoute(root) {
   const label=one('[data-role="walking-route-status"]',root);
   if (!Number.isFinite(origin?.lat) || !Number.isFinite(origin?.lng) || !Number.isFinite(destination?.lat) || !Number.isFinite(destination?.lng)) {
     clearRoute();
-    if (label) label.textContent=destination ? 'This destination has no verified map coordinates. Use Open in Google Map to check walking directions.' : '';
+    if (label) label.textContent=destination ? 'This destination has no verified map coordinates. Use Open in Google Maps to check walking directions.' : '';
     return;
   }
   const key=JSON.stringify([origin.lat,origin.lng,destination.lat,destination.lng]);
@@ -525,6 +525,6 @@ export async function showWalkingRoute(root) {
     map.fitBounds(routeLine.getBounds().pad(0.18),{animate:!prefersReducedMotion(),maxZoom:18});
     if (label) label.textContent=estimated ? `${route.minutes} min straight-line estimate; actual walking route unverified.` : `${route.minutes} min walking, ${(route.distance_m/1000).toFixed(2)} km`;
   } catch {
-    if (generation === routeGeneration && label) label.textContent='Walking route unavailable. Try again or use Open in Google Map.';
+    if (generation === routeGeneration && label) label.textContent='Walking route unavailable. Try again or use Open in Google Maps.';
   }
 }

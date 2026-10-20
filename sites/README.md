@@ -130,7 +130,7 @@ On mobile, compact endpoint controls appear in normal flow above the map, with
 the event list beneath it. Changing coordinates pans the persistent map smoothly;
 label-only updates and save actions preserve its camera. A new selection can
 interrupt the previous pan, and reduced motion uses immediate positioning.
-The walking link reads Open in Google Map.
+The walking link reads Open in Google Maps.
 The basemap uses OpenFreeMap Liberty vector tiles rendered through MapLibre and
 Leaflet. Buildings use light neutral fills, parks retain natural green, and
 low-priority place labels appear only at closer zoom levels. Activity markers
