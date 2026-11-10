@@ -1281,6 +1281,38 @@ html.settings-open { overflow:hidden; }
  .brand-icon { width:40px; height:40px; }
 }
 .work-slogan { margin:8px 0 0; }
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("./fonts/fraunces-latin-650.woff2") format("woff2");
+  font-weight: 650;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DM Sans";
+  src: url("./fonts/dm-sans-latin-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+.brand-style-table-print .work-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.8125rem;
+  letter-spacing: -.028em;
+}
+
+.brand-style-table-print .work-slogan {
+  font-family: "DM Sans", var(--font);
+  font-size: .9375rem;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: .01em;
+}
+
+@media (max-width: 390px) {
+  .brand-style-table-print .work-title { font-size: 1.625rem; }
+}
 /* Place route controls above the map so Events gets a full-height sidebar. */
 @media(min-width:801px) {
  .map-side { display:contents; }

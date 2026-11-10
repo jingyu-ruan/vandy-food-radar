@@ -193,7 +193,7 @@ export default async function Home({ searchParams }: PageProps) {
                   {/* eslint-disable-next-line @next/next/no-img-element -- a local vector brand mark has fixed dimensions */}
                   <img className="brand-icon" src="/static/brand/vfr-icon.svg?v=beacon-20261003" width="44" height="44" alt="" aria-hidden="true" />
                 </a>
-                <div className="work-brand-copy"><h1 className="work-title">Free Bites at Vandy</h1><p className="work-slogan">May the fork be with you.</p></div>
+                <div className="work-brand-copy brand-style-table-print"><h1 className="work-title">Free Bites at Vandy</h1><p className="work-slogan">May the fork be with you.</p></div>
               </div>
             </div>
             <div className="work-sub"><span>Walking From</span><div className="origin-picker">
