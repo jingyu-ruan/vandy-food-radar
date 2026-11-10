@@ -30,3 +30,63 @@ test('multiword foods get a single matching emoji and remain stable on rerender'
  assert.equal(foodEmojiText(text,text),accented);
  assert.equal(foodEmojiText(accented,text),accented);
 });
+
+test('menus use distinct fruit, vegetable, breakfast and pantry emoji',()=>{
+ const menus=[
+  ['Grapes, melon, watermelon, oranges, lemon, lime, banana, pineapple, mango, green apples, pears, peaches, cherries, strawberries, blueberries, kiwi and coconut.',
+   'Grapes 🍇, melon 🍈, watermelon 🍉, oranges 🍊, lemon 🍋, lime 🍋‍🟩, banana 🍌, pineapple 🍍, mango 🥭, green apples 🍏, pears 🍐, peaches 🍑, cherries 🍒, strawberries 🍓, blueberries 🫐, kiwi 🥝 and coconut 🥥.'],
+  ['Tomatoes, olives, avocado, eggplant, sweet potatoes, carrots, corn, bell peppers, cucumbers, spinach, broccoli, garlic, onions, mushrooms, beans, peas and ginger.',
+   'Tomatoes 🍅, olives 🫒, avocado 🥑, eggplant 🍆, sweet potatoes 🍠, carrots 🥕, corn 🌽, bell peppers 🫑, cucumbers 🥒, spinach 🥬, broccoli 🥦, garlic 🧄, onions 🧅, mushrooms 🍄‍🟫, beans 🫘, peas 🫛 and ginger 🫚.'],
+  ['Baguettes, flatbread, pretzels, bagels, pancakes, waffles, scrambled eggs, omelettes, bacon, butter, yogurt, oatmeal, peanuts and chestnuts.',
+   'Baguettes 🥖, flatbread 🫓, pretzels 🥨, bagels 🥯, pancakes 🥞, waffles 🧇, scrambled eggs 🥚, omelettes 🍳, bacon 🥓, butter 🧈, yogurt 🥛, oatmeal 🥣, peanuts 🥜 and chestnuts 🌰.'],
+ ];
+ for(const [text,expected] of menus) assert.equal(foodEmojiText(text,text),expected);
+});
+
+test('international dishes, desserts and drinks get specific or close-family accents',()=>{
+ const menus=[
+  ['Shawarma, samosas, bento boxes, onigiri, rice crackers, paella, pho, lasagna, tofu, brisket, ribs, salmon, crab, lobster, calamari and oysters.',
+   'Shawarma 🥙, samosas 🥟, bento boxes 🍱, onigiri 🍙, rice crackers 🍘, paella 🥘, pho 🍜, lasagna 🍝, tofu 🫘, brisket 🥩, ribs 🍖, salmon 🐟, crab 🦀, lobster 🦞, calamari 🦑 and oysters 🦪.'],
+  ['Gelato, shaved ice, donuts, cookies, cupcakes, cheesecake, apple pie, chocolate, candy, lollipops, pudding, honey, popcorn, dango, mooncakes and churros.',
+   'Gelato 🍨, shaved ice 🍧, donuts 🍩, cookies 🍪, cupcakes 🧁, cheesecake 🍰, apple pie 🥧, chocolate 🍫, candy 🍬, lollipops 🍭, pudding 🍮, honey 🍯, popcorn 🍿, dango 🍡, mooncakes 🥮 and churros 🥨.'],
+  ['Boba, green tea, cappuccino, hot chocolate, smoothies, juice, water, soda, beer, wine, champagne, mocktails, sake and bourbon.',
+   'Boba 🧋, green tea 🍵, cappuccino ☕, hot chocolate ☕, smoothies 🥤, juice 🧃, water 💧, soda 🥤, beer 🍺, wine 🍷, champagne 🍾, mocktails 🍹, sake 🍶 and bourbon 🥃.'],
+ ];
+ for(const [text,expected] of menus) assert.equal(foodEmojiText(text,text),expected);
+});
+
+test('compound food names win over ingredients and stay stable with existing emoji',()=>{
+ const text='Chocolate chip cookies, chicken sandwiches, grilled cheese, ice-cream sandwiches, banana bread, sweet potato fries, fruit salad, rice noodles, coconut water, milk tea and chai lattes.';
+ const expected='Chocolate chip cookies 🍪, chicken sandwiches 🥪, grilled cheese 🥪, ice-cream sandwiches 🥪, banana bread 🍞, sweet potato fries 🍟, fruit salad 🥗, rice noodles 🍜, coconut water 💧, milk tea 🧋 and chai lattes ☕.';
+ assert.equal(foodEmojiText(text,text),expected);
+ assert.equal(foodEmojiText(expected,text),expected);
+ const preAccented='Lime 🍋‍🟩, mushrooms 🍄‍🟫 and CHOCOLATE CHIP COOKIES 🍪.';
+ assert.equal(foodEmojiText(preAccented,preAccented),preAccented);
+ const dishes='Cheese pizza, chicken burgers, shrimp tacos, burrito bowls, fried eggs and fortune cookies.';
+ assert.equal(foodEmojiText(dishes,dishes),'Cheese pizza 🍕, chicken burgers 🍔, shrimp tacos 🌮, burrito bowls 🌯, fried eggs 🍳 and fortune cookies 🥠.');
+ const more='Radishes, kebabs, tamales, stew, fondue, mochi, fish cakes, salt and ice cubes.';
+ assert.equal(foodEmojiText(more,more),'Radishes 🫜, kebabs 🍢, tamales 🫔, stew 🍲, fondue 🫕, mochi 🍡, fish cakes 🍥, salt 🧂 and ice cubes 🧊.');
+});
+
+test('aliases, plurals, punctuation and accented spellings work without partial word matches',()=>{
+ assert.equal(foodEmojiText('Doughnuts; bubble tea; gyoza; crêpes; jalapeños; yoghurt.',
+  'Donuts, boba, dumplings, crepes, jalapenos and yogurt.'),
+  'Doughnuts 🍩; bubble tea 🧋; gyoza 🥟; crêpes 🥞; jalapeños 🌶️; yoghurt 🥛.');
+ const text='APPLE, (kiwis), “muffins” and strawberry-flavored ice cream.';
+ assert.equal(foodEmojiText(text,text),'APPLE 🍎, (kiwis 🥝), “muffins 🧁” and strawberry 🍓-flavored ice cream 🍦.');
+ const nonFoods='Appleton, cornhole, eggplantation, pearlescent, hamburgerology, teaé, café, cooking and pizzazz.';
+ assert.equal(foodEmojiText(nonFoods,'apple corn eggplant pear hamburger tea coffee pizza'),nonFoods);
+});
+
+test('expanded accents still require source support and exclude unconfirmed or cancelled listings',()=>{
+ const event={food_label:'Food confirmed',food_items:['blueberries','muffins','lemonade']};
+ const source=foodSourceText([event]);
+ assert.equal(foodEmojiText('Blueberries, muffins, lemonade, sushi and dinner.',source),
+  'Blueberries 🫐, muffins 🧁, lemonade 🍋, sushi and dinner.');
+ for(const entry of [{...event,cancelled:true},{...event,food_label:'Food disputed'}]) {
+  assert.equal(foodEmojiText('Blueberries and muffins.',foodSourceText([entry])),'Blueberries and muffins.');
+ }
+ assert.equal(foodEmojiText('Blueberries and muffins.'),'Blueberries and muffins.');
+ assert.equal(foodEmojiText('Dinner, lunch, snacks and refreshments.','Dinner, lunch, snacks and refreshments.'),
+  'Dinner, lunch, snacks and refreshments.');
+});
