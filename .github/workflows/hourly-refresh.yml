@@ -1,10 +1,15 @@
 name: Refresh live AnchorLink events on Sites
 
 on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/hourly-refresh.yml]
   schedule:
-    # GitHub Actions uses UTC. Distinct minutes keep the two cadences separate.
+    # GitHub Actions uses UTC. Refresh imminent dates often, the coming week daily,
+    # and the second week weekly. Gemini freshness is enforced by the Site.
     - cron: "17 */2 * * *"
-    - cron: "47 */6 * * *"
+    - cron: "47 12 * * *"
+    - cron: "47 13 * * 0"
   workflow_dispatch:
     inputs:
       days:
@@ -15,6 +20,7 @@ on:
         options:
           - "2"
           - "7"
+          - "14"
 
 permissions: {}
 
@@ -32,17 +38,20 @@ jobs:
         env:
           SCHEDULE: ${{ github.event.schedule }}
           REQUESTED_DAYS: ${{ inputs.days }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
           if [ -n "${REQUESTED_DAYS:-}" ]; then
             days="$REQUESTED_DAYS"
-          elif [ "${SCHEDULE:-}" = "47 */6 * * *" ]; then
+          elif [ "${EVENT_NAME:-}" = "push" ] || [ "${SCHEDULE:-}" = "47 13 * * 0" ]; then
+            days=14
+          elif [ "${SCHEDULE:-}" = "47 12 * * *" ]; then
             days=7
           else
             days=2
           fi
           case "$days" in
-            2|7) ;;
+            2|7|14) ;;
             *) echo "unsupported day span: $days" >&2; exit 1 ;;
           esac
           echo "days=$days" >> "$GITHUB_OUTPUT"
@@ -70,7 +79,7 @@ jobs:
           days = int(os.environ['DAYS'])
           if base != 'https://vandy-food-radar.rjy020128.chatgpt.site' or not token or not refresh_token:
               raise SystemExit('Sites URL or service credential is missing or invalid')
-          if days not in (2, 7):
+          if days not in (2, 7, 14):
               raise SystemExit('Unsupported refresh day span')
 
           class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -89,7 +98,7 @@ jobs:
                   })
               for attempt in range(3):
                   try:
-                      with client.open(req, timeout=60) as response:
+                      with client.open(req, timeout=240) as response:
                           if response.status != 200:
                               raise SystemExit('Unexpected Sites HTTP status')
                           return json.load(response)
@@ -139,5 +148,6 @@ jobs:
           print(json.dumps({
               'dates': expected, 'events': total,
               'publishedAt': result['publishedAt'], 'changes': result.get('changes'),
+              'ai': result.get('ai'),
           }))
           PY
